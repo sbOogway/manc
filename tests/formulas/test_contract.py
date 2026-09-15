@@ -19,6 +19,16 @@ AS_OF = datetime(2026, 9, 15, 8, 0, tzinfo=UTC)
 ASSET = AssetSpec(symbol="EURUSD", kind="forex", economies=("euro_area", "united_states"))
 
 
+def test_index_score_report_defaults_empty_and_can_be_attached() -> None:
+    from dataclasses import replace
+
+    score = get_formula("v1").compute(
+        ScoringInputs(asset=ASSET, as_of=AS_OF, tags=(), released=(), upcoming=(), params={})
+    )
+    assert score.report_md == ""
+    assert replace(score, report_md="# EURUSD").report_md == "# EURUSD"
+
+
 def test_registry_returns_v1() -> None:
     formula = get_formula("v1")
     assert isinstance(formula, IndexFormula)

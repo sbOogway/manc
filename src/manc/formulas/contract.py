@@ -59,6 +59,7 @@ class IndexScore:
     components: Mapping[str, float]  # whatever the formula exposes, e.g. N, S, R
     n_news: int
     n_events: int
+    report_md: str = ""  # filled in by the report builder after scoring
 
 
 @runtime_checkable
