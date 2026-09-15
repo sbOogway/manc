@@ -1,6 +1,6 @@
 # manc — macro analysis, news and calendar
 
-**Project blueprint, draft 7 (2026-09-15).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
+**Project blueprint, draft 8 (2026-09-15).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
 This file is the source of truth; update it when a decision changes.
 
 A small daily pipeline that reads the economic calendar and trusted news feeds, scores each
@@ -41,7 +41,7 @@ One command, five steps, each behind an interface so it can be swapped or faked 
 |------|----------------|-------------------------------------------------------------|-----------------|
 | 01   | Fetch calendar | Next 30 days of events, plus last 7 days with actuals.      | `calendar/`     |
 | 02   | Fetch news     | Pull every RSS feed, dedupe by URL, keep last 72h.          | `news/`         |
-| 03   | Analyse        | Tag headlines to assets with a direction; compute surprises.| `analysis/`     |
+| 03   | Analyse        | Tag headlines to assets with a direction.                   | `analysis/`     |
 | 04   | Score          | Hand the inputs to the configured formula: 0–100 out. No I/O.| `formulas/`     |
 | 05   | Store + report | Write score, components and markdown report to SQLite.      | `store/` `report/` |
 
@@ -61,10 +61,10 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 |------------|---------------------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------|
 | `calendar` | `CalendarProvider.fetch(start, end) -> list[CalendarEvent]`               | OpenBB, Nasdaq provider (free, no key)                                  | parsing, importance mapping, date windows                            |
 | `news`     | `NewsProvider.fetch(since) -> list[NewsItem]`                             | feedparser over `config/feeds.yaml`                                     | parsing, dedupe, per-feed failure isolation                          |
-| `analysis` | `Analyzer.tag(items, assets) -> list[NewsTag]`; `surprise(events, assets) -> list[Surprise]` | LiteLLM `completion()` with a Pydantic response schema, model from config; deterministic surprise calc | fake analyzer; surprise math; direction map |
+| `analysis` | `Analyzer.tag(items, assets) -> list[NewsTag]`                            | LiteLLM `completion()` with a Pydantic response schema, model from config | fake analyzer; batching; schema validation                           |
 | `formulas` | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | plain Python classes, one per version, standard library only (§5) | property tests on every formula; an isolation test that the package imports nothing else from `manc` |
 | `scoring`  | `build_inputs(store, asset, as_of, params) -> ScoringInputs` | thin adapter from the store to the formula contract | adapter builds inputs correctly |
-| `store`    | `Store.save_*/load_*` over the four tables                                | SQLAlchemy Core over SQLite; schema in `schema.py`, Alembic migrations   | round-trips, idempotent upserts; migrations reach `head` and match `schema.py` |
+| `store`    | Repository pattern: `Store` composes `news`, `tags`, `events`, `scores` repositories, each with `add()` and named queries (`since`, `tagged`, `between`, `series`) | SQLAlchemy Core over SQLite; schema in `schema.py`, Alembic migrations | round-trips, idempotent upserts; migrations reach `head` and match `schema.py` |
 | `report`   | `build_report(asset, score, tags, events) -> str`                         | Markdown, summary paragraph written by the configured LLM               | template output with fake analyzer                                   |
 | `web`      | Dash app                                                                  | Dash + Mantine components + Plotly (§7)                                 | layouts render, callbacks return expected figures with a seeded DB   |
 | `pipeline` | `run(date, config) -> list[IndexScore]`                                   | wires the above; exposed as `manc run`                                  | end-to-end with all fakes                                            |
@@ -86,7 +86,7 @@ What "test-first" means per layer:
 |---------------------|---------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
 | `formulas`          | property tests with `hypothesis`: bounds 0–100, exactly 50 on empty inputs, monotonic in N and S, symmetric under sign flip, event risk only shrinks toward 50 | none needed; pure functions                              |
 | `calendar`, `news`  | parser tests against recorded responses; one test per failure mode (empty feed, malformed date, HTTP 403 on one feed of many)               | fixture files under `tests/fixtures/`, HTTP stubbed with `respx`            |
-| `analysis`          | tagger tests assert prompt batching, schema validation and retry; surprise tests are table-driven                                          | `litellm.completion` monkeypatched to return canned JSON                    |
+| `analysis`          | tagger tests assert prompt batching, schema validation and retry                                                                           | `litellm.completion` monkeypatched to return canned JSON                    |
 | `store`             | migration tests (upgrade to head, downgrade to base, no drift between `schema.py` and `head`); round-trip and idempotency tests on a temp SQLite file | `tmp_path`                                                       |
 | `pipeline`, `cli`   | end-to-end against in-memory fakes of every Protocol; asserts the rows written, the exit code and the log                                   | `FakeCalendar`, `FakeNews`, `FakeAnalyzer`, `FakeStore` in `tests/fakes.py` |
 | `web`               | callback functions tested directly (they are plain functions) plus one smoke test per page that the layout renders with a seeded store; visual quality is reviewed manually by the owner, not by automated screenshots | seeded SQLite in a fixture |
@@ -273,6 +273,10 @@ index
   score = 50 + 50·raw·(1 − 0.5·R)
 ```
 
+The formula receives raw `actual / consensus / previous` per released event and computes sₑ
+itself; the surprise rule is part of what a version defines, so it is not split into a
+separate module.
+
 - `dᵢ, cᵢ` — direction (−1/0/+1) and confidence (0..1) the tagger assigned to headline *i* for this asset
 - `wᵢ` — source weight from the feeds table
 - `sign(asset, category)` — small YAML map: e.g. hot US inflation is +1 for USD pairs' dollar leg, −1 for gold, SPX, BTC; unknown pairs default to 0 (ignored)
@@ -382,7 +386,7 @@ manc/
 │   │   └── v1.py           # class FormulaV1
 │   ├── calendar/           # interface.py, openbb.py
 │   ├── news/               # interface.py, rss.py
-│   ├── analysis/           # interface.py, llm.py, lexicon.py, surprise.py
+│   ├── analysis/           # interface.py, llm.py, lexicon.py
 │   ├── scoring/            # adapter.py: store → ScoringInputs → formula
 │   ├── store/              # interface.py, schema.py (tables), db.py (engine, upgrade), sql.py
 │   ├── report/             # builder.py
@@ -442,8 +446,8 @@ prints 50 for every asset using fakes.
 **M3 Analysis and index** — done when: real scores are written for all seven assets.
 - LLM tagger through LiteLLM: Pydantic response schema, batching, configurable model with fallback
 - lexicon fallback analyzer
-- surprise calculation and sign map
-- `FormulaV1` with property tests; scoring adapter; `manc rescore`
+- `FormulaV1` with property tests (news term, surprise term with the sign map, event-risk
+  shrink); scoring adapter; `manc rescore`
 
 **M4 Report and web** — done when: the dashboard shows the overview and per-asset history with
 today's report, in both themes.

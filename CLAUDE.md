@@ -29,6 +29,13 @@ the index formula, storage, dashboard and milestones. Keep it updated when a dec
 - **Dashboard look is reviewed by the owner manually.** Do not take screenshots or drive a
   browser to check the Dash pages; test callbacks and page rendering only.
 
+## Code style
+
+- Descriptive variable names everywhere, including loops, comprehensions and lambdas: `for event
+  in events`, `key=lambda score: score.date`. Never single-letter names (`e`, `i`, `t`, `s`).
+- Commit per module within a PR, each commit green on its own; subject prefixed with the module
+  (`store: ...`, `formulas: ...`).
+
 ## Commands
 
 ```sh
