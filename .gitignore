@@ -7,7 +7,8 @@ __pycache__/
 dist/
 
 # runtime data and secrets
-data/
+data/*
+!data/.gitkeep
 .env
 
 # test artefacts

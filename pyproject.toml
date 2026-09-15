@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Macro analysis, news and calendar: a daily 0-100 macro index per asset"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "alembic>=1.13",
+    "sqlalchemy>=2.0",
+]
 
 [project.scripts]
 manc = "manc.cli:main"

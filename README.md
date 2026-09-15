@@ -12,6 +12,7 @@ Blueprint: [docs/blueprint.md](docs/blueprint.md) (styled render: https://claude
 uv sync                      # creates .venv with Python 3.12 and all dependencies
 uv run pre-commit install    # installs the git hooks (once per clone)
 uv run pytest                # run the test suite
+uv run alembic upgrade head  # create/upgrade data/manc.db (set MANC_DB_URL to use another database)
 ```
 
 Every commit runs the pre-commit hooks: file hygiene, `ruff format`, `ruff check --fix`
@@ -22,6 +23,7 @@ hosted CI. For a work-in-progress commit on a branch, `SKIP=pytest git commit ..
 
 - `src/manc/` — the application (ingestion, analysis, store, dashboard, CLI)
 - `src/manc/formulas/` — index formulas as plain Python classes; standard library only, versioned
+- `src/manc/store/schema.py` — declared tables; every change becomes an Alembic revision in `migrations/`
 - `config/` — assets, feeds, scoring params, LLM model
 - `tests/` — all tests, one folder per module
 
