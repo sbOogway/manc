@@ -1,12 +1,12 @@
 # manc — macro analysis, news and calendar
 
-**Project blueprint, draft 6 (2026-09-15).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
+**Project blueprint, draft 7 (2026-09-15).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
 This file is the source of truth; update it when a decision changes.
 
 A small daily pipeline that reads the economic calendar and trusted news feeds, scores each
 tracked asset 0–100, stores the score, and plots it.
 
-Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · Dash · SQLite · OpenBB.
+Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · Dash · SQLite via SQLAlchemy Core + Alembic · OpenBB.
 
 ---
 
@@ -64,7 +64,7 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 | `analysis` | `Analyzer.tag(items, assets) -> list[NewsTag]`; `surprise(events, assets) -> list[Surprise]` | LiteLLM `completion()` with a Pydantic response schema, model from config; deterministic surprise calc | fake analyzer; surprise math; direction map |
 | `formulas` | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | plain Python classes, one per version, standard library only (§5) | property tests on every formula; an isolation test that the package imports nothing else from `manc` |
 | `scoring`  | `build_inputs(store, asset, as_of, params) -> ScoringInputs` | thin adapter from the store to the formula contract | adapter builds inputs correctly |
-| `store`    | `Store.save_*/load_*` over the four tables                                | SQLite via stdlib `sqlite3`                                             | round-trips, idempotent upserts                                      |
+| `store`    | `Store.save_*/load_*` over the four tables                                | SQLAlchemy Core over SQLite; schema in `schema.py`, Alembic migrations   | round-trips, idempotent upserts; migrations reach `head` and match `schema.py` |
 | `report`   | `build_report(asset, score, tags, events) -> str`                         | Markdown, summary paragraph written by the configured LLM               | template output with fake analyzer                                   |
 | `web`      | Dash app                                                                  | Dash + Mantine components + Plotly (§7)                                 | layouts render, callbacks return expected figures with a seeded DB   |
 | `pipeline` | `run(date, config) -> list[IndexScore]`                                   | wires the above; exposed as `manc run`                                  | end-to-end with all fakes                                            |
@@ -87,7 +87,7 @@ What "test-first" means per layer:
 | `formulas`          | property tests with `hypothesis`: bounds 0–100, exactly 50 on empty inputs, monotonic in N and S, symmetric under sign flip, event risk only shrinks toward 50 | none needed; pure functions                              |
 | `calendar`, `news`  | parser tests against recorded responses; one test per failure mode (empty feed, malformed date, HTTP 403 on one feed of many)               | fixture files under `tests/fixtures/`, HTTP stubbed with `respx`            |
 | `analysis`          | tagger tests assert prompt batching, schema validation and retry; surprise tests are table-driven                                          | `litellm.completion` monkeypatched to return canned JSON                    |
-| `store`             | round-trip and idempotency tests on a temp SQLite file                                                                                     | `tmp_path`                                                                  |
+| `store`             | migration tests (upgrade to head, downgrade to base, no drift between `schema.py` and `head`); round-trip and idempotency tests on a temp SQLite file | `tmp_path`                                                       |
 | `pipeline`, `cli`   | end-to-end against in-memory fakes of every Protocol; asserts the rows written, the exit code and the log                                   | `FakeCalendar`, `FakeNews`, `FakeAnalyzer`, `FakeStore` in `tests/fakes.py` |
 | `web`               | callback functions tested directly (they are plain functions) plus one smoke test per page that the layout renders with a seeded store; visual quality is reviewed manually by the owner, not by automated screenshots | seeded SQLite in a fixture |
 
@@ -299,10 +299,21 @@ dashboard shows them under the score so a reader can tell whether 62 means "grea
 
 ## 6 · Storage
 
-One SQLite file, `data/manc.db`, through the standard library. No ORM, no migrations
-framework: a single `schema.sql` applied with `CREATE TABLE IF NOT EXISTS`. Backup is copying
-one file. If this ever needs to move to Postgres the `Store` protocol is the only thing to
-reimplement.
+One SQLite file, `data/manc.db`, accessed through SQLAlchemy Core (tables, not an ORM) and
+versioned with Alembic. `src/manc/store/schema.py` declares the tables and is the single
+source of truth; every schema change is an Alembic revision generated from it:
+
+```sh
+uv run alembic upgrade head                       # bring the database to the current schema
+uv run alembic revision --autogenerate -m "..."   # after editing schema.py; review the file
+uv run alembic downgrade -1                       # step back one revision
+```
+
+The database URL comes from `MANC_DB_URL` (default `sqlite:///data/manc.db`), so moving to
+Postgres is a URL change plus a driver. `manc run` and `manc serve` refuse to start if the
+database is not at `head`, so a forgotten upgrade fails loudly. A test compares `schema.py`
+with the migrated database and fails on drift, so a schema edit without a revision cannot be
+committed. Backup is still copying one file.
 
 | Table             | Key                      | Columns                                                                          |
 |-------------------|--------------------------|----------------------------------------------------------------------------------|
@@ -311,8 +322,9 @@ reimplement.
 | `calendar_events` | `id`                     | `date, country, event, category, importance, consensus, previous, actual, fetched_at` |
 | `scores`          | `(asset, date, formula)` | `score, components_json, n_news, n_events, report_md, created_at`                |
 
-Re-running `manc run` for the same day overwrites that day's row, so a bad run is fixed by
-running again. `formula` is part of the key so a rescore under `v2` sits next to the `v1` row
+Column types: timestamps are timezone-aware `DateTime`, `scores.date` is an ISO date string,
+`components_json` is a JSON column. Re-running `manc run` for the same day overwrites that
+day's row, so a bad run is fixed by running again. `formula` is part of the key so a rescore under `v2` sits next to the `v1` row
 instead of replacing it; the dashboard defaults to the configured formula and can overlay
 others.
 
@@ -353,6 +365,8 @@ Looking good, concretely:
 manc/
 ├── pyproject.toml          # uv project; ruff + pytest config
 ├── .pre-commit-config.yaml # hygiene, ruff format, ruff check, pytest
+├── alembic.ini
+├── migrations/             # Alembic env.py + versions/
 ├── config/
 │   ├── assets.yaml         # symbols, economies, sign map
 │   ├── feeds.yaml          # RSS urls + weights
@@ -370,13 +384,13 @@ manc/
 │   ├── news/               # interface.py, rss.py
 │   ├── analysis/           # interface.py, llm.py, lexicon.py, surprise.py
 │   ├── scoring/            # adapter.py: store → ScoringInputs → formula
-│   ├── store/              # interface.py, sqlite.py, schema.sql
+│   ├── store/              # interface.py, schema.py (tables), db.py (engine, upgrade), sql.py
 │   ├── report/             # builder.py
 │   ├── web/                # app.py, theme.py, pages/, components/
 │   ├── pipeline.py
 │   └── cli.py              # manc run | manc rescore | manc serve
 ├── tests/                  # one folder per module + fixtures/; formulas/ has the isolation test
-└── data/                   # manc.db (gitignored)
+└── data/                   # manc.db (gitignored; the folder is kept)
 ```
 
 | Dependency                                        | Used for                                                              |
@@ -384,6 +398,7 @@ manc/
 | `openbb-nasdaq`                                   | economic calendar (pulls in openbb-core)                              |
 | `feedparser`, `httpx`                             | RSS fetching and parsing                                              |
 | `litellm`, `pydantic`                             | headline tagging and report summary, provider-agnostic; Pydantic for the response schema |
+| `sqlalchemy`, `alembic`                           | store: Core tables and versioned migrations                            |
 | `pyyaml`                                          | config files                                                          |
 | `dash`, `dash-mantine-components`, `plotly`, `pandas` | dashboard                                                         |
 | `pytest`, `pytest-cov`, `hypothesis`, `respx`, `ruff`, `pre-commit` | dev: tests, property tests, HTTP stubbing, coverage gate, lint and format, git hooks |
@@ -415,7 +430,8 @@ prints 50 for every asset using fakes.
 - `manc.formulas`: contract, registry, isolation test and a `FormulaV1` stub returning 50
 - models.py and every Protocol
 - config loader for the four YAML files
-- SQLite store with schema and tests
+- SQLAlchemy Core schema, Alembic migrations and `MANC_DB_URL`, with migration tests
+- `Store` protocol implementation with round-trip tests
 - CLI with `run`, `rescore` and `serve` stubs
 
 **M2 Ingestion** — done when: a run populates `news` and `calendar_events` from live sources.
@@ -447,7 +463,8 @@ today's report, in both themes.
 Choices made to keep the system small. Any of them can be revisited; none of them are
 load-bearing enough to block a start.
 
-- **SQLite, not Postgres.** One user, one writer per day, one file.
+- **SQLite, not Postgres — but through SQLAlchemy Core and Alembic.** One user, one writer per
+  day, one file; the schema is versioned from day one and the engine is a URL change away.
 - **Cron, not a scheduler library.** The run is idempotent, so a missed run is just re-run.
 - **An LLM for tagging, not a keyword list.** Tagging quality is the biggest driver of N; the
   cost is cents per day.

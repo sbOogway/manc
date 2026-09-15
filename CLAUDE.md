@@ -9,6 +9,9 @@ the index formula, storage, dashboard and milestones. Keep it updated when a dec
 - **One issue, one branch, one PR.** Every feature is a GitHub issue under its milestone
   (`gh issue create -R sbOogway/manc --milestone "M1 Skeleton" --label <module>`), opened when
   work starts and listing the tests to write first. Branch names: `feat/<issue>-<slug>`.
+  Always branch from `main`. Open the PR and stop: **the owner reviews and merges**; never
+  merge a PR yourself. If the next issue depends on an unmerged PR, wait for the review (pick
+  an independent issue meanwhile) rather than stacking branches; ask if that would block you.
 - **Test-driven.** Write the failing test before the code (red → green → refactor). Property
   tests with `hypothesis` for formulas; recorded fixtures for providers; `tests/fakes.py` for
   Protocol fakes. Never hit the network in the default test run (`@pytest.mark.live` for the
@@ -20,6 +23,9 @@ the index formula, storage, dashboard and milestones. Keep it updated when a dec
   `tests/formulas/test_isolation.py`). A formula change is a new versioned module (`v2.py`),
   never an edit to an old one.
 - **All LLM calls go through LiteLLM**; the model is a string in `config/llm.yaml`.
+- **Schema changes are Alembic revisions.** Edit `src/manc/store/schema.py`, then
+  `uv run alembic revision --autogenerate -m "..."` and review the file. Never hand-edit the
+  database; a test fails on drift between `schema.py` and `head`.
 - **Dashboard look is reviewed by the owner manually.** Do not take screenshots or drive a
   browser to check the Dash pages; test callbacks and page rendering only.
 
@@ -30,4 +36,5 @@ uv sync                              # environment
 uv run pre-commit install            # git hooks, once per clone
 uv run pytest                        # tests with coverage
 uv run pre-commit run --all-files    # every hook on every tracked file
+uv run alembic upgrade head          # migrate the database (MANC_DB_URL, default data/manc.db)
 ```
