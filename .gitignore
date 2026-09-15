@@ -1,0 +1,11 @@
+# python / uv
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+
+# runtime data and secrets
+data/
+.env
