@@ -4,7 +4,7 @@ Daily pipeline that reads the economic calendar (OpenBB) and trusted RSS news
 feeds, scores each tracked asset 0–100 for macro tailwind/headwind, stores the
 score in SQLite and plots it on a small web page.
 
-Blueprint: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
+Blueprint: [docs/blueprint.md](docs/blueprint.md) (styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz)
 
 ## Setup
 
