@@ -9,7 +9,9 @@ the index formula, storage, dashboard and milestones. Keep it updated when a dec
 - **One issue, one branch, one PR.** Every feature is a GitHub issue under its milestone
   (`gh issue create -R sbOogway/manc --milestone "M1 Skeleton" --label <module>`), opened when
   work starts and listing the tests to write first. Branch names: `feat/<issue>-<slug>`.
-  Open the PR and stop: **the owner reviews and merges**; never merge a PR yourself.
+  Always branch from `main`. Open the PR and stop: **the owner reviews and merges**; never
+  merge a PR yourself. If the next issue depends on an unmerged PR, wait for the review (pick
+  an independent issue meanwhile) rather than stacking branches; ask if that would block you.
 - **Test-driven.** Write the failing test before the code (red → green → refactor). Property
   tests with `hypothesis` for formulas; recorded fixtures for providers; `tests/fakes.py` for
   Protocol fakes. Never hit the network in the default test run (`@pytest.mark.live` for the
