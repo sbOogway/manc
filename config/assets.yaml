@@ -1,0 +1,44 @@
+# Tracked assets. `economies` selects which countries' calendar events matter.
+# `signs` says how a hotter-than-expected print from that economy moves the asset:
+#   +1 tailwind, -1 headwind, 0 ignore. Categories: inflation, employment, growth, rates.
+# Rule of thumb: hot data -> stronger currency, higher yields. Base currency +1, quote -1;
+# gold and crypto dislike higher US yields; equities like growth but dislike hot inflation.
+assets:
+  EURUSD:
+    kind: forex
+    economies: [euro_area, united_states]
+    signs:
+      euro_area:     {inflation: 1,  employment: 1,  growth: 1,  rates: 1}
+      united_states: {inflation: -1, employment: -1, growth: -1, rates: -1}
+  GBPUSD:
+    kind: forex
+    economies: [united_kingdom, united_states]
+    signs:
+      united_kingdom: {inflation: 1,  employment: 1,  growth: 1,  rates: 1}
+      united_states:  {inflation: -1, employment: -1, growth: -1, rates: -1}
+  USDJPY:
+    kind: forex
+    economies: [united_states, japan]
+    signs:
+      united_states: {inflation: 1,  employment: 1,  growth: 1,  rates: 1}
+      japan:         {inflation: -1, employment: -1, growth: -1, rates: -1}
+  XAUUSD:
+    kind: metal
+    economies: [united_states]
+    signs:
+      united_states: {inflation: -1, employment: -1, growth: -1, rates: -1}
+  WTI:
+    kind: commodity
+    economies: [united_states]
+    signs:
+      united_states: {inflation: 0, employment: 1, growth: 1, rates: -1}
+  SPX:
+    kind: equity_index
+    economies: [united_states]
+    signs:
+      united_states: {inflation: -1, employment: 1, growth: 1, rates: -1}
+  BTCUSD:
+    kind: crypto
+    economies: [united_states]
+    signs:
+      united_states: {inflation: -1, employment: 0, growth: 1, rates: -1}
