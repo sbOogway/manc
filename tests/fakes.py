@@ -1,8 +1,8 @@
 """In-memory fakes for every module Protocol. Used by pipeline and CLI tests."""
 
-from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from datetime import date, datetime
+from functools import singledispatchmethod
 
 from manc.formulas.contract import AssetSpec, IndexScore
 from manc.models import CalendarEvent, NewsItem, NewsTag
@@ -46,23 +46,31 @@ class FakeStore:
         self.news: dict[str, NewsItem] = {}
         self.tags: dict[tuple[str, str], NewsTag] = {}
         self.events: dict[str, CalendarEvent] = {}
-        self.scores: dict[tuple[str, str, str], tuple[IndexScore, str]] = {}
-        self.reports: dict[tuple[str, str, str], str] = defaultdict(str)
+        self.scores: dict[tuple[str, str, str], IndexScore] = {}
 
-    def save_news(self, items: Iterable[NewsItem]) -> None:
-        for i in items:
-            self.news[i.id] = i
+    def save(self, *objects: CalendarEvent | NewsItem | NewsTag | IndexScore) -> None:
+        for obj in objects:
+            self._put(obj)
 
-    def save_tags(self, tags: Iterable[NewsTag]) -> None:
-        for t in tags:
-            self.tags[(t.news_id, t.asset)] = t
+    @singledispatchmethod
+    def _put(self, obj: object) -> None:
+        raise TypeError(f"cannot store {type(obj).__name__}")
 
-    def save_events(self, events: Iterable[CalendarEvent]) -> None:
-        for e in events:
-            self.events[e.id] = e
+    @_put.register
+    def _(self, obj: NewsItem) -> None:
+        self.news[obj.id] = obj
 
-    def save_score(self, score: IndexScore, report_md: str = "") -> None:
-        self.scores[(score.asset, score.date.isoformat(), score.formula)] = (score, report_md)
+    @_put.register
+    def _(self, obj: NewsTag) -> None:
+        self.tags[(obj.news_id, obj.asset)] = obj
+
+    @_put.register
+    def _(self, obj: CalendarEvent) -> None:
+        self.events[obj.id] = obj
+
+    @_put.register
+    def _(self, obj: IndexScore) -> None:
+        self.scores[(obj.asset, obj.date.isoformat(), obj.formula)] = obj
 
     def load_news(self, since: datetime) -> list[NewsItem]:
         return sorted(
@@ -86,7 +94,7 @@ class FakeStore:
         return sorted(
             (
                 s
-                for (a, d, f), (s, _) in self.scores.items()
+                for (a, d, f), s in self.scores.items()
                 if a == asset and f == formula and start <= date.fromisoformat(d) <= end
             ),
             key=lambda s: s.date,

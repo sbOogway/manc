@@ -2,6 +2,8 @@
 
 from datetime import UTC, date, datetime, timedelta
 
+import pytest
+
 from manc.analysis.interface import Analyzer
 from manc.calendar.interface import CalendarProvider
 from manc.formulas.contract import AssetSpec, IndexScore
@@ -54,10 +56,7 @@ def test_fake_store_round_trips() -> None:
         n_news=1,
         n_events=1,
     )
-    store.save_news([item])
-    store.save_tags([tag])
-    store.save_events([event])
-    store.save_score(score, report_md="# r")
+    store.save(item, tag, event, score)
 
     assert store.load_news(NOW - timedelta(days=1)) == [item]
     assert store.load_tagged_news("EURUSD", NOW - timedelta(days=1)) == [(item, tag)]
@@ -69,5 +68,10 @@ def test_fake_store_round_trips() -> None:
 def test_fake_store_upserts() -> None:
     store = FakeStore()
     item = NewsItem.from_feed(source="s", title="t", url="u", published_at=NOW)
-    store.save_news([item, item])
+    store.save(item, item)
     assert len(store.news) == 1
+
+
+def test_fake_store_rejects_unknown_types() -> None:
+    with pytest.raises(TypeError, match="cannot store str"):
+        FakeStore().save("not a record")  # type: ignore[arg-type]
