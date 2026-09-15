@@ -1,12 +1,12 @@
 # manc — macro analysis, news and calendar
 
-**Project blueprint, draft 5 (2026-09-15).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
+**Project blueprint, draft 6 (2026-09-15).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
 This file is the source of truth; update it when a decision changes.
 
 A small daily pipeline that reads the economic calendar and trusted news feeds, scores each
 tracked asset 0–100, stores the score, and plots it.
 
-Stack: Python 3.12 · uv workspace · pytest, TDD · pre-commit · LiteLLM · Dash · SQLite · OpenBB.
+Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · Dash · SQLite · OpenBB.
 
 ---
 
@@ -42,7 +42,7 @@ One command, five steps, each behind an interface so it can be swapped or faked 
 | 01   | Fetch calendar | Next 30 days of events, plus last 7 days with actuals.      | `calendar/`     |
 | 02   | Fetch news     | Pull every RSS feed, dedupe by URL, keep last 72h.          | `news/`         |
 | 03   | Analyse        | Tag headlines to assets with a direction; compute surprises.| `analysis/`     |
-| 04   | Score          | Hand the inputs to the configured formula: 0–100 out. No I/O.| `manc-formulas` |
+| 04   | Score          | Hand the inputs to the configured formula: 0–100 out. No I/O.| `formulas/`     |
 | 05   | Store + report | Write score, components and markdown report to SQLite.      | `store/` `report/` |
 
 The web server is a separate process (`manc serve`) that only reads the database. Scheduling is
@@ -62,7 +62,8 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 | `calendar` | `CalendarProvider.fetch(start, end) -> list[CalendarEvent]`               | OpenBB, Nasdaq provider (free, no key)                                  | parsing, importance mapping, date windows                            |
 | `news`     | `NewsProvider.fetch(since) -> list[NewsItem]`                             | feedparser over `config/feeds.yaml`                                     | parsing, dedupe, per-feed failure isolation                          |
 | `analysis` | `Analyzer.tag(items, assets) -> list[NewsTag]`; `surprise(events, assets) -> list[Surprise]` | LiteLLM `completion()` with a Pydantic response schema, model from config; deterministic surprise calc | fake analyzer; surprise math; direction map |
-| `scoring`  | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | thin adapter that builds `ScoringInputs` from the store and calls the formula package (§5) | adapter builds inputs correctly; formula tests live in the formula package |
+| `formulas` | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | plain Python classes, one per version, standard library only (§5) | property tests on every formula; an isolation test that the package imports nothing else from `manc` |
+| `scoring`  | `build_inputs(store, asset, as_of, params) -> ScoringInputs` | thin adapter from the store to the formula contract | adapter builds inputs correctly |
 | `store`    | `Store.save_*/load_*` over the four tables                                | SQLite via stdlib `sqlite3`                                             | round-trips, idempotent upserts                                      |
 | `report`   | `build_report(asset, score, tags, events) -> str`                         | Markdown, summary paragraph written by the configured LLM               | template output with fake analyzer                                   |
 | `web`      | Dash app                                                                  | Dash + Mantine components + Plotly (§7)                                 | layouts render, callbacks return expected figures with a seeded DB   |
@@ -83,15 +84,15 @@ What "test-first" means per layer:
 
 | Layer               | Test style                                                                                                                                  | Doubles and fixtures                                                        |
 |---------------------|---------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| `manc-formulas`     | property tests with `hypothesis`: bounds 0–100, exactly 50 on empty inputs, monotonic in N and S, symmetric under sign flip, event risk only shrinks toward 50 | none needed; pure functions                              |
+| `formulas`          | property tests with `hypothesis`: bounds 0–100, exactly 50 on empty inputs, monotonic in N and S, symmetric under sign flip, event risk only shrinks toward 50 | none needed; pure functions                              |
 | `calendar`, `news`  | parser tests against recorded responses; one test per failure mode (empty feed, malformed date, HTTP 403 on one feed of many)               | fixture files under `tests/fixtures/`, HTTP stubbed with `respx`            |
 | `analysis`          | tagger tests assert prompt batching, schema validation and retry; surprise tests are table-driven                                          | `litellm.completion` monkeypatched to return canned JSON                    |
 | `store`             | round-trip and idempotency tests on a temp SQLite file                                                                                     | `tmp_path`                                                                  |
 | `pipeline`, `cli`   | end-to-end against in-memory fakes of every Protocol; asserts the rows written, the exit code and the log                                   | `FakeCalendar`, `FakeNews`, `FakeAnalyzer`, `FakeStore` in `tests/fakes.py` |
 | `web`               | callback functions tested directly (they are plain functions) plus one smoke test per page that the layout renders with a seeded store; visual quality is reviewed manually by the owner, not by automated screenshots | seeded SQLite in a fixture |
 
-Coverage is not a target on its own, but pytest is configured to fail below 85% on
-`manc-formulas` and `manc` so untested code cannot sneak in. Live-network tests exist for the
+Coverage is not a target on its own, but pytest is configured to fail below 85% so untested
+code cannot sneak in. Live-network tests exist for the
 real RSS feeds and the OpenBB calendar; they are marked `@pytest.mark.live`, skipped by default
 and run manually before a release.
 
@@ -133,7 +134,7 @@ class NewsTag:
 
 
 @dataclass(frozen=True)
-class IndexScore:  # defined in manc_formulas, re-exported here
+class IndexScore:  # defined in manc.formulas.contract, re-exported here
     asset: str
     date: date
     score: float  # 0..100
@@ -208,13 +209,14 @@ lexicon-based `Analyzer` stays available as an offline fallback and as the test 
 
 ## 5 · Index formula
 
-The formula is expected to change, so it lives outside the application: a separate package in
-the same repo, `packages/manc-formulas`, with no dependency on `manc`. It owns the contract
-(what a formula receives and returns) and one module per formula version. The app only ever
-calls `get_formula(config.formula).compute(inputs)`.
+The formula is expected to change, so it is kept apart from the rest of the application: the
+package `manc.formulas` (in `src/manc/formulas/`) contains plain Python classes, one module per
+formula version, and depends on nothing but the standard library and its own `contract.py`. It
+owns the contract (what a formula receives and returns). The app only ever calls
+`get_formula(config.formula).compute(inputs)`.
 
 ```python
-# manc_formulas/contract.py  — the only thing the app depends on
+# manc/formulas/contract.py  — the only thing the app depends on
 @dataclass(frozen=True)
 class ScoringInputs:
     asset: AssetSpec  # symbol, kind, economies, sign map
@@ -231,14 +233,22 @@ class IndexFormula(Protocol):
     def compute(self, inputs: ScoringInputs) -> IndexScore: ...
 
 
-# manc_formulas/registry.py
-def get_formula(name: str) -> IndexFormula: ...  # "v1" → v1.Formula()
+# manc/formulas/v1.py  — a plain class, no framework
+class FormulaV1:
+    name = "v1"
+
+    def compute(self, inputs: ScoringInputs) -> IndexScore: ...
+
+
+# manc/formulas/registry.py
+def get_formula(name: str) -> IndexFormula: ...  # "v1" → FormulaV1()
 ```
 
-Rules that keep it decoupled: the package imports only the standard library (enforced by a
-test); every formula is a pure function of `ScoringInputs`; every stored score carries the
-formula name; a new formula is a new module (`v2.py`) plus a registry entry, never an edit to
-`v1.py`. Since the app stores every input, `manc rescore --formula v2 --from 2026-09-01`
+Rules that keep it decoupled: `manc.formulas` imports only the standard library and itself,
+never `manc.models`, the store or anything else in the app (enforced by
+`tests/formulas/test_isolation.py`); every formula is a pure function of `ScoringInputs`; every
+stored score carries the formula name; a new formula is a new module (`v2.py`) plus a registry
+entry, never an edit to `v1.py`. Since the app stores every input, `manc rescore --formula v2 --from 2026-09-01`
 recomputes history so old and new can be plotted side by side before switching the default.
 
 ### Formula v1
@@ -341,7 +351,7 @@ Looking good, concretely:
 
 ```
 manc/
-├── pyproject.toml          # uv workspace root; ruff + pytest config
+├── pyproject.toml          # uv project; ruff + pytest config
 ├── .pre-commit-config.yaml # hygiene, ruff format, ruff check, pytest
 ├── config/
 │   ├── assets.yaml         # symbols, economies, sign map
@@ -349,17 +359,13 @@ manc/
 │   ├── scoring.yaml        # formula: v1, params (weights, half-life, windows)
 │   └── llm.yaml            # model string, fallback, temperature
 ├── docs/blueprint.md       # this file
-├── packages/
-│   └── manc-formulas/      # workspace member, stdlib only
-│       ├── pyproject.toml
-│       ├── src/manc_formulas/
-│       │   ├── contract.py # ScoringInputs, IndexScore, IndexFormula
-│       │   ├── registry.py # get_formula("v1")
-│       │   └── v1.py
-│       └── tests/
 ├── src/manc/
 │   ├── models.py           # frozen dataclasses (§3)
 │   ├── config.py
+│   ├── formulas/           # stdlib only, never imports the rest of manc
+│   │   ├── contract.py     # ScoringInputs, IndexScore, IndexFormula
+│   │   ├── registry.py     # get_formula("v1")
+│   │   └── v1.py           # class FormulaV1
 │   ├── calendar/           # interface.py, openbb.py
 │   ├── news/               # interface.py, rss.py
 │   ├── analysis/           # interface.py, llm.py, lexicon.py, surprise.py
@@ -369,7 +375,7 @@ manc/
 │   ├── web/                # app.py, theme.py, pages/, components/
 │   ├── pipeline.py
 │   └── cli.py              # manc run | manc rescore | manc serve
-├── tests/                  # one folder per module + fixtures/
+├── tests/                  # one folder per module + fixtures/; formulas/ has the isolation test
 └── data/                   # manc.db (gitignored)
 ```
 
@@ -380,7 +386,6 @@ manc/
 | `litellm`, `pydantic`                             | headline tagging and report summary, provider-agnostic; Pydantic for the response schema |
 | `pyyaml`                                          | config files                                                          |
 | `dash`, `dash-mantine-components`, `plotly`, `pandas` | dashboard                                                         |
-| `manc-formulas`                                   | workspace member; the index formulas, no dependencies                 |
 | `pytest`, `pytest-cov`, `hypothesis`, `respx`, `ruff`, `pre-commit` | dev: tests, property tests, HTTP stubbing, coverage gate, lint and format, git hooks |
 
 Secrets: the API-key env var of whichever provider `llm.model` names (`ANTHROPIC_API_KEY`,
@@ -404,10 +409,10 @@ implementation. An issue is done when those tests pass through the pre-commit ho
 
 **M1 Skeleton** — done when: the pre-commit hooks pass on a clean checkout and `manc run`
 prints 50 for every asset using fakes.
-- uv workspace with `manc` and `manc-formulas`, Python 3.12 pinned, ruff, pre-commit hooks
-  (hygiene, format, lint, pytest with coverage floor)
+- uv project, Python 3.12 pinned, ruff, pre-commit hooks (hygiene, format, lint, pytest with
+  coverage floor)
 - `tests/fakes.py`: in-memory fakes for every Protocol, written together with the Protocols
-- formula contract, registry and a `v1` stub returning 50
+- `manc.formulas`: contract, registry, isolation test and a `FormulaV1` stub returning 50
 - models.py and every Protocol
 - config loader for the four YAML files
 - SQLite store with schema and tests
@@ -422,7 +427,7 @@ prints 50 for every asset using fakes.
 - LLM tagger through LiteLLM: Pydantic response schema, batching, configurable model with fallback
 - lexicon fallback analyzer
 - surprise calculation and sign map
-- `v1` formula in `manc-formulas` with property tests; scoring adapter; `manc rescore`
+- `FormulaV1` with property tests; scoring adapter; `manc rescore`
 
 **M4 Report and web** — done when: the dashboard shows the overview and per-asset history with
 today's report, in both themes.
@@ -455,6 +460,8 @@ load-bearing enough to block a start.
   every commit; nothing leaves the machine unchecked and there is no workflow file to maintain.
 - **Test-driven throughout.** Tests are written before the code they test; the fakes for every
   Protocol are part of the skeleton so nothing waits on a live source to be testable.
-- **Formula in its own package.** It will change; keeping it dependency-free and versioned
-  means a change is a new file, and stored inputs make history replayable.
+- **Formula as a plain Python class in its own subpackage.** It will change; keeping
+  `manc.formulas` dependency-free (a test enforces it) and versioned means a change is a new
+  file, and stored inputs make history replayable. No separate distribution: one repo, one
+  package, one rule.
 - **Single process, synchronous.** A dozen feeds and a few API calls finish in under a minute.

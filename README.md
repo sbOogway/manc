@@ -21,8 +21,8 @@ hosted CI. For a work-in-progress commit on a branch, `SKIP=pytest git commit ..
 ## Layout
 
 - `src/manc/` — the application (ingestion, analysis, store, dashboard, CLI)
-- `packages/manc-formulas/` — index formulas; standard library only, versioned
+- `src/manc/formulas/` — index formulas as plain Python classes; standard library only, versioned
 - `config/` — assets, feeds, scoring params, LLM model
-- `tests/` — application tests; formula tests live next to the formula package
+- `tests/` — all tests, one folder per module
 
 Status: M1 skeleton in progress. See the milestones and issues for progress.

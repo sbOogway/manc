@@ -15,8 +15,10 @@ the index formula, storage, dashboard and milestones. Keep it updated when a dec
   rare exceptions).
 - **Hooks, not CI.** `pre-commit` runs hygiene, `ruff format`, `ruff check --fix` and `pytest`
   (85% coverage floor) on every commit. No GitHub Actions workflows.
-- **Formula package stays pure.** `packages/manc-formulas` imports only the standard library
-  (enforced by a test). A formula change is a new versioned module, never an edit to an old one.
+- **Formulas stay pure.** `src/manc/formulas/` holds plain Python classes that import only the
+  standard library and each other, never the rest of `manc` (enforced by
+  `tests/formulas/test_isolation.py`). A formula change is a new versioned module (`v2.py`),
+  never an edit to an old one.
 - **All LLM calls go through LiteLLM**; the model is a string in `config/llm.yaml`.
 - **Dashboard look is reviewed by the owner manually.** Do not take screenshots or drive a
   browser to check the Dash pages; test callbacks and page rendering only.

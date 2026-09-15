@@ -1,12 +1,6 @@
 version = 1
 requires-python = "==3.12.*"
 
-[manifest]
-members = [
-    "manc",
-    "manc-formulas",
-]
-
 [[package]]
 name = "anyio"
 version = "4.15.1"
@@ -207,9 +201,6 @@ wheels = [
 name = "manc"
 version = "0.1.0"
 source = { editable = "." }
-dependencies = [
-    { name = "manc-formulas" },
-]
 
 [package.dev-dependencies]
 dev = [
@@ -222,7 +213,6 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "manc-formulas", editable = "packages/manc-formulas" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -233,11 +223,6 @@ dev = [
     { name = "respx", specifier = ">=0.22" },
     { name = "ruff", specifier = ">=0.16" },
 ]
-
-[[package]]
-name = "manc-formulas"
-version = "0.1.0"
-source = { editable = "packages/manc-formulas" }
 
 [[package]]
 name = "nodeenv"
