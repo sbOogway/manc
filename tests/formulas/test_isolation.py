@@ -30,6 +30,8 @@ def _allowed(name: str) -> bool:
 
 
 def test_formulas_import_only_stdlib_and_themselves() -> None:
-    for py in SRC.rglob("*.py"):
-        offending = {n for n in _imports(py) if not _allowed(n)}
-        assert not offending, f"{py.relative_to(SRC)} imports outside the rule: {offending}"
+    for module_path in SRC.rglob("*.py"):
+        offending = {name for name in _imports(module_path) if not _allowed(name)}
+        assert not offending, (
+            f"{module_path.relative_to(SRC)} imports outside the rule: {offending}"
+        )

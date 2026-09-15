@@ -25,11 +25,12 @@ def test_fakes_satisfy_protocols() -> None:
 
 def test_fake_analyzer_tags_every_item_for_every_asset_neutral() -> None:
     items = [
-        NewsItem.from_feed(source="s", title="t", url=f"u{i}", published_at=NOW) for i in range(2)
+        NewsItem.from_feed(source="s", title="t", url=f"u{index}", published_at=NOW)
+        for index in range(2)
     ]
     tags = FakeAnalyzer().tag(items, [ASSET])
     assert len(tags) == 2
-    assert all(t.direction == 0 and t.asset == "EURUSD" for t in tags)
+    assert all(tag.direction == 0 and tag.asset == "EURUSD" for tag in tags)
 
 
 def test_fake_store_round_trips() -> None:

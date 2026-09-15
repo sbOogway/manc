@@ -13,7 +13,7 @@ class FakeCalendar:
         self.events = list(events)
 
     def fetch(self, start: date, end: date) -> list[CalendarEvent]:
-        return [e for e in self.events if start <= e.date.date() <= end]
+        return [event for event in self.events if start <= event.date.date() <= end]
 
 
 class FakeNews:
@@ -21,7 +21,7 @@ class FakeNews:
         self.items = list(items)
 
     def fetch(self, since: datetime) -> list[NewsItem]:
-        return [i for i in self.items if i.published_at >= since]
+        return [item for item in self.items if item.published_at >= since]
 
 
 class FakeAnalyzer:
@@ -32,12 +32,12 @@ class FakeAnalyzer:
 
     def tag(self, items: Sequence[NewsItem], assets: Sequence[AssetSpec]) -> list[NewsTag]:
         if self.canned:
-            wanted = {i.id for i in items}
-            return [t for t in self.canned if t.news_id in wanted]
+            wanted_ids = {item.id for item in items}
+            return [tag for tag in self.canned if tag.news_id in wanted_ids]
         return [
-            NewsTag(news_id=i.id, asset=a.symbol, direction=0, confidence=0.0)
-            for i in items
-            for a in assets
+            NewsTag(news_id=item.id, asset=asset.symbol, direction=0, confidence=0.0)
+            for item in items
+            for asset in assets
         ]
 
 
@@ -57,45 +57,43 @@ class FakeStore:
         raise TypeError(f"cannot store {type(obj).__name__}")
 
     @_put.register
-    def _(self, obj: NewsItem) -> None:
-        self.news[obj.id] = obj
+    def _(self, item: NewsItem) -> None:
+        self.news[item.id] = item
 
     @_put.register
-    def _(self, obj: NewsTag) -> None:
-        self.tags[(obj.news_id, obj.asset)] = obj
+    def _(self, tag: NewsTag) -> None:
+        self.tags[(tag.news_id, tag.asset)] = tag
 
     @_put.register
-    def _(self, obj: CalendarEvent) -> None:
-        self.events[obj.id] = obj
+    def _(self, event: CalendarEvent) -> None:
+        self.events[event.id] = event
 
     @_put.register
-    def _(self, obj: IndexScore) -> None:
-        self.scores[(obj.asset, obj.date.isoformat(), obj.formula)] = obj
+    def _(self, score: IndexScore) -> None:
+        self.scores[(score.asset, score.date.isoformat(), score.formula)] = score
 
     def load_news(self, since: datetime) -> list[NewsItem]:
-        return sorted(
-            (i for i in self.news.values() if i.published_at >= since), key=lambda i: i.published_at
-        )
+        recent = [item for item in self.news.values() if item.published_at >= since]
+        return sorted(recent, key=lambda item: item.published_at)
 
     def load_tagged_news(self, asset: str, since: datetime) -> list[tuple[NewsItem, NewsTag]]:
-        out = []
+        pairs: list[tuple[NewsItem, NewsTag]] = []
         for (news_id, tag_asset), tag in self.tags.items():
             item = self.news.get(news_id)
             if tag_asset == asset and item and item.published_at >= since:
-                out.append((item, tag))
-        return sorted(out, key=lambda p: p[0].published_at)
+                pairs.append((item, tag))
+        return sorted(pairs, key=lambda pair: pair[0].published_at)
 
     def load_events(self, start: date, end: date) -> list[CalendarEvent]:
-        return sorted(
-            (e for e in self.events.values() if start <= e.date.date() <= end), key=lambda e: e.date
-        )
+        in_window = [event for event in self.events.values() if start <= event.date.date() <= end]
+        return sorted(in_window, key=lambda event: event.date)
 
     def load_scores(self, asset: str, formula: str, start: date, end: date) -> list[IndexScore]:
-        return sorted(
-            (
-                s
-                for (a, d, f), s in self.scores.items()
-                if a == asset and f == formula and start <= date.fromisoformat(d) <= end
-            ),
-            key=lambda s: s.date,
-        )
+        matching = [
+            score
+            for (score_asset, score_date, score_formula), score in self.scores.items()
+            if score_asset == asset
+            and score_formula == formula
+            and start <= date.fromisoformat(score_date) <= end
+        ]
+        return sorted(matching, key=lambda score: score.date)
