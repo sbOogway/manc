@@ -1,0 +1,68 @@
+"""What a formula receives and returns. The only thing the app depends on.
+
+Everything here is a plain frozen dataclass or a Protocol; no imports from the rest of manc.
+"""
+
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from typing import Protocol, runtime_checkable
+
+
+@dataclass(frozen=True)
+class AssetSpec:
+    symbol: str  # "EURUSD"
+    kind: str  # forex | metal | commodity | equity_index | crypto
+    economies: tuple[str, ...]  # countries whose calendar events matter
+    signs: Mapping[str, int] = field(default_factory=dict)  # event category -> -1 | 0 | +1
+
+
+@dataclass(frozen=True)
+class TaggedHeadline:
+    """One headline's contribution for one asset, with what the formula needs to weight it."""
+
+    direction: int  # -1, 0, +1
+    confidence: float  # 0..1
+    source_weight: float  # 0..1, from the feeds config
+    published_at: datetime
+
+
+@dataclass(frozen=True)
+class EventObservation:
+    """A calendar event as the formula sees it. `actual is None` means not yet released."""
+
+    date: datetime
+    country: str
+    category: str
+    importance: int  # 1 low, 2 medium, 3 high
+    consensus: float | None
+    previous: float | None
+    actual: float | None
+
+
+@dataclass(frozen=True)
+class ScoringInputs:
+    asset: AssetSpec
+    as_of: datetime
+    tags: tuple[TaggedHeadline, ...]
+    released: tuple[EventObservation, ...]  # events with actual, within the lookback
+    upcoming: tuple[EventObservation, ...]  # events in the look-ahead window
+    params: Mapping[str, float]  # from config/scoring.yaml
+
+
+@dataclass(frozen=True)
+class IndexScore:
+    asset: str
+    date: date
+    score: float  # 0..100
+    formula: str  # "v1"
+    components: Mapping[str, float]  # whatever the formula exposes, e.g. N, S, R
+    n_news: int
+    n_events: int
+
+
+@runtime_checkable
+class IndexFormula(Protocol):
+    name: str
+
+    def compute(self, inputs: ScoringInputs) -> IndexScore: ...
