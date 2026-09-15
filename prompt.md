@@ -21,7 +21,7 @@ for news we should use rss feeds. for sources i would like to use reuters and so
 
 ### code
 
-the project should be written in python using uv as package manager. each module should have an interface that is used to communicate with other modules. 
+the project should be written in python using uv as package manager. each module should have an interface that is used to communicate with other modules.
 
 every module should have its test suite using pytest.
 
