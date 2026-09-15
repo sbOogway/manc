@@ -135,3 +135,8 @@ def test_sql_store_refuses_unmigrated_database(tmp_path: Path) -> None:
     engine = db.make_engine(f"sqlite:///{tmp_path / 'empty.db'}")
     with pytest.raises(RuntimeError, match="alembic upgrade head"):
         SqlStore(engine)
+
+
+def test_add_with_nothing_is_a_no_op(store: Store) -> None:
+    store.news.add()
+    assert store.news.since(NOW - DAY) == []
