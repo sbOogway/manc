@@ -9,3 +9,7 @@ dist/
 # runtime data and secrets
 data/
 .env
+
+# test artefacts
+.coverage
+htmlcov/
