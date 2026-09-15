@@ -2,14 +2,18 @@
 
 from datetime import UTC, date, datetime, timedelta
 
-import pytest
-
 from manc.analysis.interface import Analyzer
 from manc.calendar.interface import CalendarProvider
 from manc.formulas.contract import AssetSpec, IndexScore
 from manc.models import CalendarEvent, NewsItem, NewsTag
 from manc.news.interface import NewsProvider
-from manc.store.interface import Store
+from manc.store.interface import (
+    EventRepository,
+    NewsRepository,
+    ScoreRepository,
+    Store,
+    TagRepository,
+)
 from tests.fakes import FakeAnalyzer, FakeCalendar, FakeNews, FakeStore
 
 NOW = datetime(2026, 9, 15, 8, 0, tzinfo=UTC)
@@ -20,7 +24,12 @@ def test_fakes_satisfy_protocols() -> None:
     assert isinstance(FakeCalendar(), CalendarProvider)
     assert isinstance(FakeNews(), NewsProvider)
     assert isinstance(FakeAnalyzer(), Analyzer)
-    assert isinstance(FakeStore(), Store)
+    store = FakeStore()
+    assert isinstance(store, Store)
+    assert isinstance(store.news, NewsRepository)
+    assert isinstance(store.tags, TagRepository)
+    assert isinstance(store.events, EventRepository)
+    assert isinstance(store.scores, ScoreRepository)
 
 
 def test_fake_analyzer_tags_every_item_for_every_asset_neutral() -> None:
@@ -57,22 +66,20 @@ def test_fake_store_round_trips() -> None:
         n_news=1,
         n_events=1,
     )
-    store.save(item, tag, event, score)
+    store.news.add(item)
+    store.tags.add(tag)
+    store.events.add(event)
+    store.scores.add(score)
 
-    assert store.load_news(NOW - timedelta(days=1)) == [item]
-    assert store.load_tagged_news("EURUSD", NOW - timedelta(days=1)) == [(item, tag)]
-    assert store.load_events(date(2026, 9, 15), date(2026, 9, 20)) == [event]
-    assert store.load_scores("EURUSD", "v1", date(2026, 9, 1), date(2026, 9, 30)) == [score]
-    assert store.load_scores("EURUSD", "v2", date(2026, 9, 1), date(2026, 9, 30)) == []
+    assert store.news.since(NOW - timedelta(days=1)) == [item]
+    assert store.news.tagged("EURUSD", NOW - timedelta(days=1)) == [(item, tag)]
+    assert store.events.between(date(2026, 9, 15), date(2026, 9, 20)) == [event]
+    assert store.scores.series("EURUSD", "v1", date(2026, 9, 1), date(2026, 9, 30)) == [score]
+    assert store.scores.series("EURUSD", "v2", date(2026, 9, 1), date(2026, 9, 30)) == []
 
 
 def test_fake_store_upserts() -> None:
     store = FakeStore()
     item = NewsItem.from_feed(source="s", title="t", url="u", published_at=NOW)
-    store.save(item, item)
-    assert len(store.news) == 1
-
-
-def test_fake_store_rejects_unknown_types() -> None:
-    with pytest.raises(TypeError, match="cannot store str"):
-        FakeStore().save("not a record")  # type: ignore[arg-type]
+    store.news.add(item, item)
+    assert len(store.news.rows) == 1

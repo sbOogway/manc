@@ -1,24 +1,42 @@
+"""Persistence boundary: one repository per record type, composed into a Store.
+
+Repository pattern. Each repository owns one record type: ``add`` is an upsert and every
+query method is named for the question it answers. Queries return rows sorted by time.
+"""
+
 from datetime import date, datetime
 from typing import Protocol, runtime_checkable
 
 from manc.models import CalendarEvent, IndexScore, NewsItem, NewsTag
 
-Persistable = CalendarEvent | NewsItem | NewsTag | IndexScore
+
+@runtime_checkable
+class NewsRepository(Protocol):
+    def add(self, *items: NewsItem) -> None: ...
+    def since(self, published_after: datetime) -> list[NewsItem]: ...
+    def tagged(self, asset: str, published_after: datetime) -> list[tuple[NewsItem, NewsTag]]: ...
+
+
+@runtime_checkable
+class TagRepository(Protocol):
+    def add(self, *tags: NewsTag) -> None: ...
+
+
+@runtime_checkable
+class EventRepository(Protocol):
+    def add(self, *events: CalendarEvent) -> None: ...
+    def between(self, start: date, end: date) -> list[CalendarEvent]: ...
+
+
+@runtime_checkable
+class ScoreRepository(Protocol):
+    def add(self, *scores: IndexScore) -> None: ...
+    def series(self, asset: str, formula: str, start: date, end: date) -> list[IndexScore]: ...
 
 
 @runtime_checkable
 class Store(Protocol):
-    """Persistence boundary.
-
-    One ``save`` for every record type, dispatched on the object's type (implementations use
-    ``functools.singledispatchmethod``); every save is an upsert. Loads keep distinct names
-    because they differ by arguments and return type, which type dispatch cannot select on.
-    Every load returns rows sorted by time.
-    """
-
-    def save(self, *objects: Persistable) -> None: ...
-
-    def load_news(self, since: datetime) -> list[NewsItem]: ...
-    def load_tagged_news(self, asset: str, since: datetime) -> list[tuple[NewsItem, NewsTag]]: ...
-    def load_events(self, start: date, end: date) -> list[CalendarEvent]: ...
-    def load_scores(self, asset: str, formula: str, start: date, end: date) -> list[IndexScore]: ...
+    news: NewsRepository
+    tags: TagRepository
+    events: EventRepository
+    scores: ScoreRepository

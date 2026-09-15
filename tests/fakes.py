@@ -2,7 +2,6 @@
 
 from collections.abc import Iterable, Sequence
 from datetime import date, datetime
-from functools import singledispatchmethod
 
 from manc.formulas.contract import AssetSpec, IndexScore
 from manc.models import CalendarEvent, NewsItem, NewsTag
@@ -41,59 +40,72 @@ class FakeAnalyzer:
         ]
 
 
-class FakeStore:
-    def __init__(self) -> None:
-        self.news: dict[str, NewsItem] = {}
-        self.tags: dict[tuple[str, str], NewsTag] = {}
-        self.events: dict[str, CalendarEvent] = {}
-        self.scores: dict[tuple[str, str, str], IndexScore] = {}
+class FakeNewsRepository:
+    def __init__(self, tags: "FakeTagRepository") -> None:
+        self.rows: dict[str, NewsItem] = {}
+        self._tags = tags
 
-    def save(self, *objects: CalendarEvent | NewsItem | NewsTag | IndexScore) -> None:
-        for obj in objects:
-            self._put(obj)
+    def add(self, *items: NewsItem) -> None:
+        for item in items:
+            self.rows[item.id] = item
 
-    @singledispatchmethod
-    def _put(self, obj: object) -> None:
-        raise TypeError(f"cannot store {type(obj).__name__}")
-
-    @_put.register
-    def _(self, item: NewsItem) -> None:
-        self.news[item.id] = item
-
-    @_put.register
-    def _(self, tag: NewsTag) -> None:
-        self.tags[(tag.news_id, tag.asset)] = tag
-
-    @_put.register
-    def _(self, event: CalendarEvent) -> None:
-        self.events[event.id] = event
-
-    @_put.register
-    def _(self, score: IndexScore) -> None:
-        self.scores[(score.asset, score.date.isoformat(), score.formula)] = score
-
-    def load_news(self, since: datetime) -> list[NewsItem]:
-        recent = [item for item in self.news.values() if item.published_at >= since]
+    def since(self, published_after: datetime) -> list[NewsItem]:
+        recent = [item for item in self.rows.values() if item.published_at >= published_after]
         return sorted(recent, key=lambda item: item.published_at)
 
-    def load_tagged_news(self, asset: str, since: datetime) -> list[tuple[NewsItem, NewsTag]]:
+    def tagged(self, asset: str, published_after: datetime) -> list[tuple[NewsItem, NewsTag]]:
         pairs: list[tuple[NewsItem, NewsTag]] = []
-        for (news_id, tag_asset), tag in self.tags.items():
-            item = self.news.get(news_id)
-            if tag_asset == asset and item and item.published_at >= since:
+        for (news_id, tag_asset), tag in self._tags.rows.items():
+            item = self.rows.get(news_id)
+            if tag_asset == asset and item and item.published_at >= published_after:
                 pairs.append((item, tag))
         return sorted(pairs, key=lambda pair: pair[0].published_at)
 
-    def load_events(self, start: date, end: date) -> list[CalendarEvent]:
-        in_window = [event for event in self.events.values() if start <= event.date.date() <= end]
+
+class FakeTagRepository:
+    def __init__(self) -> None:
+        self.rows: dict[tuple[str, str], NewsTag] = {}
+
+    def add(self, *tags: NewsTag) -> None:
+        for tag in tags:
+            self.rows[(tag.news_id, tag.asset)] = tag
+
+
+class FakeEventRepository:
+    def __init__(self) -> None:
+        self.rows: dict[str, CalendarEvent] = {}
+
+    def add(self, *events: CalendarEvent) -> None:
+        for event in events:
+            self.rows[event.id] = event
+
+    def between(self, start: date, end: date) -> list[CalendarEvent]:
+        in_window = [event for event in self.rows.values() if start <= event.date.date() <= end]
         return sorted(in_window, key=lambda event: event.date)
 
-    def load_scores(self, asset: str, formula: str, start: date, end: date) -> list[IndexScore]:
+
+class FakeScoreRepository:
+    def __init__(self) -> None:
+        self.rows: dict[tuple[str, date, str], IndexScore] = {}
+
+    def add(self, *scores: IndexScore) -> None:
+        for score in scores:
+            self.rows[(score.asset, score.date, score.formula)] = score
+
+    def series(self, asset: str, formula: str, start: date, end: date) -> list[IndexScore]:
         matching = [
             score
-            for (score_asset, score_date, score_formula), score in self.scores.items()
-            if score_asset == asset
-            and score_formula == formula
-            and start <= date.fromisoformat(score_date) <= end
+            for (score_asset, score_date, score_formula), score in self.rows.items()
+            if score_asset == asset and score_formula == formula and start <= score_date <= end
         ]
         return sorted(matching, key=lambda score: score.date)
+
+
+class FakeStore:
+    """Composes one fake repository per record type."""
+
+    def __init__(self) -> None:
+        self.tags = FakeTagRepository()
+        self.news = FakeNewsRepository(self.tags)
+        self.events = FakeEventRepository()
+        self.scores = FakeScoreRepository()
