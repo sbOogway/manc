@@ -1,0 +1,17 @@
+# Which formula scores the assets, its tunable parameters, and the data windows the
+# pipeline feeds it. Changing a param is a config edit; changing the structure is a new
+# formula version (docs/blueprint.md section 5).
+formula: v1
+
+params:
+  news_weight: 0.6          # weight of the news term N
+  surprise_weight: 0.4      # weight of the data-surprise term S
+  news_half_life_hours: 48  # recency decay of headlines
+  event_risk_scale: 4.0     # sum of upcoming importance that saturates R at 1
+  event_risk_shrink: 0.5    # how much full event risk pulls the score toward 50
+
+windows:
+  news_hours: 72            # headlines considered for N
+  released_days: 7          # released events considered for S
+  upcoming_days: 7          # scheduled events considered for R
+  calendar_lookahead_days: 30  # how far ahead the calendar is fetched

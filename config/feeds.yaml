@@ -1,0 +1,42 @@
+# RSS sources. `weight` (0..1) scales each headline's contribution to the news term.
+# Probed 2026-09-15; central banks and Reuters are primary sources and get full weight.
+feeds:
+  - name: reuters
+    url: "https://news.google.com/rss/search?q=site:reuters.com+markets&hl=en-US&gl=US&ceid=US:en"
+    weight: 1.0
+  - name: fed
+    url: https://www.federalreserve.gov/feeds/press_all.xml
+    weight: 1.0
+  - name: ecb
+    url: https://www.ecb.europa.eu/rss/press.html
+    weight: 1.0
+  - name: boe
+    url: https://www.bankofengland.co.uk/rss/news
+    weight: 1.0
+  - name: cnbc_economy
+    url: https://www.cnbc.com/id/20910258/device/rss/rss.html
+    weight: 0.8
+  - name: cnbc_top
+    url: https://www.cnbc.com/id/100003114/device/rss/rss.html
+    weight: 0.8
+  - name: marketwatch_pulse
+    url: https://feeds.content.dowjones.io/public/rss/mw_marketpulse
+    weight: 0.8
+  - name: bbc_business
+    url: https://feeds.bbci.co.uk/news/business/rss.xml
+    weight: 0.7
+  - name: fxstreet
+    url: https://www.fxstreet.com/rss/news
+    weight: 0.6
+  - name: investing_forex
+    url: https://www.investing.com/rss/news_1.rss
+    weight: 0.6
+  - name: investing_commodities
+    url: https://www.investing.com/rss/news_11.rss
+    weight: 0.6
+  - name: coindesk
+    url: https://www.coindesk.com/arc/outboundfeeds/rss/
+    weight: 0.6
+  - name: oilprice
+    url: https://oilprice.com/rss/main
+    weight: 0.5
