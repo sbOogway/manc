@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic>=1.13",
-    "httpx>=0.28.1",
     "pyyaml>=6.0.3",
     "sqlalchemy>=2.0",
 ]
@@ -44,6 +43,7 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 testpaths = ["tests"]
 addopts = "-q -m 'not live' --cov=manc --cov-report=term-missing --cov-fail-under=85"
 markers = ["live: hits real network sources; skipped by default"]
+filterwarnings = ["ignore::DeprecationWarning:feedparser"]  # updated_parsed fallback notice
 
 [tool.coverage.run]
 source = ["src/manc"]
