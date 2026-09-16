@@ -14,7 +14,9 @@ class AssetSpec:
     symbol: str  # "EURUSD"
     kind: str  # forex | metal | commodity | equity_index | crypto
     economies: tuple[str, ...]  # countries whose calendar events matter
-    signs: Mapping[str, int] = field(default_factory=dict)  # event category -> -1 | 0 | +1
+    # country -> event category -> -1 | 0 | +1: the direction a hotter-than-expected print
+    # pushes this asset. A hot US CPI is -1 for EURUSD, a hot euro-area CPI is +1.
+    signs: Mapping[str, Mapping[str, int]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

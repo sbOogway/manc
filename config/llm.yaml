@@ -1,0 +1,9 @@
+# All model calls go through LiteLLM; the model is a provider-prefixed string.
+# Set the matching API-key env var (ANTHROPIC_API_KEY, OPENAI_API_KEY, ...); Ollama needs none.
+llm:
+  model: anthropic/claude-opus-5
+  # model: openai/gpt-5
+  # model: ollama/llama3.3
+  fallback: null            # optional second model tried when the first errors
+  temperature: 0
+  batch_size: 40            # headlines per tagging call
