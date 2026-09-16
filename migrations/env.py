@@ -10,7 +10,7 @@ from manc.store.schema import metadata
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # Programmatic callers (manc.store.db) pass the URL in config.attributes; the
 # `alembic` CLI falls back to MANC_DB_URL, then the default SQLite file.
