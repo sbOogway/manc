@@ -1,11 +1,25 @@
-"""`manc` entry point on a real temp database."""
+"""`manc` entry point on a real temp database, with the calendar endpoint stubbed as empty."""
 
+from collections.abc import Iterator
+from datetime import date, timedelta
 from pathlib import Path
 
+import httpx
 import pytest
+import respx
 
 from manc import cli
+from manc.config import load_config
 from manc.store import db
+
+NO_RECORD = {"data": None, "status": {"bCodeMessage": [{"errorMessage": "No record found."}]}}
+
+
+@pytest.fixture(autouse=True)
+def offline_sources() -> Iterator[respx.MockRouter]:
+    with respx.mock(assert_all_called=False) as router:
+        router.route().mock(return_value=httpx.Response(200, json=NO_RECORD))
+        yield router
 
 
 @pytest.fixture
@@ -21,6 +35,25 @@ def test_run_prints_one_line_per_asset(migrated_db: str, capsys: pytest.CaptureF
     lines = capsys.readouterr().out.strip().splitlines()
     assert len(lines) == 7
     assert lines[0].split() == ["2026-09-15", "EURUSD", "50.0", "v1", "news=0", "events=0"]
+
+
+def test_run_pulls_every_day_of_the_calendar_window(
+    migrated_db: str, offline_sources: respx.MockRouter
+) -> None:
+    assert cli.main(["run", "--date", "2026-09-15"]) == 0
+    windows = load_config().scoring.windows
+    first = date(2026, 9, 15) - timedelta(days=windows["released_days"])
+    last = date(2026, 9, 15) + timedelta(days=windows["calendar_lookahead_days"])
+    requested = {
+        call.request.url.params["date"]
+        for call in offline_sources.calls
+        if call.request.url.host == "api.nasdaq.com"
+    }
+    expected = {
+        (first + timedelta(days=offset + 1)).isoformat()  # the endpoint's one-day offset
+        for offset in range((last - first).days + 1)
+    }
+    assert requested == expected
 
 
 def test_run_defaults_to_today(migrated_db: str, capsys: pytest.CaptureFixture) -> None:

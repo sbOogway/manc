@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from datetime import UTC, date, datetime, time
 
 from manc.analysis.empty import EmptyAnalyzer
-from manc.calendar.empty import EmptyCalendar
+from manc.calendar.nasdaq import NasdaqCalendar
 from manc.config import load_config
 from manc.formulas.contract import IndexScore
 from manc.formulas.registry import get_formula
@@ -36,7 +36,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         scores = run(
             as_of=_as_of(args.date),
             config=config,
-            calendar=EmptyCalendar(),
+            calendar=NasdaqCalendar(config.calendar),
             news=EmptyNews(),
             analyzer=EmptyAnalyzer(),
             store=store,
