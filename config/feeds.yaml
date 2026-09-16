@@ -40,3 +40,51 @@ feeds:
   - name: oilprice
     url: https://oilprice.com/rss/main
     weight: 0.5
+
+  # Newsletters and blogs with a feed, probed 2026-09-16. Commentary rather than reporting,
+  # so they sit below the wires; a stale or dead feed is a warning in the log, not a failure.
+  - name: marc_to_market            # Marc Chandler, daily FX and macro note
+    url: https://www.marctomarket.com/feeds/posts/default
+    weight: 0.6
+  - name: calculated_risk           # US housing, labour and data flow, several posts a day
+    url: https://calculatedrisk.substack.com/feed
+    weight: 0.6
+  - name: employ_america            # US labour market and inflation nowcasts
+    url: https://www.employamerica.org/feed
+    weight: 0.6
+  - name: overshoot                 # Matthew Klein, weekly on inflation, growth and policy
+    url: https://theovershoot.co/feed
+    weight: 0.5
+  - name: bond_vigilantes           # M&G, rates and credit
+    url: https://bondvigilantes.com/feed
+    weight: 0.5
+  - name: econbrowser               # Chinn and Hamilton, academic macro on current data
+    url: https://econbrowser.com/feed
+    weight: 0.5
+  - name: wolfstreet                # rates, housing and data, opinionated
+    url: https://wolfstreet.com/feed/
+    weight: 0.5
+  - name: fxmacro                   # FXMacroGuy, weekly FX and macro consensus roundup
+    url: https://www.fxmacro.info/feed
+    weight: 0.5
+  - name: policy_nexus              # Macro Musings, Fed policy commentary
+    url: https://macroeconomicpolicynexus.substack.com/feed
+    weight: 0.5
+  - name: chartbook                 # Adam Tooze, daily link roundups; broad, so low weight
+    url: https://adamtooze.substack.com/feed
+    weight: 0.4
+
+  # Central-bank research blogs: primary institutions, slow cadence, analytical rather than
+  # market-moving; hence full trust but a notch below the press feeds.
+  - name: ny_fed_liberty_street     # Federal Reserve Bank of New York
+    url: https://libertystreeteconomics.newyorkfed.org/feed/
+    weight: 0.8
+  - name: fred_blog                 # Federal Reserve Bank of St. Louis
+    url: https://fredblog.stlouisfed.org/feed/
+    weight: 0.8
+  - name: bank_underground          # Bank of England staff blog
+    url: https://bankunderground.co.uk/feed/
+    weight: 0.8
+  - name: ecb_blog                  # ECB blog
+    url: https://www.ecb.europa.eu/rss/blog.html
+    weight: 0.8
