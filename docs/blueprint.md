@@ -1,12 +1,12 @@
 # manc — macro analysis, news and calendar
 
-**Project blueprint, draft 8 (2026-09-15).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
+**Project blueprint, draft 9 (2026-09-16).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
 This file is the source of truth; update it when a decision changes.
 
 A small daily pipeline that reads the economic calendar and trusted news feeds, scores each
 tracked asset 0–100, stores the score, and plots it.
 
-Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · Dash · SQLite via SQLAlchemy Core + Alembic · OpenBB.
+Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · FastAPI · Dash · SQLite via SQLAlchemy Core + Alembic · OpenBB.
 
 ---
 
@@ -45,8 +45,15 @@ One command, five steps, each behind an interface so it can be swapped or faked 
 | 04   | Score          | Hand the inputs to the configured formula: 0–100 out. No I/O.| `formulas/`     |
 | 05   | Store + report | Write score, components and markdown report to SQLite.      | `store/` `report/` |
 
-The web server is a separate process (`manc serve`) that only reads the database. Scheduling is
-a plain cron entry; no queue, no workers, no orchestrator. Because every input to step 04 is
+Reading is separate from writing. The pipeline is the only writer. A REST API (`manc api`)
+serves everything a person might look at, and the dashboard (`manc ui`) is one client of that
+API; it never touches the database. Scheduling is a plain cron entry; no queue, no workers, no
+orchestrator.
+
+```
+pipeline (cron) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── Dash UI
+   manc run                    manc api                  manc ui
+``` Because every input to step 04 is
 stored, `manc rescore --formula v2` can replay history under a new formula without refetching
 anything.
 
@@ -66,7 +73,9 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 | `scoring`  | `build_inputs(store, asset, as_of, params) -> ScoringInputs` | thin adapter from the store to the formula contract | adapter builds inputs correctly |
 | `store`    | Repository pattern: `Store` composes `news`, `tags`, `events`, `scores` repositories, each with `add()` and named queries (`since`, `tagged`, `between`, `series`) | SQLAlchemy Core over SQLite; schema in `schema.py`, Alembic migrations | round-trips, idempotent upserts; migrations reach `head` and match `schema.py` |
 | `report`   | `build_report(asset, score, tags, events) -> str`                         | Markdown, summary paragraph written by the configured LLM               | template output with fake analyzer                                   |
-| `web`      | Dash app                                                                  | Dash + Mantine components + Plotly (§7)                                 | layouts render, callbacks return expected figures with a seeded DB   |
+| `queries`  | `overview(store, config, as_of)`, `asset_history(...)`, `headlines_behind(...)`, `upcoming_events(...)` → frozen dataclasses | the read-side logic: bands, deltas, sparklines, event risk, sorting. Plain functions over a `Store` (§7) | unit tests with `FakeStore`; no HTTP involved |
+| `api`      | FastAPI app, `GET /api/v1/...` (§7)                                       | thin routes: parse request → call a query → return a Pydantic model      | `TestClient` against `FakeStore`: status, JSON shape, error cases   |
+| `manc_ui`  | Dash app in its own package; talks to the API over HTTP only              | Dash + Mantine components + Plotly (§7)                                 | callbacks tested against a mocked API (`respx`); render smoke tests; isolation test that it never imports `manc` |
 | `pipeline` | `run(date, config) -> list[IndexScore]`                                   | wires the above; exposed as `manc run`                                  | end-to-end with all fakes                                            |
 
 ### Test-driven development
@@ -89,7 +98,9 @@ What "test-first" means per layer:
 | `analysis`          | tagger tests assert prompt batching, schema validation and retry                                                                           | `litellm.completion` monkeypatched to return canned JSON                    |
 | `store`             | migration tests (upgrade to head, downgrade to base, no drift between `schema.py` and `head`); round-trip and idempotency tests on a temp SQLite file | `tmp_path`                                                       |
 | `pipeline`, `cli`   | end-to-end against in-memory fakes of every Protocol; asserts the rows written, the exit code and the log                                   | `FakeCalendar`, `FakeNews`, `FakeAnalyzer`, `FakeStore` in `tests/fakes.py` |
-| `web`               | callback functions tested directly (they are plain functions) plus one smoke test per page that the layout renders with a seeded store; visual quality is reviewed manually by the owner, not by automated screenshots | seeded SQLite in a fixture |
+| `queries`           | unit tests of every read-side function on known rows: band thresholds, deltas, sparkline windows, event-risk badge, ordering              | `FakeStore`                                                                 |
+| `api`               | one test per route: status code, response model, 404 for an unknown asset, validation errors for bad dates                                 | FastAPI `TestClient` with `FakeStore` injected                              |
+| `manc_ui`           | callback functions tested directly against a mocked API plus one smoke test per page that the layout renders; visual quality is reviewed manually by the owner, not by automated screenshots | `respx` mocking `MANC_API_URL`                                    |
 
 Coverage is not a target on its own, but pytest is configured to fail below 85% so untested
 code cannot sneak in. Live-network tests exist for the
@@ -314,7 +325,7 @@ uv run alembic downgrade -1                       # step back one revision
 ```
 
 The database URL comes from `MANC_DB_URL` (default `sqlite:///data/manc.db`), so moving to
-Postgres is a URL change plus a driver. `manc run` and `manc serve` refuse to start if the
+Postgres is a URL change plus a driver. `manc run` and `manc api` refuse to start if the
 database is not at `head`, so a forgotten upgrade fails loudly. A test compares `schema.py`
 with the migrated database and fails on drift, so a schema edit without a revision cannot be
 committed. Backup is still copying one file.
@@ -332,11 +343,57 @@ day's row, so a bad run is fixed by running again. `formula` is part of the key 
 instead of replacing it; the dashboard defaults to the configured formula and can overlay
 others.
 
-## 7 · Dashboard
+## 7 · API and dashboard
+
+The backend exposes a read-only REST API; the dashboard is a client of it and nothing more.
+That contract is what makes the UI replaceable: a React app, a phone app or a Grafana panel
+would consume the same routes, and the OpenAPI spec FastAPI generates is the documentation.
+
+### Read-side logic: `queries.py`
+
+Between rows in the store and JSON on the wire there is real logic: the delta versus yesterday,
+the band label for a score, the 30-day sparkline window, the event-risk badge, the ordering of
+the overview. It belongs neither in repositories (they only fetch) nor in route handlers (they
+only parse and serialize). `src/manc/queries.py` holds it as plain functions over a `Store`
+returning frozen dataclasses, tested with `FakeStore` and no HTTP:
+
+```python
+overview(store, config, as_of)                    -> list[AssetSummary]
+asset_history(store, symbol, formula, start, end) -> AssetHistory
+headlines_behind(store, symbol, as_of)            -> list[HeadlineView]
+upcoming_events(store, config, start, end, min_importance) -> list[CalendarEvent]
+```
+
+The CLI and the report builder reuse the same functions, so a band label or a delta is
+computed in exactly one place.
+
+### REST API: `manc api`
+
+FastAPI, `src/manc/api/`. Routes are thin: parse the request, call one query, return a
+Pydantic response model. Read-only in v1; writes stay with the pipeline.
+
+| Route                                                   | Returns                                                        |
+|---------------------------------------------------------|----------------------------------------------------------------|
+| `GET /api/v1/assets`                                    | tracked assets: symbol, kind, economies                        |
+| `GET /api/v1/overview?as_of=`                           | per asset: score, band, delta, 30-day sparkline, event risk    |
+| `GET /api/v1/assets/{symbol}/scores?formula=&from=&to=` | score series with components                                   |
+| `GET /api/v1/assets/{symbol}/report?date=`              | that day's markdown report                                     |
+| `GET /api/v1/assets/{symbol}/headlines?date=`           | headlines that moved the score, with direction and source      |
+| `GET /api/v1/events?from=&to=&min_importance=`          | calendar events                                                |
+| `GET /api/v1/formulas`                                  | known formulas and the configured default                      |
+| `GET /health`                                           | database at head, last run date                                |
+
+Unknown asset → 404; malformed dates → 422 from validation. The store is injected through a
+FastAPI dependency so tests run the app against `FakeStore`. `uv run manc api` serves it on
+`localhost:8000`; `/docs` shows the OpenAPI UI.
+
+### Dashboard: `manc ui`
 
 Dash with Dash Mantine Components for layout and controls, Plotly for charts, `dash.pages` for
-routing. No frontend build step. The app reads through the `Store` protocol only; it never
-touches SQLite directly.
+routing. No frontend build step. It lives in its own package, `src/manc_ui/`, which may import
+`dash`, `plotly` and `httpx` but never `manc`; a test enforces that, the same way
+`tests/formulas/test_isolation.py` guards the formulas. The only thing it knows about the
+backend is `MANC_API_URL`. `src/manc_ui/client.py` wraps the routes above in typed functions.
 
 - `/` — overview: one card per asset with today's score as a large number, a coloured band
   label, the delta from yesterday, a 30-day sparkline, and an event-risk badge; sorted by
@@ -361,7 +418,8 @@ Looking good, concretely:
 - Tabular numbers in every numeric column; skeleton loaders while a callback runs; responsive
   grid down to phone width.
 
-`uv run manc serve` starts it on `localhost:8050`.
+`uv run manc ui` starts it on `localhost:8050`, pointed at `MANC_API_URL` (default
+`http://localhost:8000`). `uv run manc serve` starts both processes for local convenience.
 
 ## 8 · Repo and tooling
 
@@ -390,10 +448,15 @@ manc/
 │   ├── scoring/            # adapter.py: store → ScoringInputs → formula
 │   ├── store/              # interface.py, schema.py (tables), db.py (engine, upgrade), sql.py
 │   ├── report/             # builder.py
-│   ├── web/                # app.py, theme.py, pages/, components/
+│   ├── queries.py          # read-side logic over a Store, returns frozen dataclasses
+│   ├── api/                # app.py (FastAPI), routes.py, schemas.py (Pydantic), deps.py
 │   ├── pipeline.py
-│   └── cli.py              # manc run | manc rescore | manc serve
-├── tests/                  # one folder per module + fixtures/; formulas/ has the isolation test
+│   └── cli.py              # manc run | manc rescore | manc api | manc ui | manc serve
+├── src/manc_ui/            # Dash app; imports dash/plotly/httpx, never manc (test-enforced)
+│   ├── app.py, theme.py, client.py
+│   ├── pages/
+│   └── components/
+├── tests/                  # one folder per module + fixtures/; isolation tests for formulas and ui
 └── data/                   # manc.db (gitignored; the folder is kept)
 ```
 
@@ -404,7 +467,8 @@ manc/
 | `litellm`, `pydantic`                             | headline tagging and report summary, provider-agnostic; Pydantic for the response schema |
 | `sqlalchemy`, `alembic`                           | store: Core tables and versioned migrations                            |
 | `pyyaml`                                          | config files                                                          |
-| `dash`, `dash-mantine-components`, `plotly`, `pandas` | dashboard                                                         |
+| `fastapi`, `uvicorn`, `pydantic`                  | REST API                                                              |
+| `dash`, `dash-mantine-components`, `plotly`, `httpx` | dashboard (`manc_ui`)                                              |
 | `pytest`, `pytest-cov`, `hypothesis`, `respx`, `ruff`, `pre-commit` | dev: tests, property tests, HTTP stubbing, coverage gate, lint and format, git hooks |
 
 Secrets: the API-key env var of whichever provider `llm.model` names (`ANTHROPIC_API_KEY`,
@@ -449,13 +513,17 @@ prints 50 for every asset using fakes.
 - `FormulaV1` with property tests (news term, surprise term with the sign map, event-risk
   shrink); scoring adapter; `manc rescore`
 
-**M4 Report and web** — done when: the dashboard shows the overview and per-asset history with
-today's report, in both themes.
+**M4 Report, API and dashboard** — done when: every route in §7 answers from real data and the
+dashboard shows the overview and per-asset history with today's report, in both themes, through
+the API only.
 - markdown report builder
+- `queries.py` with unit tests
+- FastAPI app: routes, Pydantic schemas, store dependency, `TestClient` tests, `manc api`
+- `manc_ui` package with the isolation test and the typed API client
 - Dash app shell: Mantine theme, Plotly template, light/dark
 - overview page with asset cards and sparklines
 - asset page with history chart, selectors, report, events, headlines
-- events page
+- events page; `manc ui` and `manc serve`
 
 **M5 Operations** — done when: two weeks of daily scores exist without manual intervention.
 - cron entry and README runbook
@@ -475,6 +543,11 @@ load-bearing enough to block a start.
 - **LiteLLM, not a hand-rolled provider adapter.** One dependency covers every provider; the
   model is a config string and the code never sees provider-specific parameters.
 - **No price data in the score.** The index measures narrative and data, and stays explainable.
+- **REST API between backend and UI.** The dashboard is one client of `manc api` and lives in
+  a package that cannot import the backend. Any future UI consumes the same OpenAPI contract;
+  the price is a second process.
+- **`queries.py` for read-side logic.** Bands, deltas, sparklines and ordering are computed in
+  one place, as plain functions, tested without HTTP; routes and pages stay thin.
 - **Dash with Mantine components.** Real routing and Plotly first-class, no JS build step, and
   a component library that looks finished out of the box.
 - **Git hooks instead of hosted CI.** pre-commit runs format, lint and the test suite before
