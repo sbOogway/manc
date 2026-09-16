@@ -66,3 +66,9 @@ def test_missing_file_names_it(tmp_path: Path) -> None:
     (tmp_path / "llm.yaml").unlink()
     with pytest.raises(FileNotFoundError, match=r"llm\.yaml"):
         load_config(tmp_path)
+
+
+def test_feed_names_are_unique_and_urls_are_https() -> None:
+    feeds = load_config(REPO_CONFIG).feeds
+    assert len({feed.name for feed in feeds}) == len(feeds)
+    assert all(feed.url.startswith("https://") for feed in feeds)
