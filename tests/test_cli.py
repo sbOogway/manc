@@ -1,11 +1,24 @@
-"""`manc` entry point on a real temp database."""
+"""`manc` entry point on a real temp database, with every RSS feed stubbed to be empty."""
 
+from collections.abc import Iterator
 from pathlib import Path
 
+import httpx
 import pytest
+import respx
 
 from manc import cli
+from manc.config import load_config
 from manc.store import db
+
+EMPTY_FEED = b'<?xml version="1.0"?><rss version="2.0"><channel><title>x</title></channel></rss>'
+
+
+@pytest.fixture(autouse=True)
+def offline_feeds() -> Iterator[respx.MockRouter]:
+    with respx.mock(assert_all_called=False) as router:
+        router.route().mock(return_value=httpx.Response(200, content=EMPTY_FEED))
+        yield router
 
 
 @pytest.fixture
@@ -21,6 +34,12 @@ def test_run_prints_one_line_per_asset(migrated_db: str, capsys: pytest.CaptureF
     lines = capsys.readouterr().out.strip().splitlines()
     assert len(lines) == 7
     assert lines[0].split() == ["2026-09-15", "EURUSD", "50.0", "v1", "news=0", "events=0"]
+
+
+def test_run_pulls_every_configured_feed(migrated_db: str, offline_feeds: respx.MockRouter) -> None:
+    assert cli.main(["run"]) == 0
+    requested = {str(call.request.url) for call in offline_feeds.calls}
+    assert requested == {feed.url for feed in load_config().feeds}
 
 
 def test_run_defaults_to_today(migrated_db: str, capsys: pytest.CaptureFixture) -> None:
