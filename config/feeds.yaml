@@ -73,3 +73,18 @@ feeds:
   - name: chartbook                 # Adam Tooze, daily link roundups; broad, so low weight
     url: https://adamtooze.substack.com/feed
     weight: 0.4
+
+  # Central-bank research blogs: primary institutions, slow cadence, analytical rather than
+  # market-moving; hence full trust but a notch below the press feeds.
+  - name: ny_fed_liberty_street     # Federal Reserve Bank of New York
+    url: https://libertystreeteconomics.newyorkfed.org/feed/
+    weight: 0.8
+  - name: fred_blog                 # Federal Reserve Bank of St. Louis
+    url: https://fredblog.stlouisfed.org/feed/
+    weight: 0.8
+  - name: bank_underground          # Bank of England staff blog
+    url: https://bankunderground.co.uk/feed/
+    weight: 0.8
+  - name: ecb_blog                  # ECB blog
+    url: https://www.ecb.europa.eu/rss/blog.html
+    weight: 0.8
