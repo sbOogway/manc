@@ -16,14 +16,14 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from manc.config import CalendarConfig
+from manc.http import Client
 from manc.models import CalendarEvent
 
 log = logging.getLogger(__name__)
 
 ENDPOINT = "https://api.nasdaq.com/api/calendar/economicevents"
 EASTERN = ZoneInfo("America/New_York")
-DEFAULT_TIMEOUT = 15.0
-HEADERS = {  # the endpoint answers 403 without browser-like headers
+BROWSER_HEADERS = {  # Nasdaq's edge stalls any other agent until the timeout; the one exception
     "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
     "User-Agent": (
@@ -39,7 +39,7 @@ _CLOCK = re.compile(r"^\d{1,2}:\d{2}$")
 class NasdaqCalendar:
     def __init__(self, config: CalendarConfig, client: httpx.Client | None = None) -> None:
         self.config = config
-        self.client = client or httpx.Client(timeout=DEFAULT_TIMEOUT, headers=HEADERS)
+        self.client = client or Client(headers=BROWSER_HEADERS)
 
     def fetch(self, start: date, end: date) -> list[CalendarEvent]:
         """Events for every day in [start, end], sorted by time; a failing day is skipped."""

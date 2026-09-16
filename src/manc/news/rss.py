@@ -11,20 +11,16 @@ import feedparser
 import httpx
 
 from manc.config import FeedSpec
+from manc.http import Client
 from manc.models import NewsItem
 
 log = logging.getLogger(__name__)
-
-USER_AGENT = "manc/0.1 (+https://github.com/sbOogway/manc)"
-DEFAULT_TIMEOUT = 15.0
 
 
 class RssNews:
     def __init__(self, feeds: Sequence[FeedSpec], client: httpx.Client | None = None) -> None:
         self.feeds = tuple(feeds)
-        self.client = client or httpx.Client(
-            timeout=DEFAULT_TIMEOUT, follow_redirects=True, headers={"User-Agent": USER_AGENT}
-        )
+        self.client = client or Client()
 
     def fetch(self, since: datetime) -> list[NewsItem]:
         """Newest first; a URL seen in several feeds is attributed to the first feed."""
