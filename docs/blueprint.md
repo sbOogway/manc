@@ -1,12 +1,12 @@
 # manc — macro analysis, news and calendar
 
-**Project blueprint, draft 10 (2026-09-16).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
+**Project blueprint, draft 11 (2026-09-16).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
 This file is the source of truth; update it when a decision changes.
 
 A small daily pipeline that reads the economic calendar and trusted news feeds, scores each
 tracked asset 0–100, stores the score, and plots it.
 
-Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · FastAPI · Dash · SQLite via SQLAlchemy Core + Alembic · OpenBB.
+Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · FastAPI · Dash · SQLite via SQLAlchemy Core + Alembic · Nasdaq calendar.
 
 ---
 
@@ -66,7 +66,7 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 
 | Module     | Interface                                                                 | Default implementation                                                  | Tests cover                                                          |
 |------------|---------------------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------|
-| `calendar` | `CalendarProvider.fetch(start, end) -> list[CalendarEvent]`               | OpenBB, Nasdaq provider (free, no key)                                  | parsing, importance mapping, date windows                            |
+| `calendar` | `CalendarProvider.fetch(start, end) -> list[CalendarEvent]`               | Nasdaq's public calendar endpoint over httpx (free, no key)             | parsing, category/importance/country maps, date offset, day windows  |
 | `news`     | `NewsProvider.fetch(since) -> list[NewsItem]`                             | feedparser over `config/feeds.yaml`                                     | parsing, dedupe, per-feed failure isolation                          |
 | `analysis` | `Analyzer.tag(items, assets) -> list[NewsTag]`                            | LiteLLM `completion()` with a Pydantic response schema, model from config | fake analyzer; batching; schema validation                           |
 | `formulas` | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | plain Python classes, one per version, standard library only (§5) | property tests on every formula; an isolation test that the package imports nothing else from `manc` |
@@ -104,7 +104,7 @@ What "test-first" means per layer:
 
 Coverage is not a target on its own, but pytest is configured to fail below 85% so untested
 code cannot sneak in. Live-network tests exist for the
-real RSS feeds and the OpenBB calendar; they are marked `@pytest.mark.live`, skipped by default
+real RSS feeds and the Nasdaq calendar; they are marked `@pytest.mark.live`, skipped by default
 and run manually before a release.
 
 Enforcement is local, not hosted: there is no GitHub Actions workflow. A `pre-commit`
@@ -157,17 +157,30 @@ class IndexScore:  # defined in manc.formulas.contract, re-exported here
 
 ## 4 · Data sources
 
-### Economic calendar → OpenBB
+### Economic calendar → Nasdaq, called directly
 
-`obb.economy.calendar(provider="nasdaq")` needs no API key and returns
-`date, country, event, importance, consensus, previous, actual`. That is everything the score
-needs. FMP and TradingEconomics are also wired into OpenBB but need keys; keep them as optional
-fallbacks. We can depend on just `openbb-nasdaq` and call its fetcher directly rather than
-installing the full `openbb` meta-package.
+`https://api.nasdaq.com/api/calendar/economicevents?date=YYYY-MM-DD` needs no API key and
+returns, per row, `gmt, country, eventName, actual, previous, consensus, description`. The
+provider (`calendar/nasdaq.py`) issues one request per day of the window over httpx with
+browser-like headers. Quirks verified on 2026-09-16 and pinned by tests:
 
-Nasdaq's feed has no `category`; a small regex map in config turns event names into categories
-(`CPI|PPI|PCE → inflation`, `Nonfarm|Unemployment|Claims → employment`,
-`GDP|PMI|Retail → growth`, `Rate Decision|FOMC|Minutes → rates`).
+- `date=D` returns the events of **D−1**, so the provider requests `D+1` for each wanted day;
+- the `gmt` column is really **US Eastern** wall-clock time (payrolls at 08:30, FOMC at
+  14:00); it is converted to UTC. `All Day`, `Tentative` and `24H` become midnight Eastern;
+- values are strings (`"1,774K"`, `"5.4%"`, `"310.70B"`); K/M/B/T scale the number, `%` is
+  dropped, blanks (`"&nbsp;"`, `" "`) become `None`;
+- there is **no importance and no category**. Both come from case-insensitive regex maps on
+  the event name in `config/calendar.yaml`, first match wins: `categories` (→ inflation |
+  employment | growth | rates, else `other`), `importance` (3 for rate decisions, CPI,
+  payrolls, GDP; 2 for PMIs, retail sales, claims, PPI; else 1) and `countries` (Nasdaq names
+  that differ from our economy keys, e.g. `Euro Zone → euro_area`; others are snake_cased);
+- two rows can share a name on one day (UK `Core CPI` YoY and MoM), so the event id is
+  `sha1(date | country | event | ordinal)` with the ordinal counting same-name rows in order.
+
+OpenBB was the original plan (`openbb-nasdaq`), and its fetcher hits exactly this URL, but it
+requests only weekday dates and therefore drops every Friday's releases through the offset
+above, stamps the Eastern times as GMT, and pulls in 52 packages. FMP and TradingEconomics
+calendars (keyed) remain possible alternative providers behind the same Protocol.
 
 ### News → RSS
 
@@ -435,7 +448,8 @@ manc/
 │   ├── assets.yaml         # symbols, economies, sign map
 │   ├── feeds.yaml          # RSS urls + weights
 │   ├── scoring.yaml        # formula: v1, params (weights, half-life, windows)
-│   └── llm.yaml            # model string, fallback, temperature
+│   ├── llm.yaml            # model string, fallback, temperature
+│   └── calendar.yaml       # event-name regexes → category and importance; country aliases
 ├── docs/blueprint.md       # this file
 ├── src/manc/
 │   ├── models.py           # frozen dataclasses (§3)
@@ -444,7 +458,7 @@ manc/
 │   │   ├── contract.py     # ScoringInputs, IndexScore, IndexFormula
 │   │   ├── registry.py     # get_formula("v1")
 │   │   └── v1.py           # class FormulaV1
-│   ├── calendar/           # interface.py, openbb.py
+│   ├── calendar/           # interface.py, nasdaq.py
 │   ├── news/               # interface.py, rss.py
 │   ├── analysis/           # interface.py, llm.py, lexicon.py
 │   ├── scoring/            # adapter.py: store → ScoringInputs → formula
@@ -464,8 +478,8 @@ manc/
 
 | Dependency                                        | Used for                                                              |
 |---------------------------------------------------|-----------------------------------------------------------------------|
-| `openbb-nasdaq`                                   | economic calendar (pulls in openbb-core)                              |
-| `feedparser`, `httpx`                             | RSS fetching and parsing                                              |
+| `httpx`                                           | Nasdaq calendar endpoint and RSS fetching                             |
+| `feedparser`                                      | RSS parsing                                                           |
 | `litellm`, `pydantic`                             | headline tagging and report summary, provider-agnostic; Pydantic for the response schema |
 | `sqlalchemy`, `alembic`                           | store: Core tables and versioned migrations                            |
 | `pyyaml`                                          | config files                                                          |
@@ -499,14 +513,14 @@ prints 50 for every asset using fakes.
 - `tests/fakes.py`: in-memory fakes for every Protocol, written together with the Protocols
 - `manc.formulas`: contract, registry, isolation test and a `FormulaV1` stub returning 50
 - models.py and every Protocol
-- config loader for the four YAML files
+- config loader for the YAML files
 - SQLAlchemy Core schema, Alembic migrations and `MANC_DB_URL`, with migration tests
 - `Store` protocol implementation with round-trip tests
 - CLI with `run`, `rescore` and `serve` stubs
 
 **M2 Ingestion** — done when: a run populates `news` and `calendar_events` from live sources.
 - RSS provider with per-feed failure isolation and dedupe
-- OpenBB calendar provider with category mapping
+- Nasdaq calendar provider with category, importance and country maps
 - recorded fixtures for both
 
 **M3 Analysis and index** — done when: real scores are written for all seven assets.
@@ -594,6 +608,9 @@ load-bearing enough to block a start.
   cost is cents per day.
 - **LiteLLM, not a hand-rolled provider adapter.** One dependency covers every provider; the
   model is a config string and the code never sees provider-specific parameters.
+- **Nasdaq's calendar endpoint directly, not through OpenBB.** The OpenBB fetcher wraps the
+  same URL but loses Fridays and mislabels times (§4) while adding 52 packages; a 100-line
+  module over httpx with recorded fixtures is both smaller and correct.
 - **No price data in the score.** The index measures narrative and data, and stays explainable.
 - **REST API between backend and UI.** The dashboard is one client of `manc api` and lives in
   a package that cannot import the backend. Any future UI consumes the same OpenAPI contract;
