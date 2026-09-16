@@ -1,0 +1,14 @@
+{
+ "data": null,
+ "message": null,
+ "status": {
+  "rCode": 200,
+  "bCodeMessage": [
+   {
+    "code": 1002,
+    "errorMessage": "Economic Events Calendar: No record found."
+   }
+  ],
+  "developerMessage": null
+ }
+}

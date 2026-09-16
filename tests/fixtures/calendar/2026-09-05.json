@@ -1,0 +1,517 @@
+{
+ "data": {
+  "asOf": "Wed, Sep 16, 2026",
+  "headers": {
+   "gmt": "Time",
+   "country": "Country",
+   "eventName": "Event",
+   "actual": "Actual",
+   "consensus": "Consensus",
+   "previous": "Previous",
+   "description": "Description"
+  },
+  "rows": [
+   {
+    "gmt": "02:00",
+    "country": "Germany",
+    "eventName": "German Factory Orders",
+    "actual": "2.5%",
+    "consensus": "0.3%",
+    "previous": "3.7%",
+    "description": "German Factory Orders measures the change in the total value of new purchase orders placed with manufacturers for both durable and non-durable goods. It is a leading indicator of production.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the EUR, while a lower than expected reading should be taken as negative/bearish for the EUR."
+   },
+   {
+    "gmt": "03:30",
+    "country": "Italy",
+    "eventName": "HCOB Italy Construction PMI",
+    "actual": "41.7",
+    "consensus": " ",
+    "previous": "49.1",
+    "description": ""
+   },
+   {
+    "gmt": "03:30",
+    "country": "Germany",
+    "eventName": "HCOB Germany Construction PMI",
+    "actual": "48.7",
+    "consensus": " ",
+    "previous": "42.1",
+    "description": "IHS Markit Germany Construction PMI is compiled from responses to questionnaires\nsent to a panel of about 150 construction company purchasing managers. The panel is stratified by\ncompany workforce size based on contributions to GDP.\n\nSurvey responses are collected during the second half of each month and indicate the direction of change\ncompared to the previous month. A reading above 50 indicates an overall increase compared to the\nprevious month; below 50 signals an overall decrease."
+   },
+   {
+    "gmt": "03:30",
+    "country": "France",
+    "eventName": "HCOB France Construction PMI",
+    "actual": "37.3",
+    "consensus": " ",
+    "previous": "41.5",
+    "description": ""
+   },
+   {
+    "gmt": "03:30",
+    "country": "Euro Zone",
+    "eventName": "HCOB Eurozone Construction PMI",
+    "actual": "43.0",
+    "consensus": " ",
+    "previous": "44.3",
+    "description": ""
+   },
+   {
+    "gmt": "04:00",
+    "country": "United Kingdom",
+    "eventName": "Car Registration",
+    "actual": "13.7%",
+    "consensus": " ",
+    "previous": "11.7%",
+    "description": "The car registrations published by the European Automobile Manufacturers\u2019 Association (ACEA) describe the number of new passenger car registrations in the United Kingdom. If the number increases, this is a sign of increasing consumption. At the same time, British carmakers are earning more money, leading to rising profits. This generally boosts the economy - and vice versa. If car registrations are higher than expected, this usually leads to a rising pound (GBP) exchange rate on the currency markets. Conversely, the pound exchange rate (GBP) falls if new registrations are lower than expected or if expectations are missed."
+   },
+   {
+    "gmt": "04:00",
+    "country": "United Kingdom",
+    "eventName": "United Kingdom New Passenger Cars Registration",
+    "actual": "94,236.0",
+    "consensus": " ",
+    "previous": "156,571.0",
+    "description": "New Passenger Cars Registration"
+   },
+   {
+    "gmt": "04:00",
+    "country": "Italy",
+    "eventName": "Italian Retail Sales",
+    "actual": "-0.4%",
+    "consensus": "0.2%",
+    "previous": "-0.2%",
+    "description": "Italian Retail Sales measures the change in the total value of sales at the retail level.\r\nIt is the foremost indicator of consumer spending, which accounts for the majority of overall economic activity.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the EUR,\r\nwhile a lower than expected reading should be taken as negative/bearish for the EUR."
+   },
+   {
+    "gmt": "04:00",
+    "country": "Italy",
+    "eventName": "Italian Retail Sales",
+    "actual": "0.8%",
+    "consensus": " ",
+    "previous": "3.1%",
+    "description": "Retail Sales measure the change in the total value of inflation-adjusted sales at the retail level. It is the foremost indicator of consumer spending, which accounts for the majority of overall economic activity.\r\nA higher than expected reading should be taken as positive/bullish for the EUR while a lower than expected reading should be taken as negative/bearish for the EUR."
+   },
+   {
+    "gmt": "04:30",
+    "country": "United Kingdom",
+    "eventName": "S&P Global Construction PMI",
+    "actual": "44.3",
+    "consensus": "45.8",
+    "previous": "44.7",
+    "description": "The Chartered Institute of Purchasing and Supply (CIPS) Construction Purchasing Manager&#039;s Index (PMI) measures the activity level of purchasing managers in the construction industry. A reading above 50 indicates expansion in the construction industry; a reading below indicates contraction. It gives an indication about the health of the construction section in the UK.\r\nTraders watch these surveys closely as purchasing managers usually have early access to data about their company\u2019s performance, which can be a leading indicator of overall economic performance. \r\n&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the GBP, while a lower than expected reading should be taken as negative/bearish for the GBP."
+   },
+   {
+    "gmt": "04:50",
+    "country": "United Kingdom",
+    "eventName": "BoE Gov Bailey Speaks",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "&nbsp;",
+    "description": "Bank of England (BOE) Governor Andrew Bailey (Mar 2020 - Mar 2028) is to speak. As head of the BOE's Monetary Policy Committee (MPC) which controls short term interest rates, Bailey has more influence over sterling's value than any other person. Traders scrutinize his public engagements for clues regarding future monetary policy.\n\nHis comments may spark a short-term positive or negative trend."
+   },
+   {
+    "gmt": "05:00",
+    "country": "Euro Zone",
+    "eventName": "ECB's Lane Speaks",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "&nbsp;",
+    "description": "Philip R. Lane, member of the Executive Board of the European Central Bank, is set to speak. His speeches often contain indications on the future possible direction of monetary policy."
+   },
+   {
+    "gmt": "05:00",
+    "country": "Euro Zone",
+    "eventName": "Retail Sales",
+    "actual": "-0.6%",
+    "consensus": "0.3%",
+    "previous": "0.2%",
+    "description": "Retail Sales measure the change in the total value of inflation-adjusted sales at the retail level. It is the foremost indicator of consumer spending, which accounts for the majority of overall economic activity.\r\n&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the EUR, while a lower than expected reading should be taken as negative/bearish for the EUR."
+   },
+   {
+    "gmt": "05:00",
+    "country": "Euro Zone",
+    "eventName": "Retail Sales",
+    "actual": "0.6%",
+    "consensus": "1.1%",
+    "previous": "1.4%",
+    "description": "Retail Sales measure the change in the total value of inflation-adjusted sales at the retail level. It is the foremost indicator of consumer spending, which accounts for the majority of overall economic activity.\r\nA higher than expected reading should be taken as positive/bullish for the EUR while a lower than expected reading should be taken as negative/bearish for the EUR."
+   },
+   {
+    "gmt": "07:30",
+    "country": "India",
+    "eventName": "FX Reserves, USD",
+    "actual": "740.80B",
+    "consensus": " ",
+    "previous": "729.33B",
+    "description": "International reserves are used to settle balance of payments deficits between countries. International reserves are made up of foreign currency assets, gold, holdings of SDRs and reserve position in the IMF.Usually includes foreign currencies themselves, other assets denominated in foreign currencies, and particular amount of special drawing rights (SDRs). A foreign exchange reserve is a useful precaution for countries exposed to financial crises. It can be used for the purpose of intervening in the exchange market to influence or peg the exchange rate.&lt;/BR&gt;A higher than expected reading should be taken as positive/bullish for the INR , while a lower than expected reading should be taken as negative/bearish for the INR."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Average Hourly Earnings",
+    "actual": "0.3%",
+    "consensus": "0.3%",
+    "previous": "0.2%",
+    "description": "Average Hourly Earnings measures the change in the price businesses pay for labor, not including the agricultural sector.\r\n&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the USD, while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Average Hourly Earnings (YoY)",
+    "actual": "3.1%",
+    "consensus": "3.0%",
+    "previous": "3.2%",
+    "description": ""
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Average Weekly Hours",
+    "actual": "34.4",
+    "consensus": "34.3",
+    "previous": "34.3",
+    "description": "Average Weekly Hours (also known as Average Workweek) measures the average number of hours worked by employees on non-farm payrolls.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the USD, while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Government Payrolls",
+    "actual": "35.0K",
+    "consensus": " ",
+    "previous": "-50.0K",
+    "description": "In a company, payroll is the sum of all financial records of salaries for an employee, wages, bonuses and deductions. In accounting, payroll refers to the amount paid to employees for services they provided during a certain period of time. Payroll plays a major role in a company for several reasons. From an accounting point of view, payroll is crucial because payroll and payroll taxes considerably affect the net income of most companies and they are subject to laws and regulations (e.g. in the US payroll is subject to federal and state regulations). From an ethics in business viewpoint payroll is a critical department as employees are responsive to payroll errors and irregularities: good employee morale requires payroll to be paid timely and accurately. The primary mission of the payroll department is to ensure that all employees are paid accurately and timely with the correct withholdings and deductions, and to ensure the withholdings and deductions are remitted in a timely manner. This includes salary payments, tax withholdings, and deductions from a paycheck."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Manufacturing Payrolls",
+    "actual": "16K",
+    "consensus": "5K",
+    "previous": "14K",
+    "description": "Employment data, except those for the Federal Government, refer to persons on establishment payrolls who received pay for any part of the pay period which includes the 12th of the month. For Federal Government establishments, employment figures represent the number of persons who occupied positions on the last day of the calendar month. Intermittent workers are counted if they performed any service during the month.The data exclude proprietors, the self-employed, unpaid volunteer or family workers, farm workers, and domestic workers. Salaried officers of \r\ncorporations are included. Government employment covers only civilian employees; military personnel are excluded. Employees of the Central Intelligence Agency and the National Security Agency also are excluded.Persons on establishment payrolls who are on paid sick leave (when pay is received directly from the firm), on paid holiday, on paid vacation, or work during a part of the pay period even though they are unemployed or on strike during the rest of the period are counted as employed. Not counted as employed are persons who are on layoff, on leave without pay, on strike for the entire period, or who were hired but have not yet reported during\r\nthe period."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Nonfarm Payrolls",
+    "actual": "162K",
+    "consensus": "55K",
+    "previous": "21K",
+    "description": "Nonfarm Payrolls measures the change in the number of people employed during the previous month, excluding the farming industry. Job creation is the foremost indicator of consumer spending, which accounts for the majority of economic activity.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the USD, while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Participation Rate",
+    "actual": "61.6%",
+    "consensus": " ",
+    "previous": "61.4%",
+    "description": "The participation rate is an important indicator of the supply of labor. It measures the share of the working-age population either working or looking for work. The number of people who are no longer actively searching for work would not be included in the participation rate. &lt;BR/&gt;\r\nA reading that is stronger than forecast is generally supportive (bullish) for the USD, while a weaker than forecast reading is generally negative (bearish) for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Private Nonfarm Payrolls",
+    "actual": "127K",
+    "consensus": "45K",
+    "previous": "71K",
+    "description": "Private Nonfarm Payrolls measures the change in the number of total number of paid U.S. workers of any business, excluding general government employees, private household employees, employees of nonprofit organizations that provide assistance to individuals and farm employees.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the USD, while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "U6 Unemployment Rate",
+    "actual": "7.7%",
+    "consensus": " ",
+    "previous": "7.9%",
+    "description": "Percentage of the total work force that is unemployed and actively seeking employment during the previous month. The figure also includes all persons marginally attached to the labor force, plus total employed part time for economic reasons, as a percent of the civilian labor force plus all persons marginally attached to the labor force."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Unemployment Rate",
+    "actual": "4.1%",
+    "consensus": "4.1%",
+    "previous": "4.1%",
+    "description": "The Unemployment Rate measures the percentage of the total work force that is unemployed and actively seeking employment during the previous month.\r\n&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as negative/bearish for the USD, while a lower than expected reading should be taken as positive/bullish for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "Canada",
+    "eventName": "Avg hourly wages Permanent employee",
+    "actual": "2.0%",
+    "consensus": " ",
+    "previous": "3.0%",
+    "description": "Average Weekly Hours (also known as Average Workweek) measures the average number of hours worked by employees"
+   },
+   {
+    "gmt": "08:30",
+    "country": "Canada",
+    "eventName": "Employment Change",
+    "actual": "-41.7K",
+    "consensus": "15.1K",
+    "previous": "75.1K",
+    "description": "Employment Change measures the change in the number of people employed. Job creation is an important indicator of consumer spending.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the CAD, while a lower than expected reading should be taken as negative/bearish for the CAD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "Canada",
+    "eventName": "Full Employment Change",
+    "actual": "-35.9K",
+    "consensus": " ",
+    "previous": "38.6K",
+    "description": "Full Employment Change is the change in employment of full-time employees. A higher than expected number should be taken as positive for the CAD, while a lower than expected number is viewed as negative."
+   },
+   {
+    "gmt": "08:30",
+    "country": "Canada",
+    "eventName": "Part Time Employment Change",
+    "actual": "-5.8K",
+    "consensus": " ",
+    "previous": "36.6K",
+    "description": "Part Time Employment Change is the change in employment of part-time employees.A higher than expected number should be taken as positive to the AUD, while a lower than expected number as negative."
+   },
+   {
+    "gmt": "08:30",
+    "country": "Canada",
+    "eventName": "Participation Rate",
+    "actual": "65.0%",
+    "consensus": " ",
+    "previous": "65.1%",
+    "description": "The participation rate is the percentage of the total number of people of labour-force age (15 years and over) that is in the labour force (either working or looking for work). The data provided by Statistics Canada is monthly and deseasonalized; this eliminates the impact of seasonal variations and makes it possible to compare data throughout the year.&lt;/BR&gt;A higher than expected reading should be taken as positive/bullish for the CAD , while a lower than expected reading should be taken as negative/bearish for the CAD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "Canada",
+    "eventName": "Unemployment Rate",
+    "actual": "6.4%",
+    "consensus": "6.4%",
+    "previous": "6.4%",
+    "description": "The Unemployment Rate measures the percentage of the total work force that is unemployed and actively seeking employment during the previous month.\r\n&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as negative/bearish for the CAD, while a lower than expected reading should be taken as positive/bullish for the CAD."
+   },
+   {
+    "gmt": "10:00",
+    "country": "Canada",
+    "eventName": "Ivey PMI n.s.a",
+    "actual": "62.7",
+    "consensus": " ",
+    "previous": "54.1",
+    "description": "The Ivey Purchasing Managers Index is jointly sponsored by the Purchasing Management Association of Canada (PMAC) and the Richard Ivey School of Business. The Ivey Purchasing Managers Index measures month to month changes in dollars of purchases as indicated by a panel of purchasing managers from across Canada. The 175 participants in this survey have been carefully selected geographically and \r\nby sector of activity to match the Canadian economy as a whole. The index includes both the public and private sectors. Index panel members indicate whether their organizations activity is higher than the same as, or lower than the previous month across the following five categories: purchases, employment, inventories, supplier deliveries and prices."
+   },
+   {
+    "gmt": "10:00",
+    "country": "Canada",
+    "eventName": "Ivey PMI",
+    "actual": "64.3",
+    "consensus": "56.2",
+    "previous": "55.1",
+    "description": "The Ivey Purchasing Managers&#039; Index (PMI) measures the activity level of purchasing managers in Canada. A reading above 50 indicates expansion; a reading below 50 indicates contraction. The index is a joint project of the Purchasing Management Association of Canada and the Richard Ivey School of Business. Traders watch these surveys closely as purchasing managers usually have early access to data about their company\u2019s performance, which can be a leading indicator of overall economic performance.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the CAD, while a lower than expected reading should be taken as negative/bearish for the CAD."
+   },
+   {
+    "gmt": "13:00",
+    "country": "United States",
+    "eventName": "U.S. Baker Hughes Oil Rig Count",
+    "actual": "449",
+    "consensus": " ",
+    "previous": "447",
+    "description": "The Baker Hughes rig count is an important business barometer for the oil drilling industry. When drilling rigs are active they consume products and services produced by the oil service industry.\r\nThe active rig count acts as a leading indicator of demand for oil products."
+   },
+   {
+    "gmt": "13:00",
+    "country": "United States",
+    "eventName": "U.S. Baker Hughes Total Rig Count",
+    "actual": "588",
+    "consensus": " ",
+    "previous": "588",
+    "description": ""
+   },
+   {
+    "gmt": "14:00",
+    "country": "Brazil",
+    "eventName": "Trade Balance",
+    "actual": "7.39B",
+    "consensus": "7.14B",
+    "previous": "7.07B",
+    "description": "The Trade Balance measures the difference in value between imported and exported goods and services over the reported period. A positive number indicates that more goods and services were exported than imported.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the BRL, while a lower than expected reading should be taken as negative/bearish for the BRL."
+   },
+   {
+    "gmt": "15:30",
+    "country": "United Kingdom",
+    "eventName": "CFTC GBP speculative net positions",
+    "actual": "-49.6K",
+    "consensus": " ",
+    "previous": "-44.5K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC Aluminium speculative net positions",
+    "actual": "-0.2K",
+    "consensus": " ",
+    "previous": "0.0K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"\"non-commercial\"\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC Copper speculative net positions",
+    "actual": "80.9K",
+    "consensus": " ",
+    "previous": "85.3K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC Corn speculative net positions",
+    "actual": "536.7K",
+    "consensus": " ",
+    "previous": "440.9K",
+    "description": ""
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC Crude Oil speculative net positions",
+    "actual": "129.9K",
+    "consensus": " ",
+    "previous": "123.4K",
+    "description": ""
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC Gold speculative net positions",
+    "actual": "228.1K",
+    "consensus": " ",
+    "previous": "243.3K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC Nasdaq 100 speculative net positions",
+    "actual": "25.9K",
+    "consensus": " ",
+    "previous": "10.0K",
+    "description": ""
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC Natural Gas speculative net positions",
+    "actual": "-208.9K",
+    "consensus": " ",
+    "previous": "-197.9K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"\"non-commercial\"\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC S&P 500 speculative net positions",
+    "actual": "-75.9K",
+    "consensus": " ",
+    "previous": "-68.0K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC Silver speculative net positions",
+    "actual": "26.7K",
+    "consensus": " ",
+    "previous": "25.3K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC Soybeans speculative net positions",
+    "actual": "248.0K",
+    "consensus": " ",
+    "previous": "221.4K",
+    "description": ""
+   },
+   {
+    "gmt": "15:30",
+    "country": "United States",
+    "eventName": "CFTC Wheat speculative net positions",
+    "actual": "24.7K",
+    "consensus": " ",
+    "previous": "-6.8K",
+    "description": ""
+   },
+   {
+    "gmt": "15:30",
+    "country": "Canada",
+    "eventName": "CFTC CAD speculative net positions",
+    "actual": "-108.1K",
+    "consensus": " ",
+    "previous": "-121.5K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "Switzerland",
+    "eventName": "CFTC CHF speculative net positions",
+    "actual": "-22.9K",
+    "consensus": " ",
+    "previous": "-19.9K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "Australia",
+    "eventName": "CFTC AUD speculative net positions",
+    "actual": "-39.4K",
+    "consensus": " ",
+    "previous": "-44.5K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "Brazil",
+    "eventName": "CFTC BRL speculative net positions",
+    "actual": "72.8K",
+    "consensus": " ",
+    "previous": "67.9K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"\"non-commercial\"\" (speculative) traders in U.S. futures markets.</br> \r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br> \r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br> \r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "Japan",
+    "eventName": "CFTC JPY speculative net positions",
+    "actual": "-92.2K",
+    "consensus": " ",
+    "previous": "-63.3K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "New Zealand",
+    "eventName": "CFTC NZD speculative net positions",
+    "actual": "-8.0K",
+    "consensus": " ",
+    "previous": "-14.2K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   },
+   {
+    "gmt": "15:30",
+    "country": "Euro Zone",
+    "eventName": "CFTC EUR speculative net positions",
+    "actual": "-24.9K",
+    "consensus": " ",
+    "previous": "-36.4K",
+    "description": "The Commodity Futures Trading Commission's (CFTC) weekly Commitments of Traders (COT) report provides a breakdown of the net positions for \"non-commercial\" (speculative) traders in U.S. futures markets.</br>\r\nAll data corresponds to positions held by participants primarily based in Chicago and New York futures markets.</br>\r\nThe Commitments of Traders report is considered an indicator for analyzing market sentiment and many speculative traders use the data to help them decide whether or not to take a long or short position.</br>\r\nCommitments of Traders (COT) data is released each Friday at 3:30pm Eastern Time, pending a holiday in the U.S., to reflect the commitments of traders on the prior Tuesday."
+   }
+  ]
+ },
+ "message": null,
+ "status": {
+  "rCode": 200,
+  "bCodeMessage": null,
+  "developerMessage": null
+ }
+}

@@ -6,8 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic>=1.13",
-    "feedparser>=6.0.14",
-    "httpx>=0.28.1",
     "pyyaml>=6.0.3",
     "sqlalchemy>=2.0",
 ]
