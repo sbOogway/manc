@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Edge cases</title>
+    <link>https://example.test/</link>
+    <item>
+      <title>Fed holds rates &amp; signals patience</title>
+      <link>https://example.test/fed-holds</link>
+      <description><![CDATA[<p>The <b>Federal Reserve</b> kept rates unchanged&nbsp;on Wednesday.</p><br/>Read more.]]></description>
+      <pubDate>Wed, 16 Sep 2026 18:05:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Entry without a date</title>
+      <link>https://example.test/no-date</link>
+      <description>Should be skipped.</description>
+    </item>
+    <item>
+      <title>Entry without a link</title>
+      <description>Should be skipped.</description>
+      <pubDate>Wed, 16 Sep 2026 17:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Entry with an unparsable date</title>
+      <link>https://example.test/bad-date</link>
+      <pubDate>yesterday-ish</pubDate>
+    </item>
+    <item>
+      <title>Old entry</title>
+      <link>https://example.test/old</link>
+      <pubDate>Mon, 01 Sep 2026 09:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
