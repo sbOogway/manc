@@ -1,6 +1,6 @@
 # manc — macro analysis, news and calendar
 
-**Project blueprint, draft 9 (2026-09-16).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
+**Project blueprint, draft 10 (2026-09-16).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
 This file is the source of truth; update it when a decision changes.
 
 A small daily pipeline that reads the economic calendar and trusted news feeds, scores each
@@ -261,6 +261,8 @@ never `manc.models`, the store or anything else in the app (enforced by
 stored score carries the formula name; a new formula is a new module (`v2.py`) plus a registry
 entry, never an edit to `v1.py`. Since the app stores every input, `manc rescore --formula v2 --from 2026-09-01`
 recomputes history so old and new can be plotted side by side before switching the default.
+What a `v2` should contain is grounded in the literature survey in `docs/prior-art.md` and
+planned as milestone M6 (§9).
 
 ### Formula v1
 
@@ -333,7 +335,7 @@ committed. Backup is still copying one file.
 | Table             | Key                      | Columns                                                                          |
 |-------------------|--------------------------|----------------------------------------------------------------------------------|
 | `news`            | `id`                     | `source, title, url, published_at, summary, fetched_at`                          |
-| `news_tags`       | `(news_id, asset)`       | `direction, confidence, tagged_at`                                               |
+| `news_tags`       | `(news_id, asset)`       | `direction, confidence, model, prompt_version, tagged_at`                        |
 | `calendar_events` | `id`                     | `date, country, event, category, importance, consensus, previous, actual, fetched_at` |
 | `scores`          | `(asset, date, formula)` | `score, components_json, n_news, n_events, report_md, created_at`                |
 
@@ -486,7 +488,7 @@ Scheduling on the host: `0 6 * * 1-5 cd ~/quant/manc && uv run manc run`.
 
 ## 9 · Milestones
 
-Five milestones, each shippable on its own. Every feature inside a milestone becomes a GitHub
+Six milestones, each shippable on its own. Every feature inside a milestone becomes a GitHub
 issue when work on it starts, and each issue lists the tests to write before any
 implementation. An issue is done when those tests pass through the pre-commit hook.
 
@@ -508,7 +510,8 @@ prints 50 for every asset using fakes.
 - recorded fixtures for both
 
 **M3 Analysis and index** — done when: real scores are written for all seven assets.
-- LLM tagger through LiteLLM: Pydantic response schema, batching, configurable model with fallback
+- LLM tagger through LiteLLM: Pydantic response schema, batching, configurable model with fallback;
+  each tag stores `model` and `prompt_version` (needed by M6)
 - lexicon fallback analyzer
 - `FormulaV1` with property tests (news term, surprise term with the sign map, event-risk
   shrink); scoring adapter; `manc rescore`
@@ -529,6 +532,55 @@ the API only.
 - cron entry and README runbook
 - run log and failure notification (stderr + exit code is enough)
 - first tuning pass on weights using the accumulated scores
+
+**M6 Formula v2** — done when: `manc rescore --formula v2` has replayed the whole stored
+history, the dashboard overlays v1 and v2 for every asset, and the owner has picked the
+default. Grounded in `docs/prior-art.md` (survey of 2026-09-16): every item below cites the
+evidence for it. Starts only after M5 has accumulated about three months of scores and
+released events, because the surprise normaliser needs history.
+
+Prerequisite, done in M3 when the tagger lands: `news_tags` stores the `model` string and a
+`prompt_version`, so tags produced by different models can be told apart when comparing
+formulas (LLM labels carry model-specific bias, e.g. ChatGPT's documented dovish lean on
+Fedspeak).
+
+Candidates, in order of evidence. Each is a separate issue with its own property tests, and
+each is a `params` switch so v2 can be run with any subset on:
+- **Standardised surprise.** `sₑ = (actual − consensus) / σₑ`, where `σₑ` is the standard
+  deviation of past surprises for that release, estimated from `calendar_events`. Falls back
+  to the v1 normaliser while fewer than `min_history` observations exist. This is the
+  Balduzzi–Elton–Green (2001) measure that the Citi surprise index and Scotti (2016) aggregate.
+  Tests: comparable magnitudes across releases with different units; fallback below the
+  history threshold; bounds and symmetry as in v1.
+- **Novelty weighting.** The same story carried by several feeds currently counts once per
+  URL. Cluster near-duplicate titles inside 24h and weight the k-th copy by a decaying
+  sequence (RavenPack uses 1, .75, .56, .42, …). Tests: k copies of one headline never
+  outweigh k distinct headlines; a single headline is unchanged.
+- **Dispersion component.** Expose the spread of tag directions, `D = std(dᵢ·cᵢ)`, as a
+  stored component next to N, S, R, and show it in the dashboard. Dispersion and
+  volume-weighted impact were the most informative news features in the 2025 GDELT/FinBERT
+  study on EURUSD, USDJPY and Treasuries; storing D costs nothing and lets a later version
+  use it. Tests: D = 0 on unanimous tags, maximal on an even split.
+- **Bad-news asymmetry.** A param `α ≥ 1` multiplying negative contributions in N and S;
+  FX reacts more to bad surprises than to good ones (Andersen–Bollerslev–Diebold–Vega 2003).
+  Tests: α = 1 reproduces the symmetric formula; the sign-flip symmetry test becomes
+  "score(−x) ≤ 100 − score(x)".
+- **Decayed surprise window.** Replace the hard 7-day cut on S with the same half-life decay
+  used for N, over a longer window (Citi uses a decayed three-month window). Tests: monotone
+  in age; equals v1 at the boundary.
+- **Coarse confidence.** Bucket `cᵢ` to three levels before weighting. LLM verbalised
+  confidence is over-confident and poorly calibrated, and identical runs can differ by up to
+  10%, so a continuous weight suggests precision the tagger does not have. Tests: bucketing
+  is monotone and idempotent.
+
+Evaluation, since the index is not a predictor:
+- agreement with a hand-rated sample of about 100 tags (the human-benchmark recipe of
+  Mavillonio et al. 2026); disagreement rate stored in the issue, not in the database
+- v1 and v2 plotted side by side over the replayed history; the report for each day lists
+  both and the components that differ
+- any return-based sanity check uses only dates after the tagging model's training cutoff,
+  and history is never backfilled through the tagger (LLM look-ahead bias); rescoring stored
+  tags is safe
 
 ## 10 · Decisions taken
 
@@ -558,4 +610,7 @@ load-bearing enough to block a start.
   `manc.formulas` dependency-free (a test enforces it) and versioned means a change is a new
   file, and stored inputs make history replayable. No separate distribution: one repo, one
   package, one rule.
+- **v2 is evidence-driven, not a rewrite.** Each change to the formula is a candidate with a
+  cited reason and its own switch in `params` (§9, M6), so the owner can compare v1 against
+  v2 with any subset on before changing the default.
 - **Single process, synchronous.** A dozen feeds and a few API calls finish in under a minute.
