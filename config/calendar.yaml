@@ -1,0 +1,18 @@
+# Economic calendar maps. Nasdaq's feed gives event names, countries and values but neither a
+# category nor an importance, so both come from case-insensitive regexes on the event name,
+# first match wins. Unmatched events are category `other` with importance 1, so they still
+# show on the events page but the formula ignores them (no sign) and they barely move R.
+categories:
+  - {pattern: "CPI|PPI|PCE|Inflation|Price Index|HICP|RPI|WPI", category: inflation}
+  - {pattern: "Payroll|Unemployment|Jobless|Employment|Jobs|Claimant|Wage|Earnings|ADP|JOLT", category: employment}
+  - {pattern: "GDP|PMI|Retail Sales|Industrial Production|Manufacturing|Durable|Ifo|ZEW|Tankan|Consumer Confidence|Sentiment|Trade Balance", category: growth}
+  - {pattern: "Rate Decision|FOMC|Fed |Fed$|ECB|BoE|BoJ|BoC|RBA|RBNZ|SNB|Monetary Policy|Minutes|Press Conference|Speaks", category: rates}
+
+importance:
+  - {pattern: "Rate Decision|FOMC Statement|Monetary Policy Statement|Nonfarm Payrolls|Unemployment Rate|^CPI$|^Core CPI$|Core PCE|^GDP$|^GDP Growth", importance: 3}
+  - {pattern: "PMI|Retail Sales|Jobless Claims|^PPI$|^Core PPI$|Employment Change|ADP|JOLT|Average Hourly Earnings|Consumer Confidence|Ifo|ZEW|FOMC|Press Conference|Minutes|Industrial Production|Durable|HICP", importance: 2}
+
+# Nasdaq country names that differ from the economy keys used in assets.yaml. Any other name
+# becomes its snake_case form ("United Kingdom" -> united_kingdom).
+countries:
+  "Euro Zone": euro_area

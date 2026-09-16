@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 
-from manc.config import Config, FeedSpec, LlmConfig, ScoringConfig
+from manc.config import CalendarConfig, Config, FeedSpec, LlmConfig, ScoringConfig
 from manc.formulas.contract import AssetSpec
 from manc.models import CalendarEvent, NewsItem, NewsTag
 from manc.scoring.adapter import build_inputs
@@ -21,6 +21,7 @@ CONFIG = Config(
         windows={"news_hours": 72, "released_days": 7, "upcoming_days": 7},
     ),
     llm=LlmConfig(model="m", fallback=None, temperature=0, batch_size=40),
+    calendar=CalendarConfig(categories=(), importances=(), countries={}),
 )
 
 

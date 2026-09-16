@@ -72,3 +72,29 @@ def test_feed_names_are_unique_and_urls_are_https() -> None:
     feeds = load_config(REPO_CONFIG).feeds
     assert len({feed.name for feed in feeds}) == len(feeds)
     assert all(feed.url.startswith("https://") for feed in feeds)
+    
+    
+def test_calendar_maps_load_and_resolve() -> None:
+    calendar = load_config(REPO_CONFIG).calendar
+    assert calendar.category("Nonfarm Payrolls") == "employment"
+    assert calendar.category("Core CPI") == "inflation"
+    assert calendar.category("Fed Interest Rate Decision") == "rates"
+    assert calendar.category("Retail Sales") == "growth"
+    assert calendar.category("MBA Mortgage Applications") == "other"
+    assert calendar.importance("Nonfarm Payrolls") == 3
+    assert calendar.importance("Initial Jobless Claims") == 2
+    assert calendar.importance("MBA Mortgage Applications") == 1
+    assert calendar.country("Euro Zone") == "euro_area"
+    assert calendar.country("United Kingdom") == "united_kingdom"
+
+
+def test_calendar_importance_out_of_range_is_rejected(tmp_path: Path) -> None:
+    calendar = {"importance": [{"pattern": "CPI", "importance": 4}]}
+    with pytest.raises(ValueError, match="importance"):
+        load_config(_write(tmp_path, {"calendar": calendar}))
+
+
+def test_calendar_unknown_category_is_rejected(tmp_path: Path) -> None:
+    calendar = {"categories": [{"pattern": "CPI", "category": "prices"}]}
+    with pytest.raises(ValueError, match="category"):
+        load_config(_write(tmp_path, {"calendar": calendar}))

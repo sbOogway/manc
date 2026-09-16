@@ -7,11 +7,11 @@ from collections.abc import Sequence
 from datetime import UTC, date, datetime, time
 
 from manc.analysis.empty import EmptyAnalyzer
-from manc.calendar.empty import EmptyCalendar
+from manc.calendar.nasdaq import NasdaqCalendar
 from manc.config import load_config
 from manc.formulas.contract import IndexScore
 from manc.formulas.registry import get_formula
-from manc.news.empty import EmptyNews
+from manc.news.rss import RssNews
 from manc.pipeline import rescore, run
 from manc.store import db
 from manc.store.sql import SqlStore
@@ -36,8 +36,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         scores = run(
             as_of=_as_of(args.date),
             config=config,
-            calendar=EmptyCalendar(),
-            news=EmptyNews(),
+            calendar=NasdaqCalendar(config.calendar),
+            news=RssNews(config.feeds),
             analyzer=EmptyAnalyzer(),
             store=store,
             formula=get_formula(config.scoring.formula),
