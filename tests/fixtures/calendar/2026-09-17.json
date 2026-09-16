@@ -1,0 +1,859 @@
+{
+ "data": {
+  "asOf": "Wed, Sep 16, 2026",
+  "headers": {
+   "gmt": "Time",
+   "country": "Country",
+   "eventName": "Event",
+   "actual": "Actual",
+   "consensus": "Consensus",
+   "previous": "Previous",
+   "description": "Description"
+  },
+  "rows": [
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "Core CPI",
+    "actual": "2.6%",
+    "consensus": "2.6%",
+    "previous": "2.6%",
+    "description": "The Core Consumer Price Index (CPI) measures the changes in the price of goods\r\nand services, excluding food and energy. The CPI measures price change from the perspective of the consumer. It is a key way to measure changes in purchasing trends and &lt;a href=&quot;https://www.investing.com/academy/trading/inflation-definition/&quot;&gt;inflation&lt;/a&gt;.\r\n&lt;BR/&gt;\r\nA higher than expected reading should be taken as positive/bullish for the GBP, while a lower than expected reading should be taken as negative/bearish for the GBP."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "Core CPI",
+    "actual": "0.3%",
+    "consensus": "0.3%",
+    "previous": "0.2%",
+    "description": ""
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "Core PPI Output",
+    "actual": "2.7%",
+    "consensus": " ",
+    "previous": "2.7%",
+    "description": "The Producer Price Index (PPI) measures average changes in prices received by domestic producers for their output. It is a leading indicator of consumer price inflation, which accounts for the majority of overall inflation. Usually a rise in PPI will lead in a short time to a rise in CPI and therefore to a rising interest rates and rising currency. during recession, the producers are not able to roll over the rising cost of material to the consumer, so a rise in PPI will not be rolled over to the consumer but will lower the profitablility of the producer and will deepen the recession, that will lead to a fall in local currency."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "Core PPI Output",
+    "actual": "0.3%",
+    "consensus": " ",
+    "previous": "0.5%",
+    "description": "The Producer Price Index (PPI) measures average changes in prices received by domestic producers for their output. It is a leading indicator of consumer price inflation, which accounts for the majority of overall inflation. Usually a rise in PPI will lead in a short time to a rise in CPI and therefore to a rising interest rates and rising currency. during recession, the producers are not able to roll over the rising cost of material to the consumer, so a rise in PPI will not be rolled over to the consumer but will lower the profitablility of the producer and will deepen the recession, that will lead to a fall in local currency."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "Core RPI",
+    "actual": "3.3%",
+    "consensus": " ",
+    "previous": "3.1%",
+    "description": "The Retail Price Index was first calculated for June 1947 and was the principal official measure of inflation in the UK before the start of the CPI figure.The core RPI excludes mortgage payments, therefore its difference from CPI is minor, but exists. The impact on the currency may go both ways, a rise in inflation may lead to a rise in interest rates and a rise in local currency, on the other hand, during recession, a rise in CPI may lead to a deepened recession and therefore a fall in local currency."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "Core RPI",
+    "actual": "0.6%",
+    "consensus": "0.7%",
+    "previous": "0.6%",
+    "description": "The Retail Price Index was first calculated for June 1947 and was the principal official measure of inflation in the UK before the start of the CPI figure.The core RPI excludes mortgage payments, therefore its difference from CPI is minor, but exists. The impact on the currency may go both ways, a rise in inflation may lead to a rise in interest rates and a rise in local currency, on the other hand, during recession, a rise in CPI may lead to a deepened recession and therefore a fall in local currency."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "CPI",
+    "actual": "3.1%",
+    "consensus": "3.1%",
+    "previous": "2.9%",
+    "description": "The Consumer Price Index (CPI) measures the change in the price of goods and services from the perspective of the consumer. It is a key way to measure changes in purchasing trends and <a href=\"https://www.investing.com/academy/trading/inflation-definition/\">inflation</a>.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the GBP, while a lower than expected reading should be taken as negative/bearish for the GBP."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "CPI",
+    "actual": "0.5%",
+    "consensus": "0.5%",
+    "previous": "0.3%",
+    "description": "The Consumer Price Index (CPI) measures the change in the price of goods and services from the perspective of the consumer. It is a key way to measure changes in purchasing trends and &lt;a href=&quot;https://www.investing.com/academy/trading/inflation-definition/&quot;&gt;inflation&lt;/a&gt;.\r\n&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the GBP, while a lower than expected reading should be taken as negative/bearish for the GBP."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "CPI, n.s.a",
+    "actual": "143.60",
+    "consensus": " ",
+    "previous": "142.90",
+    "description": ""
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "CPIH",
+    "actual": "3.3%",
+    "consensus": " ",
+    "previous": "3.1%",
+    "description": "Consumer Prices Index, including owner occupiers\u00e2\u20ac\u2122 housing costs (CPIH) is a lead inflation index; it is the most comprehensive measure of UK <a href=\"https://www.investing.com/academy/trading/inflation-definition/\">inflation</a> as it includes owner occupiers\u00e2\u20ac\u2122 housing costs and Council Tax, which are excluded from the CPI."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "PPI Input",
+    "actual": "6.1%",
+    "consensus": "5.4%",
+    "previous": "5.8%",
+    "description": "Producer Price Index (PPI) Input measures the change in the price of goods and raw materials purchased by manufacturers. The index is a leading indicator of consumer price inflation.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the GBP, while a lower than expected reading should be taken as negative/bearish for the GBP."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "PPI Input",
+    "actual": "0.3%",
+    "consensus": "0.6%",
+    "previous": "-0.8%",
+    "description": "Producer Price Index (PPI) Input measures the change in the price of goods and raw materials purchased by manufacturers. The index is a leading indicator of consumer price inflation.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the GBP, while a lower than expected reading should be taken as negative/bearish for the GBP."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "PPI Output",
+    "actual": "0.7%",
+    "consensus": "0.5%",
+    "previous": "0.4%",
+    "description": "Producer Price Index (PPI) Output measures the change in the price of goods sold by manufacturers.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the GBP,\r\nwhile a lower than expected reading should be taken as negative/bearish for the GBP."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "PPI Output",
+    "actual": "3.7%",
+    "consensus": "3.3%",
+    "previous": "3.3%",
+    "description": "Producer Price Index (PPI) Output measures the change in the price of goods sold by manufacturers.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the GBP,\r\nwhile a lower than expected reading should be taken as negative/bearish for the GBP."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "RPI",
+    "actual": "3.4%",
+    "consensus": "3.5%",
+    "previous": "3.2%",
+    "description": "The Retail Price Index (RPI) measures the change in the price of goods and services purchased by consumers for the purpose of consumption. RPI differs from Consumer Price Inflation (CPI) in that it only measures goods and services bought for the purpose of consumption by the vast majority of households and includes housing costs, which are excluded from CPI.&lt;BR/&gt;&lt;BR/&gt; \r\nA higher than expected reading should be taken as positive/bullish for the GBP, while a lower than expected reading should be taken as negative/bearish for the GBP."
+   },
+   {
+    "gmt": "02:00",
+    "country": "United Kingdom",
+    "eventName": "RPI",
+    "actual": "0.6%",
+    "consensus": " ",
+    "previous": "0.6%",
+    "description": "The Retail Price Index was first calculated for June 1947 and was the principal official measure of inflation in the UK before the start of the CPI figure. The main difference is that RPI includes mortgage interest payments as opposed to CPI which doesn&#039;t. . The impact on the currency may go both ways, a rise in inflation may lead to a rise in interest rates and a rise in local currency, on the other hand, during recession, a rise in CPI may lead to a deepened recession and therefore a fall in local currency."
+   },
+   {
+    "gmt": "04:00",
+    "country": "Italy",
+    "eventName": "Italian CPI",
+    "actual": "0.5%",
+    "consensus": "0.5%",
+    "previous": "0.3%",
+    "description": "The Italian Consumer Price Index (CPI) measures the change in the price of goods\nand services from the perspective of the consumer. It is a key way to measure changes in purchasing trends and <a href=\"https://www.investing.com/academy/trading/inflation-definition/\">inflation</a>.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the EUR, while a lower than expected reading should be taken as negative/bearish for the EUR."
+   },
+   {
+    "gmt": "04:00",
+    "country": "Italy",
+    "eventName": "Italian CPI",
+    "actual": "3.3%",
+    "consensus": "3.3%",
+    "previous": "2.9%",
+    "description": "The Italian Consumer Price Index (CPI) measures the change in the price of goods\nand services from the perspective of the consumer. It is a key way to measure changes in purchasing trends and <a href=\"https://www.investing.com/academy/trading/inflation-definition/\">inflation</a>.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the EUR, while a lower than expected reading should be taken as negative/bearish for the EUR."
+   },
+   {
+    "gmt": "04:00",
+    "country": "Italy",
+    "eventName": "Italian CPI Ex Tobacco",
+    "actual": "3.4%",
+    "consensus": " ",
+    "previous": "2.8%",
+    "description": ""
+   },
+   {
+    "gmt": "04:00",
+    "country": "Italy",
+    "eventName": "Italian HICP",
+    "actual": "0.1%",
+    "consensus": "0.1%",
+    "previous": "-1.0%",
+    "description": "Harmonised Index of Consumer Prices, is the same as CPI, but with a joint basket of products for all Eurozone member countries. The impact on the currency may go both ways, a rise in CPI may lead to a rise in interest rates and a rise in local currency, on the other hand, during recession, a rise in CPI may lead to a deepened recession and therefore a fall in local currency."
+   },
+   {
+    "gmt": "04:00",
+    "country": "Italy",
+    "eventName": "Italian HICP",
+    "actual": "3.2%",
+    "consensus": "3.2%",
+    "previous": "2.9%",
+    "description": "Harmonised Index of Consumer Prices, is the same as CPI, but with a joint basket of products for all Eurozone member countries. The impact on the currency may go both ways, a rise in CPI may lead to a rise in interest rates and a rise in local currency, on the other hand, during recession, a rise in CPI may lead to a deepened recession and therefore a fall in local currency."
+   },
+   {
+    "gmt": "04:30",
+    "country": "United Kingdom",
+    "eventName": "House Price Index",
+    "actual": "1.4%",
+    "consensus": "2.1%",
+    "previous": "2.0%",
+    "description": "The Office for National Statistics House Price Index measures the change in the selling price of homes. This data tends to have a relatively mild impact because there are several earlier indicators related to house prices.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the GBP, while a lower than expected reading should be taken as negative/bearish for the GBP."
+   },
+   {
+    "gmt": "05:00",
+    "country": "Euro Zone",
+    "eventName": "Wages in euro zone",
+    "actual": "3.00%",
+    "consensus": " ",
+    "previous": "3.40%",
+    "description": "Breakdown of total nominal hourly labour costs, whole economy: wages.% change from previous year, not seasonally adjusted. In addition to employees gross earnings, total labour costs include indirect costs such as employers social contributions and taxes connected to the employment. Gross earnings or wages arethose paid directly and regularly by the employer at the time of each wage payment. They include the value of any social contributions, income taxes, etc. payable by the employee, even if actually withheld by the employer and paid directly to social insurance schemes, tax authorities, etc. on behalf of the employee. Hourly labour cost indices show the short-term development of the total cost for employers of employing the labour force. \r\nThese indices are \r\ncalculated by Member States using jointly-agreed definitions. When calculating these indices, all enterprises, whatever their size, and all employees should be taken into account.Labour costs include gross wages and salaries, employers social contributions and taxes net of subsidies connected to employment. Labour costs here do not include costs for occupational training or other costs such as\r\nthose for canteens or recruitment.Hourly labour costs are obtained by dividing the total of these costs for all employees in a defined country by all hours worked by these employees. Here, instead of hours worked, hours paid/number of employees might have been used as a measure of volume of labour.\"\""
+   },
+   {
+    "gmt": "05:00",
+    "country": "Euro Zone",
+    "eventName": "Industrial Production",
+    "actual": "-0.1%",
+    "consensus": "-0.2%",
+    "previous": "-0.1%",
+    "description": "Industrial Production measures the change in the total inflation-adjusted value of output produced by manufacturers, mines, and utilities.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the EUR, while a lower than expected reading should be taken as negative/bearish for the EUR."
+   },
+   {
+    "gmt": "05:00",
+    "country": "Euro Zone",
+    "eventName": "Industrial Production",
+    "actual": "0.0%",
+    "consensus": "-0.3%",
+    "previous": "-0.3%",
+    "description": "Industrial production is a measure of output of the industrial sector of the economy. The industrial sector includes manufacturing, mining, and utilities. Although these sectors contribute only a small portion of GDP (Gross Domestic Product), they are highly sensitive to interest rates and consumer demand. This makes Industrial Production an important tool for forecasting future GDP and economic performance.. A higher than expected number should be taken as positive to the EUR, while a lower than expected number as negative."
+   },
+   {
+    "gmt": "05:00",
+    "country": "Euro Zone",
+    "eventName": "Labor Cost Index",
+    "actual": "3.10%",
+    "consensus": "3.00%",
+    "previous": "3.20%",
+    "description": "The Labor Cost Index measures the change in the price businesses pay for labor, excluding overtime. It is a leading indicator of consumer inflation.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the EUR, while a lower than expected reading should be taken as negative/bearish for the EUR."
+   },
+   {
+    "gmt": "05:50",
+    "country": "Germany",
+    "eventName": "German 30-Year Bund Auction",
+    "actual": "3.900%",
+    "consensus": " ",
+    "previous": "3.650%",
+    "description": "The figures displayed in the calendar represent the average yield on the Buxl bond auctioned.&lt;BR/&gt;Governments issue treasuries to borrow money to cover the gap between the amount they receive in taxes and the amount they spend to refinance existing debt and/or to raise capital.&lt;BR/&gt;&lt;BR/&gt;\r\nThe yield on the 30 year Bund represents the return an investor will receive by holding the treasury for its entire duration. All bidders receive the same rate at the highest accepted bid.&lt;BR/&gt;&lt;BR/&gt;Yield fluctuations should be monitored closely as an indicator of the government debt situation. Investors compare the average rate at auction to the rate at previous auctions of the same security.\r\n"
+   },
+   {
+    "gmt": "06:00",
+    "country": "Germany",
+    "eventName": "German Buba Monthly Report",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "&nbsp;",
+    "description": "The Bundesbank Monthly Report handles economic issues, including in particular monetary policy, and financial and economic policy issues."
+   },
+   {
+    "gmt": "07:00",
+    "country": "United States",
+    "eventName": "MBA 30-Year Mortgage Rate",
+    "actual": "6.97%",
+    "consensus": " ",
+    "previous": "6.85%",
+    "description": "Fixed 30-year mortgage lending rates for 80% loan-to-value mortgage (source by MBA)."
+   },
+   {
+    "gmt": "07:00",
+    "country": "United States",
+    "eventName": "MBA Mortgage Applications",
+    "actual": "-4.1%",
+    "consensus": " ",
+    "previous": "-2.7%",
+    "description": "Mortgage Bankers Association (MBA) Mortgage Applications measures the change in the number of new applications for mortgages backed by the MBA during the reported week.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the USD, while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "07:00",
+    "country": "United States",
+    "eventName": "MBA Purchase Index",
+    "actual": "156.2",
+    "consensus": " ",
+    "previous": "157.5",
+    "description": "MBA - Mortgage Bankers Association of America. The Purchase Index includes all mortgages applications for the purchase of a single-family home. It covers the entire market, both conventional and government loans, and all products. The Purchase Index has proven to be a reliable indicator of impending home sales."
+   },
+   {
+    "gmt": "07:00",
+    "country": "United States",
+    "eventName": "Mortgage Market Index",
+    "actual": "230.8",
+    "consensus": " ",
+    "previous": "240.6",
+    "description": "MBA - Mortgage Bankers Association of America. The Market Index covers all mortgage applications during the week. This includes all conventional and government applications, all fixed-rate mortgages (FRMs), all adjustable-rate mortgages (ARMs), whether for a purchase or to refinance."
+   },
+   {
+    "gmt": "07:00",
+    "country": "United States",
+    "eventName": "Mortgage Refinance Index",
+    "actual": "627.1",
+    "consensus": " ",
+    "previous": "687.3",
+    "description": "MBA - Mortgage Bankers Association of America. The Refinance Index covers all mortgage applications to refinance an existing mortgage. It is the best overall gauge of mortgage refinancing activity. The Refinance Index includes conventional and government refinances, regardless of product (FRM or ARM) or coupon rate refinanced into or out of.Seasonal factors are less significant in refinances than in home sales, however holiday effects are considerable."
+   },
+   {
+    "gmt": "07:00",
+    "country": "Brazil",
+    "eventName": "IGP-10 Inflation Index",
+    "actual": "1.5%",
+    "consensus": "1.3%",
+    "previous": "-0.5%",
+    "description": "The IGP-10 Inflation Rate measures the change in the price of goods and services from last month's 11th day to the current month's 10th. A higher than expected reading should be taken as negative/bearish for the BRL, while a lower than expected reading should be taken as positive/bullish for the BRL."
+   },
+   {
+    "gmt": "07:00",
+    "country": "South Africa",
+    "eventName": "Retail Sales",
+    "actual": "3.4%",
+    "consensus": " ",
+    "previous": "1.1%",
+    "description": "Retail trade refers to establishments that retail merchandise goods without processing to consumers for personal or domestic use. Statistics South Africa conducts a monthly survey of the retail trade industry, covering retail enterprises. This survey is based on a sample drawn from the 2004 Business Sample Frame (BSF) that contains businesses registered for value-added tax (VAT) and income tax. Retail trade sales include value added tax (VAT). &lt;/BR&gt;A higher than expected reading should be taken as positive/bullish for the ZAR , while a lower than expected reading should be taken as negative/bearish for the ZAR."
+   },
+   {
+    "gmt": "08:00",
+    "country": "Brazil",
+    "eventName": "IBC-Br Economic Activity",
+    "actual": "-0.20%",
+    "consensus": "-0.10%",
+    "previous": "-0.60%",
+    "description": "The IBC-Br is widely considered to reflect gross domestic product data. It is the Index of Economic Activity of the Central Bank in Brazil&lt;/BR&gt;A higher than expected reading should be taken as positive/bullish for the BRL , while a lower than expected reading should be taken as negative/bearish for the BRL."
+   },
+   {
+    "gmt": "08:15",
+    "country": "Canada",
+    "eventName": "Housing Starts",
+    "actual": "229.0K",
+    "consensus": "243.0K",
+    "previous": "229.4K",
+    "description": "Housing starts measures the change in the annualized number of new residential buildings that began construction during the reported month. It is a leading indicator of strength in the housing sector.\r\n&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the CAD, while a lower than expected reading should be taken as negative/bearish for the CAD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Core Retail Sales",
+    "actual": "1.4%",
+    "consensus": "0.6%",
+    "previous": "-0.2%",
+    "description": "Core Retail Sales measures the change in the total value of sales at the retail level in the U.S., excluding automobiles. It is an important indicator of consumer spending and is also considered as a pace indicator for the U.S. economy.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the USD,\r\nwhile a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Export Price Index",
+    "actual": "8.6%",
+    "consensus": " ",
+    "previous": "8.1%",
+    "description": "Export price tracks price changes of U.S. export goods. The figure is used to determine whether a change in the headline Export figure is representative of an increase of goods sold to foreign nations or just an increase in the price of export goods. United States exports account for approximately a tenth of the nation\u2019s GDP. The headline figure is the percentage change in the index from either the previous month or year. A higher than expected number should be taken as positive to the USD, while a lower than expected number as negative."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Export Price Index",
+    "actual": "0.6%",
+    "consensus": "0.5%",
+    "previous": "-1.4%",
+    "description": "Export price tracks price changes of U.S. export goods. The figure is used to determine whether a change in the headline Export figure is representative of an increase of goods sold to foreign nations or just an increase in the price of export goods. United States exports account for approximately a tenth of the nation\u2019s GDP. The headline figure is the percentage change in the index from either the previous month or year. A higher than expected number should be taken as positive to the USD, while a lower than expected number as negative."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Import Price Index",
+    "actual": "0.7%",
+    "consensus": "0.4%",
+    "previous": "-0.3%",
+    "description": "The Import Price Index measures the change in the price of imported goods and services purchased domestically.\r\n&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the USD, while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Import Price Index",
+    "actual": "7.0%",
+    "consensus": " ",
+    "previous": "5.9%",
+    "description": "The Import Price Index measures the change in the price of imported goods and services purchased domestically. A higher than expected reading should be taken as positive/bullish for the USD, while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Retail Control",
+    "actual": "1.4%",
+    "consensus": "0.4%",
+    "previous": "-0.4%",
+    "description": ""
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Retail Sales",
+    "actual": "6.01%",
+    "consensus": " ",
+    "previous": "5.03%",
+    "description": "Retail Sales measure the change in the total value of sales at the retail level. It is the foremost indicator of consumer spending, which accounts for the majority of overall economic activity.\nA higher than expected reading should be taken as positive/bullish for the USD, while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Retail Sales",
+    "actual": "1.2%",
+    "consensus": "0.8%",
+    "previous": "-0.5%",
+    "description": "Retail Sales measure the change in the total value of sales at the retail level. It is the foremost indicator of consumer spending, which accounts for the majority of overall economic activity.\r\n&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the USD, while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "08:30",
+    "country": "United States",
+    "eventName": "Retail Sales Ex Gas/Autos",
+    "actual": "1.2%",
+    "consensus": " ",
+    "previous": "-0.3%",
+    "description": "Retail sales data represents total consumer purchase from retail stores. It provides valuable information about consumer spending which makes up the consumption part of GDP. The most volatile components like autos, gas prices andfood prices are often removed from the report to show more underlying demand patterns as changes in sales in these categories are frequently a result of price changes. It is not adjusted for inflation. Spending on services is not included. Rising retail sales indicate stronger economic growth. However, if theincrease is larger than forecast, it may be inflationary."
+   },
+   {
+    "gmt": "08:30",
+    "country": "Canada",
+    "eventName": "Building Permits",
+    "actual": "-17.3%",
+    "consensus": "-4.7%",
+    "previous": "18.3%",
+    "description": "Building Permits measures the change in the number of new building permits issued by the government. Building permits are a key indicator of demand in the housing market.\r\n&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the CAD, while a lower than expected reading should be taken as negative/bearish for the CAD."
+   },
+   {
+    "gmt": "09:00",
+    "country": "Euro Zone",
+    "eventName": "ECB's Elderson Speaks",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "&nbsp;",
+    "description": "Frank Elderson, member of the Executive Board and Vice-Chair of the Supervisory Board of the European Central Bank, is set to speak. His speeches often contain indications related to the future possible direction of monetary policy."
+   },
+   {
+    "gmt": "09:30",
+    "country": "India",
+    "eventName": "M3 Money Supply",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "16.7%",
+    "description": "Monetary aggregates, known also as &quot;money supply&quot;, is the quantity of currency available within the economy to purchase goods and services. M3 is a broad monetary aggregate that includes all physical currency circulating in the economy (banknotes and coins), operational deposits in central bank, money in current accounts, saving accounts, money market deposits, certificates of deposit, all other deposits and repurchase agreements. &lt;/BR&gt;A higher than expected reading should be taken as positive/bullish for the INR , while a lower than expected reading should be taken as negative/bearish for the INR."
+   },
+   {
+    "gmt": "10:00",
+    "country": "United States",
+    "eventName": "Business Inventories",
+    "actual": "&nbsp;",
+    "consensus": "0.6%",
+    "previous": "0.0%",
+    "description": "Business Inventories measures the change in the worth of unsold goods held by manufacturers, wholesalers, and retailers. A high reading can indicate a lack of consumer demand.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as negative/bearish for the USD, while a lower than expected reading should be taken as positive/bullish for the USD."
+   },
+   {
+    "gmt": "10:00",
+    "country": "United States",
+    "eventName": "NAHB Housing Market Index",
+    "actual": "&nbsp;",
+    "consensus": "34",
+    "previous": "35",
+    "description": "The National Association of Home Builders (NAHB) Housing Market Index (HMI) rates the relative level of current and future single-family home sales. The data is compiled from a survey of around 900 home builders. A reading above 50 indicates a favorable outlook on home sales; below indicates a negative outlook.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the USD,\r\nwhile a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "10:00",
+    "country": "United States",
+    "eventName": "Retail Inventories Ex Auto",
+    "actual": "&nbsp;",
+    "consensus": "0.7%",
+    "previous": "-0.4%",
+    "description": ""
+   },
+   {
+    "gmt": "10:30",
+    "country": "United States",
+    "eventName": "Crude Oil Inventories",
+    "actual": "&nbsp;",
+    "consensus": "-1.600M",
+    "previous": "-0.391M",
+    "description": "The Energy Information Administration&#039;s (EIA) Crude Oil Inventories measures the weekly change in the number of barrels of commercial crude oil held by US firms. The level of inventories influences the price of petroleum products, which can have an impact on inflation.\r\n&lt;BR/&gt;&lt;BR/&gt;\r\nIf the increase in crude inventories is more than expected, it implies weaker demand and is bearish for crude prices. The same can be said if a decline in inventories is less than expected. \r\n&lt;BR/&gt;\r\nIf the increase in crude is less than expected, it implies greater demand and is bullish for crude prices. The same can be said if a decline in inventories is more than expected. "
+   },
+   {
+    "gmt": "10:30",
+    "country": "United States",
+    "eventName": "EIA Refinery Crude Runs ",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "0.090M",
+    "description": ""
+   },
+   {
+    "gmt": "10:30",
+    "country": "United States",
+    "eventName": "Crude Oil Imports",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "1.120M",
+    "description": ""
+   },
+   {
+    "gmt": "10:30",
+    "country": "United States",
+    "eventName": "Cushing Crude Oil Inventories",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "-0.684M",
+    "description": "Change in the number of barrels of crude oil held in storage at the Cushing, Oklahoma during the past week. Storage levels at Cushing are important because it serves as the delivery point for the U.S. crude oil benchmark, West Texas Intermediate."
+   },
+   {
+    "gmt": "10:30",
+    "country": "United States",
+    "eventName": "Distillate Fuel Production",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "0.222M",
+    "description": ""
+   },
+   {
+    "gmt": "10:30",
+    "country": "United States",
+    "eventName": "EIA Weekly Distillates Stocks",
+    "actual": "&nbsp;",
+    "consensus": "0.100M",
+    "previous": "2.087M",
+    "description": "The Energy Information Administration reports inventory levels of US crude oil, gasoline and distillates stocks. The figure shows how much oil and product is available in storage. The indicator gives an overview of US petroleum demand."
+   },
+   {
+    "gmt": "10:30",
+    "country": "United States",
+    "eventName": "Gasoline Production",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "-0.537M",
+    "description": ""
+   },
+   {
+    "gmt": "10:30",
+    "country": "United States",
+    "eventName": "Heating Oil Stockpiles",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "0.010M",
+    "description": ""
+   },
+   {
+    "gmt": "10:30",
+    "country": "United States",
+    "eventName": "EIA Weekly Refinery Utilization Rates",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "-0.2%",
+    "description": ""
+   },
+   {
+    "gmt": "10:30",
+    "country": "United States",
+    "eventName": "Gasoline Inventories",
+    "actual": "&nbsp;",
+    "consensus": "-1.000M",
+    "previous": "1.269M",
+    "description": "Gasoline Inventories measures the change in the number of barrels of commercial gasoline held in inventory by commercial firms during the reported week. The data influences the price of gasoline products which affects inflation.&lt;BR/&gt;&lt;BR/&gt;The data has no consistent effect, there are both inflationary and growth implications."
+   },
+   {
+    "gmt": "11:30",
+    "country": "United States",
+    "eventName": "Atlanta Fed GDPNow",
+    "actual": "&nbsp;",
+    "consensus": "4.4%",
+    "previous": "4.4%",
+    "description": "GDPNow is not an official forecast of the Atlanta Fed. Rather, it is best viewed as a running estimate of real GDP growth based on available economic data for the current measured quarter. There are no subjective adjustments made to GDPNow\u201a\u00c4\u00eethe estimate is based solely on the mathematical results of the model. In particular, it does not capture the impact of COVID-19 and social mobility beyond their impact on GDP source data and relevant economic reports that have already been released. It does not anticipate their impact on forthcoming economic reports beyond the standard internal dynamics of the model."
+   },
+   {
+    "gmt": "12:00",
+    "country": "Germany",
+    "eventName": "German Buba President Nagel Speaks",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "&nbsp;",
+    "description": "Deutsche Bundesbank President and voting member of the ECB Governing Council from Jan 2022. He's believed to be one of the most influential members of the council. ECB Governing Council members vote on where to set the Eurozone's key interest rates and their public engagements are often used to drop subtle clues regarding future monetary policy."
+   },
+   {
+    "gmt": "12:00",
+    "country": "Russia",
+    "eventName": "PPI",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "-2.5%",
+    "description": "The Producer Price Index (PPI) measures average changes in prices received by domestic producers for their output. It is a leading indicator of consumer price inflation, which accounts for the majority of overall inflation. Usually a rise in PPI will lead in a short time to a rise in CPI and therefore to a rising interest rates and rising currency. during recession, the producers are not able to roll over the rising cost of material to the consumer, so a rise in PPI will not be rolled over to the consumer but will lower the profitablility of the producer and will deepen the recession, that will lead to a fall in local currency."
+   },
+   {
+    "gmt": "12:00",
+    "country": "Russia",
+    "eventName": "PPI",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "6.6%",
+    "description": "The Producer Price Index (PPI) measures average changes in prices received by domestic producers for their output. It is a leading indicator of consumer price inflation, which accounts for the majority of overall inflation. Usually a rise in PPI will lead in a short time to a rise in CPI and therefore to a rising interest rates and rising currency. during recession, the producers are not able to roll over the rising cost of material to the consumer, so a rise in PPI will not be rolled over to the consumer but will lower the profitablility of the producer and will deepen the recession, that will lead to a fall in local currency."
+   },
+   {
+    "gmt": "13:00",
+    "country": "Euro Zone",
+    "eventName": "ECB President Lagarde Speaks",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "&nbsp;",
+    "description": "European Central Bank (ECB) President Christine Lagarde (November 2019 - October 2027) is to speak. As head of the ECB, which sets short term interest rates, she has a major influence over the value of the euro. Traders watch her speeches closely as they are often used to drop subtle hints regarding future monetary policy and interest rate shifts.\r\nHer comments may determine a short-term positive or negative trend."
+   },
+   {
+    "gmt": "13:30",
+    "country": "Canada",
+    "eventName": "BOC Summary of Deliberations",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "&nbsp;",
+    "description": ""
+   },
+   {
+    "gmt": "13:30",
+    "country": "Brazil",
+    "eventName": "Foreign Exchange Flows",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "-7.511B",
+    "description": "The indicator shows the amount of capital flows that is directed to the country by foreign investors. Capital flows are essential for developing and emerging markets. They contribute to enhancing investments and financing current account deficits.&lt;/BR&gt;A higher than expected reading should be taken as positive/bullish for the BRL , while a lower than expected reading should be taken as negative/bearish for the BRL."
+   },
+   {
+    "gmt": "14:00",
+    "country": "United States",
+    "eventName": "Interest Rate Projection - 1st Yr",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "3.6%",
+    "description": ""
+   },
+   {
+    "gmt": "14:00",
+    "country": "United States",
+    "eventName": "Interest Rate Projection - 2nd Yr",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "3.4%",
+    "description": ""
+   },
+   {
+    "gmt": "14:00",
+    "country": "United States",
+    "eventName": "Interest Rate Projection - 3rd Yr",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "3.1%",
+    "description": ""
+   },
+   {
+    "gmt": "14:00",
+    "country": "United States",
+    "eventName": "Interest Rate Projection - Current",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "3.8%",
+    "description": ""
+   },
+   {
+    "gmt": "14:00",
+    "country": "United States",
+    "eventName": "Interest Rate Projection - Longer",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "3.1%",
+    "description": ""
+   },
+   {
+    "gmt": "14:00",
+    "country": "United States",
+    "eventName": "FOMC Economic Projections",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "&nbsp;",
+    "description": "This report includes the Federal Open Market Committee&#039;s (FOMC) projection for inflation and economic growth over the next 2 years. An important part of the report is the breakdown of individual FOMC members&#039; interest rate forecasts."
+   },
+   {
+    "gmt": "14:00",
+    "country": "United States",
+    "eventName": "FOMC Statement",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "&nbsp;",
+    "description": "The U.S. Federal Reserve&#039;s Federal Open Market Committee (FOMC) statement is the primary tool the panel uses to communicate with investors about monetary policy. It contains the outcome of the vote on interest rates, discusses the economic outlook and offers clues on the outcome of future votes.&lt;BR/&gt;&lt;BR/&gt;A more dovish than expected statement could be taken as negative/bearish for the USD, while a more hawkish than expected statement could be taken as positive/bullish for the USD."
+   },
+   {
+    "gmt": "14:00",
+    "country": "United States",
+    "eventName": "Fed Interest Rate Decision",
+    "actual": "&nbsp;",
+    "consensus": "4.00%",
+    "previous": "3.75%",
+    "description": "Federal Open Market Committee (FOMC) members vote on where to set the rate. \r\nTraders watch interest rate changes closely as short term interest rates are the primary factor in currency valuation.&lt;BR/&gt;&lt;BR/&gt;A higher than expected rate is positive/bullish for the USD, while a lower than expected rate is negative/bearish for the USD."
+   },
+   {
+    "gmt": "14:30",
+    "country": "United States",
+    "eventName": "FOMC Press Conference",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "&nbsp;",
+    "description": ""
+   },
+   {
+    "gmt": "16:00",
+    "country": "United States",
+    "eventName": "US Foreign Buying, T-bonds",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "6.80B",
+    "description": "Net purchases of U.S treasury bonds &amp; notes by major foreign sector. (Negative figures indicate net sales by foreigners to U.S residents or a net outflow of capital from the United States.) &lt;/BR&gt;A higher than expected reading should be taken as positive/bullish for the USD , while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "16:00",
+    "country": "United States",
+    "eventName": "Overall Net Capital Flow",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "133.50B",
+    "description": "This indicator shows the Sum of [(U.S. securities + Foreign stocks and bonds (Negative figures indicate net sales by foreigners to U.S residents or a net outflow of capital from the United States.) Minus estimated unrecorded principal repayments to foreigners on domestic corporate and agency asset-backed securities + estimated foreign acquisitions of U.S. equities through stock swaps - estimated U.S. acquisitions of foreign equities through stock swaps + increase in nonmarketable Treasury Bonds and Notes Issued to Official Institutions and Other Residents of Foreign Countries)+(monthly changes in banks&#039; and broker/dealers&#039; custody liabilities.)+(TIC, Change in Banks&#039; Own Net Dollar- Denominated Liabilities)] TIC data cover most components of international financial flows, but do not include data on direct investment flows, which are collected and published by the Department of Commerce&#039;s Bureau of Economic Analysis.&lt;/BR&gt;A higher than expected reading should be taken as positive/bullish for the USD , while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "16:00",
+    "country": "United States",
+    "eventName": "TIC Net Long-Term Transactions",
+    "actual": "&nbsp;",
+    "consensus": "146.3B",
+    "previous": "172.7B",
+    "description": "Treasury International Capital (TIC) Net Long-Term Transactions measures the difference in value between foreign long-term securities purchased by U.S. citizens and U.S. long-term securities purchased by foreign investors. Demand for domestic securities and currency demand are directly linked because foreigners must buy the domestic currency to purchase the nation&#039;s securities.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the USD, while a lower than expected reading should be taken as negative/bearish for the USD."
+   },
+   {
+    "gmt": "16:00",
+    "country": "United States",
+    "eventName": "TIC Net Long-Term Transactions including Swaps",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "172.70B",
+    "description": "TIC Net Long-Term Transactions number is the sum of gross purchases by foreigners from US residents minus gross sales by foreigners to US residents. The components used to calculate long term flows are US Treasury bonds and notes, US government agency bonds, US corporate bonds, US corporate stocks, foreign bonds and foreign stocks. (TIC signifies: Treasury International Capital Flows). A higher than expected number should be taken as positive to the USD, while a lower than expected number as negative."
+   },
+   {
+    "gmt": "17:30",
+    "country": "Brazil",
+    "eventName": "Interest Rate Decision",
+    "actual": "&nbsp;",
+    "consensus": "13.75%",
+    "previous": "14.00%",
+    "description": "The Central Bank of Brazil&#039;s (BCB) Monetary Policy Committee votes on where to set the overnight interest rate. Traders watch interest rate changes closely as short term interest rates are the primary factor in currency valuation.&lt;BR/&gt;&lt;BR/&gt;A higher than expected rate is positive/bullish for the BRL,\r\nwhile a lower than expected rate is negative/bearish for the BRL."
+   },
+   {
+    "gmt": "18:45",
+    "country": "New Zealand",
+    "eventName": "GDP",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "0.8%",
+    "description": "Gross Domestic Product (GDP) measures the annualized change in the inflation-adjusted value of all goods and services produced by the economy. It is the broadest measure of economic activity and the primary indicator of the economy&#039;s health.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the NZD, while a lower than expected reading should be taken as negative/bearish for the NZD."
+   },
+   {
+    "gmt": "18:45",
+    "country": "New Zealand",
+    "eventName": "GDP",
+    "actual": "&nbsp;",
+    "consensus": "2.3%",
+    "previous": "1.5%",
+    "description": "Total business activity comprises primary industries + goods producing industries + service industries. Includes unallocated taxes on production and imports, bank service charge and balancing items. \r\nConceptually, both the production and expenditure-based GDP series are the same. However, as each series uses independent data and estimation techniques, some differences between the alternative measures arise. The expenditure-based series has historically shown more quarterly volatility and is more likely to be subject to timing and valuation problems. For these reasons, the production-based measure is the preferred measure for quarter-on-quarter and annual changes."
+   },
+   {
+    "gmt": "18:45",
+    "country": "New Zealand",
+    "eventName": "GDP Annual Average",
+    "actual": "&nbsp;",
+    "consensus": "0.1%",
+    "previous": "0.8%",
+    "description": "GDP measures summary value of goods and services generated in a relevant country or region. A region's gross domestic product, or GDP, is one of the ways for measuring the size of its economy. \r\nProduction approach - The sum of the value added created through the production of goods and services within the economy. \r\nCalculation: \r\nGDP using the production approach is derived as the sum of gross value added for each industry plus taxes less subsidies on products."
+   },
+   {
+    "gmt": "18:45",
+    "country": "New Zealand",
+    "eventName": "GDP Expenditure",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "1.0%",
+    "description": "GDP measures summary value of goods and services generated in a relevant country or region. A region's gross domestic product, or GDP, is one of the ways for measuring the size of its economy. \r\nExpenditure approach - Total expenditures on all finished goods and services produced within the economy. \r\nCalculation: \r\nGDP using the expenditure approach is derived as the sum of all final expenditures, changes in inventories and exports of goods and services less imports of goods and services."
+   },
+   {
+    "gmt": "19:50",
+    "country": "Japan",
+    "eventName": "Foreign Bonds Buying",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "111.9B",
+    "description": "Foreign Bonds Buying number measures the flow from the public sector excluding Bank of Japan. The Net data shows the difference of capital inflow and outflow. A positive difference indicates net sales of foreign securities by residents (capital inflow), and a negative difference indicates net purchases of foreign securities by residents (capital outflow). A higher than expected number should be taken as positive to the JPY, while a lower than expected number as negative."
+   },
+   {
+    "gmt": "19:50",
+    "country": "Japan",
+    "eventName": "Foreign Investments in Japanese Stocks",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "690.0B",
+    "description": "Balance of payments is a set of accounts recording all economic transactions between the residents of the country and the rest of the world in a given period of time, usually one year. Payments into the country are called credits, payments out of the country are called debits. There are three main components of a balance of payments: - current account - capital account - financial \r\naccount Either a surplus or a deficit can be shown in any of these components. Balance of payments shows strenghts and weaknesses in a country's economy and therefore helps to achieve balanced economic growth. The release of a balance of payments can have a significant effect on the exchange rate of a national currency against other currencies. It is also important to investors of domestic companies that depend on exports.Securities investment, contract basis. Securities investment refers to flows from the public sector excluding Bank of Japan. Bonds include beneficiary certificates but exclude all bills. The Net data shows the difference of capital inflow and outflow."
+   },
+   {
+    "gmt": "20:30",
+    "country": "Singapore",
+    "eventName": "Non-Oil Exports",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "-0.30%",
+    "description": "Exports of goods and services consist of transactions in goods and services (sales, barter, gifts or grants) from residents to non-residents."
+   },
+   {
+    "gmt": "20:30",
+    "country": "Singapore",
+    "eventName": "Non-Oil Exports",
+    "actual": "&nbsp;",
+    "consensus": "35.00%",
+    "previous": "24.20%",
+    "description": "Exports of goods and services consist of transactions in goods and services (sales, barter, gifts or grants) from residents to non-residents."
+   },
+   {
+    "gmt": "20:30",
+    "country": "Singapore",
+    "eventName": "Trade Balance",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "10.724B",
+    "description": "The Trade Balance measures the difference in value between imported and exported goods and services over the reported period. A positive number indicates that more goods and services were exported than imported.&lt;BR/&gt;&lt;BR/&gt;A higher than expected reading should be taken as positive/bullish for the SGD, while a lower than expected reading should be taken as negative/bearish for the SGD."
+   },
+   {
+    "gmt": "21:30",
+    "country": "Australia",
+    "eventName": "Reserve Assets Total",
+    "actual": "&nbsp;",
+    "consensus": " ",
+    "previous": "117,358.0B",
+    "description": "The official reserve assets are assets denominated in foreign currency, readily available to and controlled by monetary authorities for meeting balance of payments financing needs, intervening in exchange markets to affect the currency exchange rate, and for other related purposes (such as maintaining confidence in the currency and the economy, and serving as a basis for foreign borrowing). They present a very comprehensive picture on a monthly basis of stocks at market price, transactions, foreign exchange and market revaluations and other changes in volume."
+   }
+  ]
+ },
+ "message": null,
+ "status": {
+  "rCode": 200,
+  "bCodeMessage": null,
+  "developerMessage": null
+ }
+}
