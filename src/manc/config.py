@@ -1,7 +1,7 @@
 """Typed configuration loaded from the five YAML files in config/ (blueprint section 8)."""
 
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -71,12 +71,12 @@ class Config:
 
 
 def load_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> Config:
+    """One YAML file per Config field, each parsed by the loader registered in _SECTIONS."""
     return Config(
-        assets=_load_assets(_read(config_dir / "assets.yaml")),
-        feeds=_load_feeds(_read(config_dir / "feeds.yaml")),
-        scoring=_load_scoring(_read(config_dir / "scoring.yaml")),
-        llm=_load_llm(_read(config_dir / "llm.yaml")),
-        calendar=_load_calendar(_read(config_dir / "calendar.yaml")),
+        **{
+            section: load(_read(config_dir / f"{section}.yaml"))
+            for section, load in _SECTIONS.items()
+        }
     )
 
 
@@ -161,3 +161,12 @@ def _load_calendar(raw: dict[str, Any]) -> CalendarConfig:
         importances=tuple(importances),
         countries=dict(raw.get("countries") or {}),
     )
+
+
+_SECTIONS: dict[str, Callable[[dict[str, Any]], Any]] = {
+    "assets": _load_assets,
+    "feeds": _load_feeds,
+    "scoring": _load_scoring,
+    "llm": _load_llm,
+    "calendar": _load_calendar,
+}
