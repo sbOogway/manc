@@ -23,6 +23,10 @@ the index formula, storage, dashboard and milestones. Keep it updated when a dec
   `tests/formulas/test_isolation.py`). A formula change is a new versioned module (`v2.py`),
   never an edit to an old one.
 - **All LLM calls go through LiteLLM**; the model is a string in `config/llm.yaml`.
+- **UI talks to the backend over the REST API only.** `src/manc_ui/` may import `dash`,
+  `plotly`, `httpx`, never `manc` (test-enforced). Read-side logic (bands, deltas, sparklines,
+  ordering) lives in `src/manc/queries.py` as plain functions; API routes and Dash pages stay
+  thin.
 - **Schema changes are Alembic revisions.** Edit `src/manc/store/schema.py`, then
   `uv run alembic revision --autogenerate -m "..."` and review the file. Never hand-edit the
   database; a test fails on drift between `schema.py` and `head`.
