@@ -1,7 +1,5 @@
 """One httpx client for every provider: identified agent, one timeout, redirects followed."""
 
-from importlib.metadata import version
-
 import httpx
 import respx
 
@@ -11,9 +9,9 @@ from manc.config import load_config
 from manc.news.rss import RssNews
 
 
-def test_default_agent_names_the_package_version_and_repo() -> None:
-    assert http.USER_AGENT.startswith(f"manc/{version('manc')} ")
-    assert "github.com/sbOogway/manc" in http.USER_AGENT
+def test_default_agent_is_a_browser() -> None:
+    assert http.USER_AGENT.startswith("Mozilla/5.0")
+    assert "manc" not in http.USER_AGENT
     assert http.Client().headers["user-agent"] == http.USER_AGENT
 
 
@@ -48,8 +46,7 @@ def test_rss_provider_uses_the_shared_client() -> None:
     assert isinstance(RssNews([]).client, http.Client)
 
 
-def test_calendar_provider_uses_the_shared_client_with_browser_headers() -> None:
+def test_calendar_provider_uses_the_shared_client() -> None:
     client = NasdaqCalendar(load_config().calendar).client
     assert isinstance(client, http.Client)
-    assert client.headers["user-agent"].startswith("Mozilla/5.0")  # Nasdaq stalls other agents
-    assert client.timeout == httpx.Timeout(http.DEFAULT_TIMEOUT)
+    assert client.headers["user-agent"] == http.USER_AGENT

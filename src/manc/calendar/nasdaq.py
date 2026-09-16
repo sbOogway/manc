@@ -23,14 +23,6 @@ log = logging.getLogger(__name__)
 
 ENDPOINT = "https://api.nasdaq.com/api/calendar/economicevents"
 EASTERN = ZoneInfo("America/New_York")
-BROWSER_HEADERS = {  # Nasdaq's edge stalls any other agent until the timeout; the one exception
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "User-Agent": (
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/128.0 Safari/537.36"
-    ),
-}
 _SCALE = {"K": 1e3, "M": 1e6, "B": 1e9, "T": 1e12}
 _NUMBER = re.compile(r"^(-?\d+(?:\.\d+)?)([KMBT])?%?$")
 _CLOCK = re.compile(r"^\d{1,2}:\d{2}$")
@@ -39,7 +31,7 @@ _CLOCK = re.compile(r"^\d{1,2}:\d{2}$")
 class NasdaqCalendar:
     def __init__(self, config: CalendarConfig, client: httpx.Client | None = None) -> None:
         self.config = config
-        self.client = client or Client(headers=BROWSER_HEADERS)
+        self.client = client or Client()
 
     def fetch(self, start: date, end: date) -> list[CalendarEvent]:
         """Events for every day in [start, end], sorted by time; a failing day is skipped."""
