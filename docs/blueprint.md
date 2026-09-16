@@ -1,6 +1,6 @@
 # manc — macro analysis, news and calendar
 
-**Project blueprint, draft 11 (2026-09-16).** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
+**Project blueprint.** Styled render: https://claude.ai/artifact/LqZ6Yg7nVfTK46zYEJUShz
 This file is the source of truth; update it when a decision changes.
 
 A small daily pipeline that reads the economic calendar and trusted news feeds, scores each
@@ -175,7 +175,13 @@ browser-like headers. Quirks verified on 2026-09-16 and pinned by tests:
   payrolls, GDP; 2 for PMIs, retail sales, claims, PPI; else 1) and `countries` (Nasdaq names
   that differ from our economy keys, e.g. `Euro Zone → euro_area`; others are snake_cased);
 - two rows can share a name on one day (UK `Core CPI` YoY and MoM), so the event id is
-  `sha1(date | country | event | ordinal)` with the ordinal counting same-name rows in order.
+  `sha1(date | country | event | ordinal)` with the ordinal counting same-name rows in order;
+- **horizon**: the past is available for 15+ years (thinner coverage before ~2015), so
+  history can be backfilled at one request per day; the future is dense for about two
+  weeks only, then almost empty apart from a few central-bank decisions. The 30-day
+  look-ahead therefore covers R's 7-day window fully and is blind beyond ~14 days; if a
+  longer horizon ever matters, the published FOMC/ECB/BoE/BoJ schedules belong in a small
+  static YAML, not in more Nasdaq calls.
 
 OpenBB was the original plan (`openbb-nasdaq`), and its fetcher hits exactly this URL, but it
 requests only weekday dates and therefore drops every Friday's releases through the offset
