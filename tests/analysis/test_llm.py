@@ -3,6 +3,7 @@
 import logging
 import os
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
 
@@ -147,35 +148,189 @@ def test_a_failing_batch_is_skipped_and_the_others_still_count(
     assert any("batch" in record.message for record in caplog.records)
 
 
-@pytest.mark.live
-@pytest.mark.skipif(not os.environ.get("OPENROUTER_API_KEY"), reason="OPENROUTER_API_KEY not set")
-def test_live_configured_model_tags_clear_headlines_the_right_way(
-    capsys: pytest.CaptureFixture,
-) -> None:
-    """Benchmark of the configured model; run with `-m live -s` to see every tag it produced."""
-    hot_cpi = _item(
-        "US CPI runs hot at 4.1% vs 3.6% expected",
-        summary="Treasury yields and the dollar jump as traders price out Fed cuts",
+# --- live benchmark -----------------------------------------------------------------------
+#
+# One call to the configured model over every headline below, then one test per theme.
+# Run with `uv run pytest tests/analysis/test_llm.py -m live -s -vv --no-cov`: `-s` prints
+# every tag the model produced, `-vv` every wrong one. `MANC_LIVE_MODEL=openrouter/<vendor>/
+# <model>` benchmarks another model without touching config/llm.yaml (no fallback, so its
+# own failures show). Checked 2026-09-17: nex-agi/nex-n2.5-pro:free passes all eight,
+# liquid/lfm-2.5-2.6b:free fails four (misses EURUSD entirely, flips SPX on an earnings
+# beat), and the openrouter/free router lands on either kind.
+
+live = pytest.mark.live
+needs_key = pytest.mark.skipif(
+    not os.environ.get("OPENROUTER_API_KEY"), reason="OPENROUTER_API_KEY not set"
+)
+
+HOT_CPI = _item(
+    "US CPI runs hot at 4.1% vs 3.6% expected",
+    summary="Treasury yields and the dollar jump as traders price out Fed cuts",
+)
+WEAK_PAYROLLS = _item(
+    "US payrolls miss badly at 20k, unemployment jumps to 4.6%",
+    summary="Markets now price three Fed cuts by year-end; dollar slides",
+)
+DOVISH_FED = _item("Powell says the time has come to cut rates, sees inflation on track to 2%")
+ECB_HIKE = _item("ECB surprises markets with a 50bp hike, signals more to come")
+BOJ_HIKE = _item("BoJ raises rates to 1%, yen surges to a six-month high")
+UK_GDP = _item("UK GDP unexpectedly contracts 0.3% in Q2, recession fears grow")
+OPEC_CUT = _item("OPEC+ deepens output cuts by 1m barrels a day, crude jumps 4%")
+BANK_MISS = _item("S&P 500 futures slide as big-bank earnings miss and guidance is cut")
+CHIP_RALLY = _item("Nvidia beats on every line, chip stocks rally in after-hours trade")
+BTC_INFLOWS = _item("Bitcoin spot ETF inflows hit a record $2bn in a day")
+NOISE = _item("Local bakery wins regional pie contest")
+BALANCED = _item("Weekly markets wrap: stocks flat, dollar little changed, gold steady")
+HEADLINES = [
+    HOT_CPI,
+    WEAK_PAYROLLS,
+    DOVISH_FED,
+    ECB_HIKE,
+    BOJ_HIKE,
+    UK_GDP,
+    OPEC_CUT,
+    BANK_MISS,
+    CHIP_RALLY,
+    BTC_INFLOWS,
+    NOISE,
+    BALANCED,
+]
+
+Directions = dict[tuple[str, str], int]
+
+
+def _mismatches(directions: Directions, *expected: tuple[NewsItem, str, int]) -> list[str]:
+    """Readable diff of what the model said against what a market reader would, all at once."""
+    return [
+        f"{item.title[:40]!r} {asset}: wanted {wanted:+d}, got "
+        f"{'no tag' if (item.id, asset) not in directions else f'{directions[item.id, asset]:+d}'}"
+        for item, asset, wanted in expected
+        if directions.get((item.id, asset)) != wanted
+    ]
+
+
+@pytest.fixture(scope="module")
+def live_tags() -> list[NewsTag]:
+    config = CONFIG
+    override = os.environ.get("MANC_LIVE_MODEL")
+    if override:
+        config = replace(CONFIG, llm=replace(CONFIG.llm, model=override, fallback=None))
+    tags = LlmAnalyzer(config).tag(HEADLINES, config.assets)
+    titles = {item.id: item.title for item in HEADLINES}
+    print()
+    for tag in tags:
+        title = titles[tag.news_id][:52]
+        print(f"  {title:<52} {tag.asset:<7} {tag.direction:+d} {tag.confidence:.2f}")
+    print(f"  {len(tags)} tags from {tags[0].model if tags else 'no model'}")
+    return tags
+
+
+@pytest.fixture(scope="module")
+def directions(live_tags: list[NewsTag]) -> Directions:
+    return {(tag.news_id, tag.asset): tag.direction for tag in live_tags}
+
+
+@live
+@needs_key
+def test_live_tags_are_well_formed(live_tags: list[NewsTag]) -> None:
+    assert live_tags, "the model returned nothing"
+    assert all(tag.model and tag.prompt_version == PROMPT_VERSION for tag in live_tags)
+    assert len({(tag.news_id, tag.asset) for tag in live_tags}) == len(live_tags)  # no repeats
+
+
+@live
+@needs_key
+def test_live_every_market_headline_gets_at_least_one_tag(live_tags: list[NewsTag]) -> None:
+    tagged = {tag.news_id for tag in live_tags}
+    missed = [
+        item.title for item in HEADLINES if item not in (NOISE, BALANCED) and item.id not in tagged
+    ]
+    assert missed == []
+
+
+@live
+@needs_key
+def test_live_hot_us_data_lifts_the_dollar_and_hurts_gold(directions: Directions) -> None:
+    assert (
+        _mismatches(
+            directions,
+            (HOT_CPI, "EURUSD", -1),
+            (HOT_CPI, "GBPUSD", -1),
+            (HOT_CPI, "USDJPY", 1),
+            (HOT_CPI, "XAUUSD", -1),
+        )
+        == []
     )
-    ecb_hike = _item("ECB surprises markets with a 50bp hike, signals more to come")
-    btc_inflows = _item("Bitcoin spot ETF inflows hit a record $2bn in a day")
-    noise = _item("Local bakery wins regional pie contest")
-    headlines = [hot_cpi, ecb_hike, btc_inflows, noise]
 
-    tags = LlmAnalyzer(CONFIG).tag(headlines, CONFIG.assets)
 
-    titles = {item.id: item.title for item in headlines}
-    with capsys.disabled():
-        print()
-        for tag in tags:
-            title = titles[tag.news_id][:48]
-            print(f"  {title:<48} {tag.asset:<7} {tag.direction:+d} {tag.confidence:.2f}")
-        print(f"  model: {tags[0].model if tags else '-'}")
+@live
+@needs_key
+def test_live_weak_us_data_and_a_dovish_fed_do_the_opposite(directions: Directions) -> None:
+    assert (
+        _mismatches(
+            directions,
+            (WEAK_PAYROLLS, "EURUSD", 1),
+            (WEAK_PAYROLLS, "XAUUSD", 1),
+            (WEAK_PAYROLLS, "USDJPY", -1),
+            (DOVISH_FED, "EURUSD", 1),
+            (DOVISH_FED, "XAUUSD", 1),
+            (DOVISH_FED, "USDJPY", -1),
+        )
+        == []
+    )
 
-    by_key = {(tag.news_id, tag.asset): tag.direction for tag in tags}
-    assert by_key.get((hot_cpi.id, "EURUSD")) == -1
-    assert by_key.get((hot_cpi.id, "XAUUSD")) == -1
-    assert by_key.get((ecb_hike.id, "EURUSD")) == 1
-    assert by_key.get((btc_inflows.id, "BTCUSD")) == 1
-    assert not [tag for tag in tags if tag.news_id == noise.id and tag.direction != 0]
-    assert all(tag.model and tag.prompt_version == PROMPT_VERSION for tag in tags)
+
+@live
+@needs_key
+def test_live_foreign_central_banks_and_data_move_their_own_currency(
+    directions: Directions,
+) -> None:
+    assert (
+        _mismatches(
+            directions,
+            (ECB_HIKE, "EURUSD", 1),
+            (BOJ_HIKE, "USDJPY", -1),  # a stronger yen is a lower USDJPY
+            (UK_GDP, "GBPUSD", -1),
+        )
+        == []
+    )
+
+
+@live
+@needs_key
+def test_live_commodity_equity_and_crypto_headlines(directions: Directions) -> None:
+    assert (
+        _mismatches(
+            directions,
+            (OPEC_CUT, "BRENT", 1),
+            (BANK_MISS, "SPX", -1),
+            (CHIP_RALLY, "SPX", 1),
+            (BTC_INFLOWS, "BTCUSD", 1),
+        )
+        == []
+    )
+
+
+@live
+@needs_key
+def test_live_noise_and_balanced_headlines_carry_no_direction(live_tags: list[NewsTag]) -> None:
+    directional = [
+        f"{tag.asset} {tag.direction:+d}"
+        for tag in live_tags
+        if tag.news_id in (NOISE.id, BALANCED.id) and tag.direction != 0
+    ]
+    assert directional == []
+
+
+@live
+@needs_key
+def test_live_unrelated_assets_are_not_tagged(directions: Directions) -> None:
+    """A UK print says nothing about oil or bitcoin; OPEC says nothing about the yen."""
+    unrelated = [
+        (UK_GDP, "BRENT"),
+        (UK_GDP, "BTCUSD"),
+        (OPEC_CUT, "USDJPY"),
+    ]
+    assert [
+        (item.title[:40], asset) for item, asset in unrelated if (item.id, asset) in directions
+    ] == []
