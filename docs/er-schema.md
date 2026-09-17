@@ -25,6 +25,8 @@ erDiagram
         string asset PK "16"
         int direction "-1 | 0 | +1"
         float confidence "0..1"
+        string model "128, '' for offline analyzers"
+        string prompt_version "16"
         datetime tagged_at
     }
 

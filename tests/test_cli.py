@@ -220,3 +220,39 @@ def test_run_stores_the_publishers_forecasts(migrated_db: str) -> None:
         "pce",
         "policy_rate",
     }
+
+
+def test_run_tags_the_headlines_through_the_llm(
+    migrated_db: str, offline_sources: respx.MockRouter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    offline_sources["feeds"].mock(return_value=httpx.Response(200, content=FORECAST_FEED))
+    schemas: list[str] = []
+
+    def fake_completion(**kwargs: object) -> object:
+        schema = kwargs["response_format"].__name__  # type: ignore[attr-defined]
+        schemas.append(schema)
+        lines = kwargs["messages"][-1]["content"].splitlines()  # type: ignore[index]
+        gold = next(index for index, line in enumerate(lines) if "gold target" in line)
+        content = {
+            "Tagging": f'{{"tags": [{{"item": {gold}, "asset": "XAUUSD", "direction": 1,'
+            ' "confidence": 0.9}]}',
+            "Extraction": '{"forecasts": []}',
+        }[schema]
+        message = type("Message", (), {"content": content})()
+        choice = type("Choice", (), {"message": message})()
+        return type("Response", (), {"choices": [choice], "model": "free/model"})()
+
+    monkeypatch.setattr(llm.litellm, "completion", fake_completion)
+
+    assert cli.main(["run", "--date", "2026-06-01"]) == 0
+
+    assert "Tagging" in schemas
+    store = SqlStore(db.make_engine())
+    [(item, tag)] = store.news.tagged("XAUUSD", datetime(2026, 5, 1, tzinfo=UTC))
+    assert item.url == "https://x/gold"
+    assert (tag.direction, tag.confidence, tag.model, tag.prompt_version) == (
+        1,
+        0.9,
+        "free/model",
+        "v1",
+    )

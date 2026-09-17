@@ -1,0 +1,374 @@
+[
+  {
+    "source": "reuters",
+    "title": "Dollar rises as Middle East conflict lifts oil, Fed hike looms - Reuters",
+    "expected": {
+      "EURUSD": -1,
+      "GBPUSD": -1,
+      "USDJPY": 1,
+      "BRENT": 1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Fed rate hike on Wednesday now likely, say economists, and at least one more to follow: Reuters Poll - Reuters",
+    "expected": {
+      "EURUSD": -1,
+      "USDJPY": 1,
+      "XAUUSD": -1
+    }
+  },
+  {
+    "source": "marc_to_market",
+    "title": "US Dollar Jumps on Fed Expectations",
+    "summary": "The combination of heightened expectations for the Federal Reserve to lift rates late this week coupled with the high oil prices have helped lift the US dollar broadly today.",
+    "expected": {
+      "EURUSD": -1,
+      "GBPUSD": -1,
+      "USDJPY": 1
+    }
+  },
+  {
+    "source": "investing_forex",
+    "title": "Dollar hits two-week high as traders gear up for anticipated Fed hike on Wednesday",
+    "expected": {
+      "EURUSD": -1,
+      "USDJPY": 1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Dollar higher as oil lifts yields and Fed hike looms - Reuters",
+    "expected": {
+      "EURUSD": -1,
+      "XAUUSD": -1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "United States Retail Sales rose by 1.2% MoM in August",
+    "summary": "Retail Sales in the United States increased to $773.9 billion in August, the US Census Bureau reported on Wednesday. This print represents a monthly gain of 1.2%, a reversal of the 0.5% contraction recorded in the previous month, and came in above market expectations (+0.8%).",
+    "expected": {
+      "EURUSD": -1,
+      "USDJPY": 1,
+      "XAUUSD": -1
+    }
+  },
+  {
+    "source": "wolfstreet",
+    "title": "Despite All Moaning & Groaning, Americans Not in the Mood to Slow Down: Retail Sales Surge even without Gasoline",
+    "summary": "Not even sky-high gasoline prices could dent their spending on bars & restaurants, ecommerce, cannabis stores, etc.",
+    "expected": {
+      "EURUSD": -1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Global bond yields hit fresh highs, raising stakes for big borrowers - Reuters",
+    "expected": {
+      "SPX": -1,
+      "XAUUSD": -1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Government bond yields rise, oil gains again as stocks dip - Reuters",
+    "expected": {
+      "SPX": -1,
+      "BRENT": 1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "BOJ set to raise interest rates to 31-year high as inflation risks loom - Reuters",
+    "expected": {
+      "USDJPY": -1
+    }
+  },
+  {
+    "source": "investing_forex",
+    "title": "Sterling today: Pound fall as UK jobs data disappoints, dollar firm",
+    "expected": {
+      "GBPUSD": -1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "UK jobs market stays soft before BoE rate call - Reuters",
+    "expected": {
+      "GBPUSD": -1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Sterling pinned at one-month lows as oil stays high, Fed rate hike expected - Reuters",
+    "expected": {
+      "GBPUSD": -1
+    }
+  },
+  {
+    "source": "investing_forex",
+    "title": "Sterling today: Pound slips as Fed hike bets and UK inflation uptick weigh",
+    "expected": {
+      "GBPUSD": -1
+    }
+  },
+  {
+    "source": "oilprice",
+    "title": "Energy Shock Puts Bank of England Under Pressure to Raise Rates",
+    "summary": "The Bank of England is facing mounting pressure to raise interest rates on Thursday amid a global bond market rout fuelled by concerns over runaway government borrowing and sticky inflation.",
+    "expected": {
+      "GBPUSD": 1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "Euro: Markets test ECB reaction function – Rabobank",
+    "summary": "Rabobank's Senior Macro Strategist Bas van Geffen notes that EUR money markets now discount more than four additional European Central Bank (ECB) rate hikes beyond the two already delivered, as investors push expectations ahead of policymakers.",
+    "expected": {
+      "EURUSD": 1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Oil settles $3 higher on Yanbu disruption, Saudi cargo cancellations - Reuters",
+    "expected": {
+      "BRENT": 1
+    }
+  },
+  {
+    "source": "oilprice",
+    "title": "Hormuz Shipping Traffic Remains Stuck in Single Digits",
+    "summary": "Tanker traffic in the Strait of Hormuz remains a fraction of pre-war levels, with four vessels traversing the waterway on Tuesday, down from seven the previous day, Reuters has reported, citing ship-tracking data.",
+    "expected": {
+      "BRENT": 1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Oil slips as Saudi Arabia offers more crude via Oman - Reuters",
+    "expected": {
+      "BRENT": -1
+    }
+  },
+  {
+    "source": "cnbc_top",
+    "title": "Oil prices fall after U.S. says damaged Saudi pipeline will restart operations in days",
+    "summary": "The pipeline has allowed the Saudis to shift oil exports to the Red Sea while the U.S. and Iran battle for control over Hormuz.",
+    "expected": {
+      "BRENT": -1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "WTI pulls back below $100 as Saudi Arabia steps up efforts to restore Oil flows",
+    "summary": "West Texas Intermediate (WTI) Oil falls on Wednesday as Saudi Arabia steps up efforts to restore flows through its East-West pipeline, which was damaged by a drone attack last week.",
+    "expected": {
+      "BRENT": -1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "European shares hit three-month low as oil spike revives inflation and rate worries - Reuters",
+    "expected": {
+      "BRENT": 1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Gold gains over 1% as oil, yields slip ahead of Fed rate decision - Reuters",
+    "expected": {
+      "XAUUSD": 1
+    }
+  },
+  {
+    "source": "investing_commodities",
+    "title": "Gold rebounds as oil prices ease ahead of key Fed decision",
+    "expected": {
+      "XAUUSD": 1,
+      "BRENT": -1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Wall Street ends lower as oil spikes and the benchmark Treasury yield breaches 5% - Reuters",
+    "expected": {
+      "SPX": -1,
+      "BRENT": 1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Wall Street ends down, calls for AI slowdown pummel chipmakers - Reuters",
+    "expected": {
+      "SPX": -1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Nasdaq, S&P 500 climb as oil retreat tempers pre-Fed jitters - Reuters",
+    "expected": {
+      "SPX": 1,
+      "BRENT": -1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Stocks rise as oil falls, bonds steady ahead of Fed decision - Reuters",
+    "expected": {
+      "SPX": 1,
+      "BRENT": -1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Stocks fall as oil and bond yields rise - Reuters",
+    "expected": {
+      "SPX": -1,
+      "BRENT": 1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Bitcoin and crypto stocks remain down after US senate fails to advance regulatory bill - Reuters",
+    "expected": {
+      "BTCUSD": -1
+    }
+  },
+  {
+    "source": "coindesk",
+    "title": "Bitcoin ETFs shed $450 million as Clarity Act fails",
+    "expected": {
+      "BTCUSD": -1
+    }
+  },
+  {
+    "source": "coindesk",
+    "title": "XRP sinks 10% as the Clarity Act fails and bitcoin slides toward $76,000",
+    "expected": {
+      "BTCUSD": -1
+    }
+  },
+  {
+    "source": "coindesk",
+    "title": "Crypto longs worth $570 million wiped out as Clarity Act fails",
+    "expected": {
+      "BTCUSD": -1
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Yen rally faces moment of truth as BOJ risks disappointing markets - Reuters",
+    "expected": {
+      "USDJPY": 0
+    }
+  },
+  {
+    "source": "investing_forex",
+    "title": "Dollar consolidates ahead of Fed rate decision and Warsh signals",
+    "expected": {
+      "EURUSD": 0,
+      "USDJPY": 0
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Dollar holds near two-week high ahead of Fed decision - Reuters",
+    "expected": {
+      "EURUSD": 0
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "Euro trades with caution against US Dollar ahead of Fed’s policy meeting",
+    "summary": "The Euro (EUR) trades subduedly at around 1.1535 against the US Dollar (USD) during the European trading session on Wednesday. The major currency pair trades cautiously ahead of the Federal Reserve’s (Fed) monetary policy announcement at 18:00 GMT.",
+    "expected": {
+      "EURUSD": 0
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Sterling steady after UK inflation, eyes turn to BoE - Reuters",
+    "expected": {
+      "GBPUSD": 0
+    }
+  },
+  {
+    "source": "coindesk",
+    "title": "Bitcoin traders brace for Fed hike, but a surprise hold could pose bigger risk",
+    "expected": {
+      "BTCUSD": 0
+    }
+  },
+  {
+    "source": "coindesk",
+    "title": "Live updates: Bitcoin holds near $76,000 as traders brace for first Fed rate hike in three years",
+    "expected": {
+      "BTCUSD": 0
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "Dow Jones Industrial Average huddles ahead of Fed action",
+    "expected": {
+      "SPX": 0
+    }
+  },
+  {
+    "source": "investing_commodities",
+    "title": "US crude oil inventories decline as fuel stocks increase",
+    "expected": {
+      "BRENT": 0
+    }
+  },
+  {
+    "source": "reuters",
+    "title": "Tesla sets up Vietnam unit, registration filing shows - Reuters",
+    "expected": {}
+  },
+  {
+    "source": "bbc_business",
+    "title": "Pubs in England and Wales to allow digital ID apps to prove age",
+    "expected": {}
+  },
+  {
+    "source": "cnbc_top",
+    "title": "Costco expands Uber Eats delivery partnership to 47 states",
+    "expected": {}
+  },
+  {
+    "source": "boe",
+    "title": "Chancellor announces Bank of England appointments",
+    "expected": {}
+  },
+  {
+    "source": "reuters",
+    "title": "Soccer Mexico antitrust watchdog opens probe into professional soccer market - Reuters",
+    "expected": {}
+  },
+  {
+    "source": "coindesk",
+    "title": "Bitcoin Core 32 enters final testing with faster validation, fee changes and security fixes",
+    "expected": {}
+  },
+  {
+    "source": "fred_blog",
+    "title": "Measuring money with M2",
+    "expected": {}
+  },
+  {
+    "source": "coindesk",
+    "title": "Two Robinhood engineers charged with insider trading using Hyperliquid perpetuals",
+    "expected": {}
+  },
+  {
+    "source": "boe",
+    "title": "Minutes of the Securities Lending Committee meeting – March 2026",
+    "expected": {}
+  },
+  {
+    "source": "reuters",
+    "title": "India inflation rises to 4.82% in August, strengthening case for rate hike - Reuters",
+    "expected": {}
+  }
+]
