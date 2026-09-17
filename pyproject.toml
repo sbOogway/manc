@@ -3,14 +3,37 @@ name = "manc"
 version = "0.1.0"
 description = "Macro analysis, news and calendar: a daily 0-100 macro index per asset"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Mattia Papaccioli" }]
 requires-python = ">=3.12,<3.13"
+keywords = [
+    "macro", "macroeconomics", "economic-calendar", "news", "rss", "sentiment",
+    "forex", "gold", "oil", "equities", "bitcoin", "forecasts", "llm", "litellm",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
 dependencies = [
     "alembic>=1.13",
+    "feedparser>=6.0.14",
+    "httpx>=0.28.1",
     "litellm>=1.101.0",
     "pydantic>=2.13.5",
     "pyyaml>=6.0.3",
     "sqlalchemy>=2.0",
 ]
+
+
+[project.urls]
+Repository = "https://github.com/sbOogway/manc"
+Issues = "https://github.com/sbOogway/manc/issues"
+Blueprint = "https://github.com/sbOogway/manc/blob/main/docs/blueprint.md"
 
 [project.scripts]
 manc = "manc.cli:main"
