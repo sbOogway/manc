@@ -1,8 +1,7 @@
 """Benchmark of the configured tagger model on recorded headlines, one test per headline.
 
 `tests/fixtures/analysis/*.json` hold the headlines with the direction a market reader
-expects per asset (+1 / -1; 0 means no directional call, a 0 tag or none; an empty
-mapping means nothing directional on any asset):
+expects per asset (`tests/analysis/headlines.py` reads them):
 
 - `synthetic_headlines.json`: textbook cases, market-flavoured noise and two-sided prints
 - `real_headlines.json`: rows copied verbatim from the store as fetched 2026-09-13..16, the
@@ -23,50 +22,18 @@ EURUSD, and the openrouter/free router lands on any of them. On the real set nem
 every asset for the first few lines of a batch and then stops, whatever the batch size.
 """
 
-import json
 import os
 from collections.abc import Callable
-from dataclasses import dataclass, replace
-from datetime import UTC, datetime
-from pathlib import Path
+from dataclasses import replace
 
 import pytest
 
 from manc.analysis.llm import LlmAnalyzer
 from manc.config import load_config
-from manc.models import NewsItem
+from tests.analysis.headlines import Case, Directions, directions, load_cases, mismatches
 
 CONFIG = load_config()
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "analysis"
 SETS = ("synthetic", "real")
-FETCHED = datetime(2026, 9, 16, 17, 0, tzinfo=UTC)
-
-Directions = dict[tuple[str, str], int]
-
-
-@dataclass(frozen=True)
-class Case:
-    item: NewsItem
-    expected: dict[str, int]
-
-
-def load_cases(name: str) -> list[Case]:
-    rows = json.loads((FIXTURES / f"{name}_headlines.json").read_text())
-    return [
-        Case(
-            item=NewsItem.from_feed(
-                source=row["source"],
-                title=row["title"],
-                url=f"https://{row['source']}/{index}",
-                published_at=FETCHED,
-                summary=row.get("summary", ""),
-            ),
-            expected=row["expected"],
-        )
-        for index, row in enumerate(rows)
-    ]
-
-
 CASES = {name: load_cases(name) for name in SETS}
 
 
@@ -77,24 +44,6 @@ def test_fixture_expectations_name_tracked_assets_and_valid_directions(name: str
         assert set(case.expected) <= symbols, case.item.title
         assert set(case.expected.values()) <= {-1, 0, 1}, case.item.title
     assert len({case.item.id for case in CASES[name]}) == len(CASES[name])
-
-
-def _mismatches(case: Case, directions: Directions) -> list[str]:
-    if not case.expected:
-        return [
-            f"{asset} {direction:+d}"
-            for (news_id, asset), direction in directions.items()
-            if news_id == case.item.id and direction != 0
-        ]
-    mismatches = []
-    for asset, wanted in case.expected.items():
-        got = directions.get((case.item.id, asset))
-        if wanted == 0 and got in (None, 0):
-            continue
-        if got != wanted:
-            shown = "no tag" if got is None else f"{got:+d}"
-            mismatches.append(f"{asset}: wanted {wanted:+d}, got {shown}")
-    return mismatches
 
 
 @pytest.fixture(scope="module")
@@ -118,7 +67,7 @@ def tagged() -> Callable[[str], Directions]:
                 title = titles[tag.news_id][:52]
                 print(f"  {title:<52} {tag.asset:<7} {tag.direction:+d} {tag.confidence:.2f}")
             print(f"  {len(tags)} tags from {tags[0].model if tags else 'no model'}")
-            cache[name] = {(tag.news_id, tag.asset): tag.direction for tag in tags}
+            cache[name] = directions(tags)
         return cache[name]
 
     return directions_for
@@ -135,4 +84,4 @@ def tagged() -> Callable[[str], Directions]:
     ids=[f"{name}: {case.item.title[:60]}" for name in SETS for case in CASES[name]],
 )
 def test_live_headline(name: str, case: Case, tagged: Callable[[str], Directions]) -> None:
-    assert _mismatches(case, tagged(name)) == []
+    assert mismatches(case, tagged(name)) == []

@@ -101,7 +101,7 @@ What "test-first" means per layer:
 |---------------------|---------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
 | `formulas`          | property tests with `hypothesis`: bounds 0–100, exactly 50 on empty inputs, monotonic in N and S, symmetric under sign flip, event risk only shrinks toward 50 | none needed; pure functions                              |
 | `calendar`, `news`  | parser tests against recorded responses; one test per failure mode (empty feed, malformed date, HTTP 403 on one feed of many)               | fixture files under `tests/fixtures/`, HTTP stubbed with `respx`            |
-| `analysis`          | tagger tests assert prompt batching, schema validation and retry                                                                           | `litellm.completion` monkeypatched to return canned JSON                    |
+| `analysis`          | tagger tests assert prompt batching, schema validation and the fallback; lexicon tests replay the synthetic benchmark and a sign-map property | `litellm.completion` monkeypatched to return canned JSON                  |
 | `store`             | migration tests (upgrade to head, downgrade to base, no drift between `schema.py` and `head`); round-trip and idempotency tests on a temp SQLite file | `tmp_path`                                                       |
 | `pipeline`, `cli`   | end-to-end against in-memory fakes of every Protocol; asserts the rows written, the exit code and the log                                   | `FakeCalendar`, `FakeNews`, `FakeAnalyzer`, `FakeStore` in `tests/fakes.py` |
 | `queries`           | unit tests of every read-side function on known rows: band thresholds, deltas, sparkline windows, event-risk badge, ordering              | `FakeStore`                                                                 |
@@ -208,8 +208,14 @@ Ollama server (`ollama_chat/<model>` with `OLLAMA_API_BASE`), is one config edit
 The response schema is a Pydantic model passed as `response_format`; LiteLLM translates it to
 each provider's native structured-output mechanism (Anthropic, OpenAI, Ollama, Groq, Gemini,
 Bedrock all support it) and `litellm.enable_json_schema_validation = True` validates
-client-side for the ones that don't. Provider-specific parameters never appear in our code. A
-lexicon-based `Analyzer` stays available as an offline fallback and as the test double.
+client-side for the ones that don't. Provider-specific parameters never appear in our code.
+
+A lexicon `Analyzer` (`config/lexicon.yaml`, title only) is the offline fallback: a batch
+every configured model fails on is tagged by it instead of dropped, with `model` empty so the
+tags can be told apart. It scores a title's polarity from an ordered phrase list, turns the
+first economy and category mentioned into a direction through the asset sign map, and lets a
+mention of the asset itself carry its own sign; disagreeing signals tag 0. It passes the
+synthetic half of the tagger benchmark, not the real one.
 
 ### Institutional forecasts → extracted from news, plus a few publishers
 
@@ -486,6 +492,7 @@ manc/
 │   ├── scoring.yaml        # formula: v1, params (weights, half-life, windows)
 │   ├── llm.yaml            # model string, fallback, temperature
 │   ├── calendar.yaml       # event-name regexes → category and importance; country aliases
+│   ├── lexicon.yaml        # offline analyzer: economy, category, asset and polarity terms
 │   └── forecasts.yaml      # institutions with aliases, kind and weight; per-asset RSS queries; min_confidence
 ├── docs/blueprint.md       # this file
 ├── src/manc/

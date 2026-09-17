@@ -1,0 +1,96 @@
+# Headline lexicon for the offline analyzer, the fallback when the LLM tagger fails. It reads
+# the title only. Every term is a regex matched on word boundaries; a term with an uppercase
+# letter is matched case-sensitively ("Fed", not "fed up"), the others ignore case.
+#
+# A title gets a polarity from the `polarity` list: +1 hot/up, -1 cold/down, 0 balanced.
+# Patterns are tried in order and each match is consumed, so a specific phrase listed first
+# ("unemployment jumps", cold) hides the generic word inside it ("jumps", hot). Hot and cold
+# together, or any balanced phrase, mean 0; no match means no tag.
+#
+# The polarity then reaches the assets two ways: the first economy and category mentioned
+# make a data print, and `signs` in assets.yaml turns it into a direction per asset; and a
+# mention of an asset itself carries the sign a positive phrase implies ("yen surges" is
+# down for USDJPY). When the two disagree the tag is 0.
+
+economies:  # keys of assets.yaml
+  united_states: ["US", "U\\.S\\.", "Fed", "FOMC", "Powell", "Treasury", "Treasuries", "dollar", "American"]
+  euro_area: ["ECB", "euro", "eurozone", "euro[- ]area", "Lagarde"]
+  united_kingdom: ["UK", "BoE", "Bank of England", "sterling", "pound", "British", "Bailey"]
+  japan: ["BoJ", "Bank of Japan", "yen", "Japan", "Japanese", "Ueda"]
+
+categories:  # inflation | employment | growth | rates, as in assets.yaml signs
+  inflation: ["CPI", "PCE", "PPI", "HICP", "inflation", "prices"]
+  employment: ["payrolls", "NFP", "jobs", "jobless", "unemployment", "employment", "wages"]
+  growth: ["GDP", "PMI", "retail sales", "growth", "recession", "output", "production"]
+  rates: ["rates?", "hikes?", "cuts?", "hawkish", "dovish", "monetary policy", "\\d+ ?bps?", "yields?", "tightening", "easing"]
+
+assets:  # mention -> sign of a positive phrase for the asset
+  EURUSD: {"euro": 1, "EUR/USD": 1, "EURUSD": 1, "dollar": -1}
+  GBPUSD: {"sterling": 1, "pound": 1, "cable": 1, "GBP/USD": 1, "dollar": -1}
+  USDJPY: {"yen": -1, "USD/JPY": 1, "dollar": 1}
+  XAUUSD: {"gold": 1, "bullion": 1, "XAU": 1}
+  BRENT: {"Brent": 1, "crude": 1, "oil": 1, "OPEC\\+?": 1, "barrels?": 1}
+  SPX: {"S&P": 1, "stocks": 1, "equities": 1, "shares": 1, "Wall Street": 1, "Nasdaq": 1, "Dow": 1}
+  BTCUSD: {"bitcoin": 1, "BTC": 1, "crypto": 1}
+
+polarity:
+  # specific phrases first, they consume the generic words inside them
+  - {pattern: "unemployment (jumps|rises|climbs|surges|spikes)", sign: -1}
+  - {pattern: "unemployment (falls|drops|dips|eases)", sign: 1}
+  - {pattern: "output cuts?", sign: 1}
+  # balanced
+  - {pattern: "but", sign: 0}
+  - {pattern: "flat", sign: 0}
+  - {pattern: "in line", sign: 0}
+  - {pattern: "as expected", sign: 0}
+  - {pattern: "offsets?", sign: 0}
+  - {pattern: "holds?", sign: 0}
+  - {pattern: "steady", sign: 0}
+  - {pattern: "little changed", sign: 0}
+  - {pattern: "unchanged", sign: 0}
+  - {pattern: "mixed", sign: 0}
+  - {pattern: "split", sign: 0}
+  - {pattern: "wide open", sign: 0}
+  # hot / up
+  - {pattern: "hot(ter)?", sign: 1}
+  - {pattern: "beats?", sign: 1}
+  - {pattern: "tops?", sign: 1}
+  - {pattern: "jumps?", sign: 1}
+  - {pattern: "surges?", sign: 1}
+  - {pattern: "soars?", sign: 1}
+  - {pattern: "rall(y|ies)", sign: 1}
+  - {pattern: "climbs?", sign: 1}
+  - {pattern: "rises?", sign: 1}
+  - {pattern: "gains?", sign: 1}
+  - {pattern: "record", sign: 1}
+  - {pattern: "inflows", sign: 1}
+  - {pattern: "hikes?", sign: 1}
+  - {pattern: "raises?", sign: 1}
+  - {pattern: "accelerat\\w*", sign: 1}
+  - {pattern: "strong(er)?", sign: 1}
+  - {pattern: "upbeat", sign: 1}
+  - {pattern: "hawkish", sign: 1}
+  - {pattern: "higher", sign: 1}
+  # cold / down
+  - {pattern: "miss(es)?", sign: -1}
+  - {pattern: "cool(s|er)?", sign: -1}
+  - {pattern: "slows?", sign: -1}
+  - {pattern: "falls?", sign: -1}
+  - {pattern: "drops?", sign: -1}
+  - {pattern: "slides?", sign: -1}
+  - {pattern: "tumbles?", sign: -1}
+  - {pattern: "plunges?", sign: -1}
+  - {pattern: "sinks?", sign: -1}
+  - {pattern: "declines?", sign: -1}
+  - {pattern: "contracts?", sign: -1}
+  - {pattern: "shrinks?", sign: -1}
+  - {pattern: "cuts?", sign: -1}
+  - {pattern: "slashes?", sign: -1}
+  - {pattern: "trims?", sign: -1}
+  - {pattern: "eases?", sign: -1}
+  - {pattern: "weak(er)?", sign: -1}
+  - {pattern: "recession", sign: -1}
+  - {pattern: "outflows", sign: -1}
+  - {pattern: "selling", sign: -1}
+  - {pattern: "dovish", sign: -1}
+  - {pattern: "lower", sign: -1}

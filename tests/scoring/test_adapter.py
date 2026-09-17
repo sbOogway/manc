@@ -7,6 +7,7 @@ from manc.config import (
     Config,
     FeedSpec,
     ForecastsConfig,
+    LexiconConfig,
     LlmConfig,
     ScoringConfig,
 )
@@ -32,6 +33,7 @@ CONFIG = Config(
     forecasts=ForecastsConfig(
         institutions=(), signals=(), metrics=(), queries=(), min_confidence=0.5
     ),
+    lexicon=LexiconConfig(economies=(), categories=(), assets=(), polarity=()),
 )
 
 

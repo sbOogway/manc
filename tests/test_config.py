@@ -165,3 +165,40 @@ def test_missing_forecasts_file_names_it(tmp_path: Path) -> None:
     (tmp_path / "forecasts.yaml").unlink()
     with pytest.raises(FileNotFoundError, match=r"forecasts\.yaml"):
         load_config(tmp_path)
+
+
+def test_lexicon_loads_and_compiles_whole_word_patterns() -> None:
+    lexicon = load_config(REPO_CONFIG).lexicon
+    economies = {economy for _pattern, economy in lexicon.economies}
+    assert economies == {"united_states", "euro_area", "united_kingdom", "japan"}
+    assert {category for _pattern, category in lexicon.categories} <= {
+        "inflation",
+        "employment",
+        "growth",
+        "rates",
+    }
+    assert {symbol for _pattern, symbol, _sign in lexicon.assets} == {
+        asset.symbol for asset in load_config(REPO_CONFIG).assets
+    }
+    assert {sign for _pattern, sign in lexicon.polarity} == {-1, 0, 1}
+    fed = next(pattern for pattern, _economy in lexicon.economies if pattern.search("Fed holds"))
+    assert not fed.search("fed up") and not fed.search("Federal")
+    gold = next(pattern for pattern, symbol, _sign in lexicon.assets if symbol == "XAUUSD")
+    assert gold.search("Gold steady") and gold.search("gold steady") and not gold.search("Goldman")
+
+
+@pytest.mark.parametrize(
+    ("override", "message"),
+    [
+        ({"economies": {"mars": ["Mars"]}}, "economy"),
+        ({"categories": {"weather": ["rain"]}}, "category"),
+        ({"assets": {"NOPE": {"nope": 1}}}, "asset"),
+        ({"assets": {"XAUUSD": {"gold": 0}}}, "sign"),
+        ({"polarity": [{"pattern": "hot", "sign": 2}]}, "sign"),
+    ],
+)
+def test_bad_lexicon_config_is_rejected(tmp_path: Path, override: dict, message: str) -> None:
+    lexicon = yaml.safe_load((REPO_CONFIG / "lexicon.yaml").read_text())
+    lexicon.update(override)
+    with pytest.raises(ValueError, match=message):
+        load_config(_write(tmp_path, {"lexicon": lexicon}))
