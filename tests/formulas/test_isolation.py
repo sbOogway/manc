@@ -35,3 +35,14 @@ def test_formulas_import_only_stdlib_and_themselves() -> None:
         assert not offending, (
             f"{module_path.relative_to(SRC)} imports outside the rule: {offending}"
         )
+
+
+def test_scoring_inputs_carry_no_price() -> None:
+    """Spot prices are display only (blueprint §4): no formula input may name one."""
+    from dataclasses import fields
+
+    from manc.formulas.contract import ScoringInputs
+
+    for field in fields(ScoringInputs):
+        described = f"{field.name} {field.type}".lower()
+        assert "price" not in described and "spot" not in described, field.name
