@@ -9,6 +9,7 @@ import pytest
 from pydantic import BaseModel
 
 from manc.analysis.interface import Analyzer
+from manc.analysis.lexicon import LexiconAnalyzer
 from manc.analysis.llm import PROMPT_VERSION, HeadlineTag, LlmAnalyzer, Tagging
 from manc.config import LlmConfig, load_config
 from manc.llm import LlmError
@@ -144,3 +145,18 @@ def test_a_failing_batch_is_skipped_and_the_others_still_count(
         tags = analyzer.tag([first, second], CONFIG.assets)
     assert [(tag.news_id, tag.asset) for tag in tags] == [(second.id, "BTCUSD")]
     assert any("batch" in record.message for record in caplog.records)
+
+
+def test_a_failing_batch_goes_to_the_fallback_analyzer(caplog: pytest.LogCaptureFixture) -> None:
+    first, second = _item("Gold jumps to a record"), _item("second")
+    complete = FakeComplete(LlmError("every model failed"), Tagging(tags=[_tag(0, "BTCUSD", 1)]))
+    analyzer = LlmAnalyzer(
+        CONFIG, complete=complete, batch_size=1, fallback=LexiconAnalyzer(CONFIG.lexicon)
+    )
+    with caplog.at_level(logging.WARNING, logger="manc.analysis"):
+        tags = analyzer.tag([first, second], CONFIG.assets)
+    assert [(tag.news_id, tag.asset, tag.direction, tag.model) for tag in tags] == [
+        (first.id, "XAUUSD", 1, ""),
+        (second.id, "BTCUSD", 1, "free/model"),
+    ]
+    assert any("LexiconAnalyzer" in record.message for record in caplog.records)

@@ -8,6 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from manc import llm
+from manc.analysis.interface import Analyzer
 from manc.config import Config
 from manc.models import AssetSpec, NewsItem, NewsTag
 
@@ -57,14 +58,24 @@ Complete = Callable[..., tuple[Any, str]]
 
 
 class LlmAnalyzer:
-    """Analyzer over LiteLLM; the model string and batch size come from `config/llm.yaml`."""
+    """Analyzer over LiteLLM; the model string and batch size come from `config/llm.yaml`.
+
+    A batch every configured model fails on goes to `fallback` (the lexicon analyzer in
+    `manc run`), or is skipped when there is none.
+    """
 
     def __init__(
-        self, config: Config, *, complete: Complete = llm.complete, batch_size: int | None = None
+        self,
+        config: Config,
+        *,
+        complete: Complete = llm.complete,
+        batch_size: int | None = None,
+        fallback: Analyzer | None = None,
     ) -> None:
         self.config = config
         self.complete = complete
         self.batch_size = batch_size or config.llm.batch_size
+        self.fallback = fallback
 
     def tag(self, items: Sequence[NewsItem], assets: Sequence[AssetSpec]) -> list[NewsTag]:
         symbols = {asset.symbol for asset in assets}
@@ -75,12 +86,16 @@ class LlmAnalyzer:
         )
         tags: list[NewsTag] = []
         for batch in batched(items, self.batch_size):
-            tags.extend(self._tag_batch(batch, symbols, system_prompt))
+            tags.extend(self._tag_batch(batch, symbols, system_prompt, assets))
         log.info("analysis: %d headlines → %d tags", len(items), len(tags))
         return tags
 
     def _tag_batch(
-        self, batch: Sequence[NewsItem], symbols: set[str], system_prompt: str
+        self,
+        batch: Sequence[NewsItem],
+        symbols: set[str],
+        system_prompt: str,
+        assets: Sequence[AssetSpec],
     ) -> list[NewsTag]:
         messages = [
             {"role": "system", "content": system_prompt},
@@ -92,8 +107,16 @@ class LlmAnalyzer:
         try:
             tagging, model = self.complete(self.config.llm, messages, Tagging)
         except llm.LlmError as error:
-            log.warning("analysis: batch of %d headlines skipped: %s", len(batch), error)
-            return []
+            if self.fallback is None:
+                log.warning("analysis: batch of %d headlines skipped: %s", len(batch), error)
+                return []
+            log.warning(
+                "analysis: batch of %d headlines tagged by %s: %s",
+                len(batch),
+                type(self.fallback).__name__,
+                error,
+            )
+            return self.fallback.tag(batch, assets)
         tags = []
         for found in tagging.tags:
             symbol = found.asset.strip().upper()
