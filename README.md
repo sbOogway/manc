@@ -31,7 +31,8 @@ forecasts (LLM)   ─┘                                                  manc a
   news sentiment, data surprise versus consensus, and event risk ahead. Every input is
   stored, so any date range can be replayed under a new formula.
 - **LLM**: every call goes through [LiteLLM](https://github.com/BerriAI/litellm); the model
-  is one string in `config/llm.yaml`. The default is OpenRouter's free router.
+  is one string in `config/llm.yaml`, a free OpenRouter model by default. Headlines the LLM
+  cannot tag fall back to a lexicon in `config/lexicon.yaml`.
 
 The design, data sources, formula and milestones are in [docs/blueprint.md](docs/blueprint.md);
 the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the formula in
