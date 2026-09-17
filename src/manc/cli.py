@@ -9,6 +9,7 @@ from datetime import UTC, date, datetime, time
 from manc.analysis.empty import EmptyAnalyzer
 from manc.calendar.nasdaq import NasdaqCalendar
 from manc.config import load_config
+from manc.forecasts.extractor import LlmExtractor
 from manc.formulas.contract import IndexScore
 from manc.formulas.registry import get_formula
 from manc.news.rss import RssNews
@@ -39,6 +40,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             calendar=NasdaqCalendar(config.calendar),
             news=RssNews(config.feeds + config.forecasts.query_feeds),
             analyzer=EmptyAnalyzer(),
+            forecasts=LlmExtractor(config, store.news),
             store=store,
             formula=get_formula(config.scoring.formula),
         )
