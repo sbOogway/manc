@@ -51,6 +51,12 @@ class ExtractedForecast(BaseModel):
 
 
 class Extraction(BaseModel):
+    """What the LLM returns, as JSON constrained to this schema through `response_format`.
+
+    Example: {"forecasts": [{"item": 3, "institution": "Goldman Sachs", "subject": "XAUUSD",
+    "value": 4900, "horizon": "2026", "confidence": 0.95}]}
+    """
+
     forecasts: list[ExtractedForecast]
 
 
