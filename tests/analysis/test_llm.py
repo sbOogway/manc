@@ -1,6 +1,7 @@
 """The LLM tagger batches headlines, validates the schema and maps replies to NewsTags."""
 
 import logging
+import os
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
@@ -144,3 +145,37 @@ def test_a_failing_batch_is_skipped_and_the_others_still_count(
         tags = analyzer.tag([first, second], CONFIG.assets)
     assert [(tag.news_id, tag.asset) for tag in tags] == [(second.id, "BTCUSD")]
     assert any("batch" in record.message for record in caplog.records)
+
+
+@pytest.mark.live
+@pytest.mark.skipif(not os.environ.get("OPENROUTER_API_KEY"), reason="OPENROUTER_API_KEY not set")
+def test_live_configured_model_tags_clear_headlines_the_right_way(
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """Benchmark of the configured model; run with `-m live -s` to see every tag it produced."""
+    hot_cpi = _item(
+        "US CPI runs hot at 4.1% vs 3.6% expected",
+        summary="Treasury yields and the dollar jump as traders price out Fed cuts",
+    )
+    ecb_hike = _item("ECB surprises markets with a 50bp hike, signals more to come")
+    btc_inflows = _item("Bitcoin spot ETF inflows hit a record $2bn in a day")
+    noise = _item("Local bakery wins regional pie contest")
+    headlines = [hot_cpi, ecb_hike, btc_inflows, noise]
+
+    tags = LlmAnalyzer(CONFIG).tag(headlines, CONFIG.assets)
+
+    titles = {item.id: item.title for item in headlines}
+    with capsys.disabled():
+        print()
+        for tag in tags:
+            title = titles[tag.news_id][:48]
+            print(f"  {title:<48} {tag.asset:<7} {tag.direction:+d} {tag.confidence:.2f}")
+        print(f"  model: {tags[0].model if tags else '-'}")
+
+    by_key = {(tag.news_id, tag.asset): tag.direction for tag in tags}
+    assert by_key.get((hot_cpi.id, "EURUSD")) == -1
+    assert by_key.get((hot_cpi.id, "XAUUSD")) == -1
+    assert by_key.get((ecb_hike.id, "EURUSD")) == 1
+    assert by_key.get((btc_inflows.id, "BTCUSD")) == 1
+    assert not [tag for tag in tags if tag.news_id == noise.id and tag.direction != 0]
+    assert all(tag.model and tag.prompt_version == PROMPT_VERSION for tag in tags)
