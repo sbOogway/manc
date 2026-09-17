@@ -8,7 +8,7 @@ forecast for each asset, extracted from headlines by an LLM.
 It is **not** a price predictor or a trading signal: it measures the macro narrative and data
 flow, one input among many, and keeps the number explainable.
 
-Tracked by default: EURUSD, GBPUSD, USDJPY, XAUUSD, WTI, SPX, BTCUSD (`config/assets.yaml`).
+Tracked by default: EURUSD, GBPUSD, USDJPY, XAUUSD, BRENT, SPX, BTCUSD (`config/assets.yaml`).
 
 ## How it works
 
@@ -42,7 +42,7 @@ the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the 
 | Milestone | State |
 |-----------|-------|
 | M1 Skeleton: models, store, migrations, CLI, fakes, hooks | done |
-| M2 Ingestion: RSS news, Nasdaq calendar, LLM forecast extractor, Yahoo spot closes, Fed SEP and World Bank publishers | in progress (EIA publisher left, needs a key) |
+| M2 Ingestion: RSS news, Nasdaq calendar, LLM forecast extractor, Yahoo spot closes, Fed SEP and World Bank publishers | done |
 | M3 Analysis and index: LLM tagger, formula v1 | next |
 | M4 Report, API and dashboard | planned |
 | M5 Operations, M6 Formula v2 | planned |

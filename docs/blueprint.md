@@ -25,7 +25,7 @@ Initial asset list (all configurable in `config/assets.yaml`):
 | GBPUSD | forex        | United Kingdom, United States             |
 | USDJPY | forex        | United States, Japan                      |
 | XAUUSD | metal        | United States (rates, dollar)             |
-| WTI    | commodity    | United States, OPEC headlines             |
+| BRENT  | commodity    | United States, OPEC headlines             |
 | SPX    | equity index | United States                             |
 | BTCUSD | crypto       | United States (liquidity, risk appetite)  |
 
@@ -72,7 +72,7 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 |------------|---------------------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------|
 | `calendar` | `CalendarProvider.fetch(start, end) -> list[CalendarEvent]`               | Nasdaq's public calendar endpoint over httpx (free, no key)             | parsing, category/importance/country maps, date offset, day windows  |
 | `news`     | `NewsProvider.fetch(since) -> list[NewsItem]`                             | feedparser over `config/feeds.yaml`                                     | parsing, dedupe, per-feed failure isolation                          |
-| `forecasts`| `ForecastProvider.fetch(since) -> Forecasts` (asset and macro lists)        | `extractor.py`: LiteLLM over stored news rows that pass a regex prefilter; `fed_sep.py`, `worldbank.py`, `eia.py` for publishers with structured data (§4) | extractor: prefilter, batching, schema validation, horizon normalisation, dedupe; publishers: recorded fixtures |
+| `forecasts`| `ForecastProvider.fetch(since) -> Forecasts` (asset and macro lists)        | `extractor.py`: LiteLLM over stored news rows that pass a regex prefilter; `fed_sep.py`, `worldbank.py` for publishers with structured data (§4) | extractor: prefilter, batching, schema validation, horizon normalisation, dedupe; publishers: recorded fixtures |
 | `spot`     | `SpotProvider.fetch(assets, date) -> list[SpotPrice]`                      | `yahoo.py` through `yfinance`, one history call per asset; the ticker per source sits in `config/assets.yaml`, so another source is a new adapter plus a config edit | recorded frames, missing ticker, one asset failing does not stop the rest; isolation test that no formula input carries a price |
 | `analysis` | `Analyzer.tag(items, assets) -> list[NewsTag]`                            | LiteLLM `completion()` with a Pydantic response schema, model from config | fake analyzer; batching; schema validation                           |
 | `formulas` | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | plain Python classes, one per version, standard library only (§5) | property tests on every formula; an isolation test that the package imports nothing else from `manc` |
@@ -224,8 +224,7 @@ extraction from the news already ingested, and structured publishers are supplem
 |-------------|------------------------------------------------------------|---------------------------------|-------------|
 | extracted   | every feed in `feeds.yaml`, plus one Google News RSS query per asset (`EUR/USD forecast (Goldman OR ING OR ...)`) at low news weight | all assets, rate calls | daily; the queries return ~100 items spanning months, used once for a backfill |
 | structured  | Fed SEP (`fed_sep.py`): the medians for the policy rate, PCE inflation, real GDP and unemployment per projection year, from the accessible projections page linked on the FOMC calendar; the undated longer run is skipped | `united_states` macro | quarterly |
-| structured  | World Bank Commodity Markets Outlook (`worldbank.py`): the forecasts xlsx behind the PDF linked on the commodity-markets page, dated by its release line | XAUUSD annual averages (the table quotes Brent, not WTI) | semi-annual |
-| structured  | EIA STEO API (free key, `EIA_API_KEY`)                     | WTI monthly path                | monthly; deferred until the key is set up |
+| structured  | World Bank Commodity Markets Outlook (`worldbank.py`): the forecasts xlsx behind the PDF linked on the commodity-markets page, dated by its release line | BRENT and XAUUSD annual averages | semi-annual |
 | not used    | CME FedWatch (403), Bloomberg/Reuters consensus, Trading Economics (paid), bank research pages (scraping; revisit if a must-have appears) | | |
 
 The extractor runs after step 02 over the news rows stored that run: a case-insensitive regex
@@ -495,7 +494,7 @@ manc/
 │   ├── news/               # interface.py, rss.py
 │   ├── llm.py              # the one LiteLLM call site: complete(config, messages, response_model)
 │   ├── analysis/           # interface.py, llm.py (tagger), lexicon.py
-│   ├── forecasts/          # interface.py, extractor.py (LiteLLM), fed_sep.py, worldbank.py, eia.py
+│   ├── forecasts/          # interface.py, extractor.py (LiteLLM), fed_sep.py, worldbank.py
 │   ├── spot/               # interface.py, yahoo.py
 │   ├── scoring/            # adapter.py: store → ScoringInputs → formula
 │   ├── store/              # interface.py, schema.py (tables), db.py (engine, upgrade), sql.py
@@ -567,7 +566,7 @@ backfilled the forecasts panel for every asset.
   `config/llm.yaml` wiring forward from M3), `manc forecasts --since` backfill
 - `SpotProvider` with the Yahoo adapter and the no-price-in-formula isolation test
 - Fed SEP and World Bank publishers with recorded fixtures; the pipeline runs every
-  forecast provider; EIA when the key is set up
+  forecast provider
 - the forecasts panel itself (query, route, page) belongs to M4
 
 **M3 Analysis and index** — done when: real scores are written for all seven assets.
@@ -664,7 +663,7 @@ load-bearing enough to block a start.
 - **Forecasts are extracted from headlines, not licensed.** No free structured source covers
   the FX pairs, SPX or BTC; bank calls are public only as news. An LLM extraction over feeds
   already ingested covers every asset, stores every vintage, and the few structured
-  publishers (Fed SEP, World Bank, EIA) sit behind the same Protocol. Display only until M6
+  publishers (Fed SEP, World Bank) sit behind the same Protocol. Display only until M6
   has evidence for a formula term.
 - **REST API between backend and UI.** The dashboard is one client of `manc api` and lives in
   a package that cannot import the backend. Any future UI consumes the same OpenAPI contract;
