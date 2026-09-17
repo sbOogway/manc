@@ -10,6 +10,7 @@ import respx
 
 from manc import cli, llm
 from manc.config import load_config
+from manc.forecasts import fed_sep, worldbank
 from manc.spot import yahoo
 from manc.store import db
 from manc.store.sql import SqlStore
@@ -18,12 +19,41 @@ from tests.fakes import recorded_history
 EMPTY_FEED = b'<?xml version="1.0"?><rss version="2.0"><channel><title>x</title></channel></rss>'
 NO_RECORD = {"data": None, "status": {"bCodeMessage": [{"errorMessage": "No record found."}]}}
 
+FIXTURES = Path(__file__).resolve().parent / "fixtures" / "forecasts"
+WORKBOOK_URL = "https://thedocs.worldbank.org/en/doc/x/related/CMO-April-2026-Forecasts.xlsx"
+PUBLISHER_URLS = {
+    fed_sep.CALENDAR_URL,
+    fed_sep.table_url(date(2026, 9, 16)),
+    worldbank.OUTLOOK_URL,
+    WORKBOOK_URL,
+}
+FOMC_CALENDAR = b'<a href="/monetarypolicy/fomcprojtabl20260916.htm">September 16, 2026</a>'
+OUTLOOK_PAGE = (
+    b'<a href="https://thedocs.worldbank.org/en/doc/x/related/CMO-April-2026-Forecasts.pdf">'
+)
+
 
 @pytest.fixture(autouse=True)
 def offline_sources(monkeypatch: pytest.MonkeyPatch) -> Iterator[respx.MockRouter]:
     monkeypatch.setattr(yahoo, "yfinance_history", recorded_history)  # yfinance bypasses httpx
     with respx.mock(assert_all_called=False) as router:
         router.get(host="api.nasdaq.com").mock(return_value=httpx.Response(200, json=NO_RECORD))
+        router.get(fed_sep.CALENDAR_URL).mock(
+            return_value=httpx.Response(200, content=FOMC_CALENDAR)
+        )
+        router.get(fed_sep.table_url(date(2026, 9, 16))).mock(
+            return_value=httpx.Response(
+                200, content=(FIXTURES / "fomcprojtabl20260916.html").read_bytes()
+            )
+        )
+        router.get(worldbank.OUTLOOK_URL).mock(
+            return_value=httpx.Response(200, content=OUTLOOK_PAGE)
+        )
+        router.get(WORKBOOK_URL).mock(
+            return_value=httpx.Response(
+                200, content=(FIXTURES / "CMO-April-2026-Forecasts.xlsx").read_bytes()
+            )
+        )
         router.route(name="feeds").mock(return_value=httpx.Response(200, content=EMPTY_FEED))
         yield router
 
@@ -58,7 +88,7 @@ def test_run_pulls_every_configured_feed_and_forecast_query(
     requested = {
         str(call.request.url)
         for call in offline_sources.calls
-        if call.request.url.host != "api.nasdaq.com"
+        if call.request.url.host != "api.nasdaq.com" and str(call.request.url) not in PUBLISHER_URLS
     }
     config = load_config()
     query_feeds = {query.feed.url for query in config.forecasts.queries}
@@ -158,7 +188,11 @@ def test_forecasts_backfill_pulls_only_the_query_feeds_and_stores_what_the_llm_f
     assert cli.main(["forecasts", "--since", "2026-05-01"]) == 0
 
     config = load_config()
-    requested = {str(call.request.url) for call in offline_sources.calls}
+    requested = {
+        str(call.request.url)
+        for call in offline_sources.calls
+        if str(call.request.url) not in PUBLISHER_URLS
+    }
     assert requested == {query.feed.url for query in config.forecasts.queries}
     assert len(prompts) == 1 and "Goldman Sachs raises gold" in prompts[0]
     assert "Markets wrap" not in prompts[0]
@@ -172,4 +206,17 @@ def test_forecasts_backfill_pulls_only_the_query_feeds_and_stores_what_the_llm_f
     assert forecast.horizon_date == date(2026, 12, 31)
     stored = store.news.since(datetime(2026, 1, 1, tzinfo=UTC))
     assert len(stored) == 2  # both items once, although every query answered with the same feed
-    assert capsys.readouterr().out.strip() == "news=2 forecasts: asset=1 macro=0"
+    assert len(store.forecasts_macro.latest("united_states")) == 16  # the September SEP
+    assert store.forecasts_asset.latest("XAUUSD") == [forecast]  # April's outlook predates since
+    assert capsys.readouterr().out.strip() == "news=2 forecasts: asset=1 macro=16"
+
+
+def test_run_stores_the_publishers_forecasts(migrated_db: str) -> None:
+    assert cli.main(["run", "--date", "2026-09-17"]) == 0
+    store = SqlStore(db.make_engine())
+    assert {row.metric for row in store.forecasts_macro.latest("united_states")} == {
+        "gdp",
+        "unemployment",
+        "pce",
+        "policy_rate",
+    }

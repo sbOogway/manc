@@ -5,6 +5,7 @@ under any formula without touching a provider.
 """
 
 import logging
+from collections.abc import Sequence
 from datetime import UTC, date, datetime, time, timedelta
 
 from manc.analysis.interface import Analyzer
@@ -12,6 +13,7 @@ from manc.calendar.interface import CalendarProvider
 from manc.config import Config
 from manc.forecasts.interface import ForecastProvider
 from manc.formulas.contract import IndexFormula, IndexScore
+from manc.models import ForecastAsset, ForecastMacro, Forecasts
 from manc.news.interface import NewsProvider
 from manc.scoring.adapter import build_inputs
 from manc.spot.interface import SpotProvider
@@ -27,7 +29,7 @@ def run(
     calendar: CalendarProvider,
     news: NewsProvider,
     analyzer: Analyzer,
-    forecasts: ForecastProvider,
+    forecasts: Sequence[ForecastProvider],
     spot: SpotProvider,
     store: Store,
     formula: IndexFormula,
@@ -49,9 +51,7 @@ def run(
     store.tags.add(*tags)
     log.info("analysis: %d tags", len(tags))
 
-    found = forecasts.fetch(news_since)
-    store.forecasts_asset.add(*found.asset)
-    store.forecasts_macro.add(*found.macro)
+    found = fetch_forecasts(forecasts, news_since, store)
     log.info("forecasts: %d asset, %d macro", len(found.asset), len(found.macro))
 
     closes = spot.fetch(config.assets, as_of.date())
@@ -59,6 +59,21 @@ def run(
     log.info("spot: %d closes for %s", len(closes), as_of.date())
 
     return _score_all(as_of, config, store, formula)
+
+
+def fetch_forecasts(
+    providers: Sequence[ForecastProvider], since: datetime, store: Store
+) -> Forecasts:
+    """Run every provider (extractor and publishers), store and return all they found."""
+    asset: list[ForecastAsset] = []
+    macro: list[ForecastMacro] = []
+    for provider in providers:
+        found = provider.fetch(since)
+        store.forecasts_asset.add(*found.asset)
+        store.forecasts_macro.add(*found.macro)
+        asset.extend(found.asset)
+        macro.extend(found.macro)
+    return Forecasts(asset=tuple(asset), macro=tuple(macro))
 
 
 def rescore(

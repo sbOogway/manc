@@ -52,7 +52,7 @@ def test_run_stores_inputs_and_one_score_per_asset() -> None:
         calendar=FakeCalendar([event]),
         news=FakeNews([item]),
         analyzer=FakeAnalyzer(),
-        forecasts=FakeForecasts(),
+        forecasts=[FakeForecasts()],
         spot=FakeSpot(),
         store=store,
         formula=get_formula("v1"),
@@ -76,7 +76,7 @@ def test_run_stores_the_closes_the_spot_provider_returns() -> None:
         calendar=FakeCalendar(),
         news=FakeNews(),
         analyzer=FakeAnalyzer(),
-        forecasts=FakeForecasts(),
+        forecasts=[],
         spot=FakeSpot([gold, old_gold]),
         store=store,
         formula=get_formula("v1"),
@@ -85,7 +85,7 @@ def test_run_stores_the_closes_the_spot_provider_returns() -> None:
     assert store.spot.between("XAUUSD", date.min, date.max) == [gold]
 
 
-def test_run_stores_the_forecasts_the_provider_returns() -> None:
+def test_run_stores_the_forecasts_every_provider_returns() -> None:
     store = FakeStore()
     common = dict(
         institution="goldman_sachs",
@@ -108,7 +108,10 @@ def test_run_stores_the_forecasts_the_provider_returns() -> None:
         calendar=FakeCalendar(),
         news=FakeNews(),
         analyzer=FakeAnalyzer(),
-        forecasts=FakeForecasts(Forecasts(asset=(gold, stale), macro=(rate,))),
+        forecasts=[
+            FakeForecasts(Forecasts(asset=(gold, stale))),
+            FakeForecasts(Forecasts(macro=(rate,))),
+        ],
         spot=FakeSpot(),
         store=store,
         formula=get_formula("v1"),
