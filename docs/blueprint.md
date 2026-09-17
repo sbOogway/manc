@@ -228,8 +228,8 @@ extraction from the news already ingested, and structured publishers are supplem
 | not used    | CME FedWatch (403), Bloomberg/Reuters consensus, Trading Economics (paid), bank research pages (scraping; revisit if a must-have appears) | | |
 
 The extractor runs after step 02 over the news rows stored that run: a case-insensitive regex
-prefilter (institution aliases from `config/forecasts.yaml` × `forecast|target|sees|raises|
-cuts|expects|projects`) keeps the handful of candidate items, which go to one LiteLLM call per
+prefilter (an institution alias next to one of the `signals` regexes, both lists in
+`config/forecasts.yaml`; `manc.forecasts.prefilter`) keeps the handful of candidate items, which go to one LiteLLM call per
 batch with a Pydantic schema: per item, zero or more forecasts with subject (asset symbol or
 economy+metric), value, horizon as stated, institution and a confidence. Rules pinned by tests:
 
