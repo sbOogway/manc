@@ -1,0 +1,160 @@
+[
+  {
+    "source": "fxstreet",
+    "title": "US CPI runs hot at 4.1% vs 3.6% expected",
+    "summary": "Treasury yields and the dollar jump as traders price out Fed cuts",
+    "expected": {
+      "EURUSD": -1,
+      "GBPUSD": -1,
+      "USDJPY": 1,
+      "XAUUSD": -1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "US payrolls miss badly at 20k, unemployment jumps to 4.6%",
+    "summary": "Markets now price three Fed cuts by year-end; dollar slides",
+    "expected": {
+      "EURUSD": 1,
+      "XAUUSD": 1,
+      "USDJPY": -1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "Powell says the time has come to cut rates, sees inflation on track to 2%",
+    "expected": {
+      "EURUSD": 1,
+      "XAUUSD": 1,
+      "USDJPY": -1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "ECB surprises markets with a 50bp hike, signals more to come",
+    "expected": {
+      "EURUSD": 1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "BoJ raises rates to 1%, yen surges to a six-month high",
+    "expected": {
+      "USDJPY": -1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "UK GDP unexpectedly contracts 0.3% in Q2, recession fears grow",
+    "expected": {
+      "GBPUSD": -1,
+      "BRENT": 0,
+      "BTCUSD": 0
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "OPEC+ deepens output cuts by 1m barrels a day, crude jumps 4%",
+    "expected": {
+      "BRENT": 1,
+      "USDJPY": 0
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "S&P 500 futures slide as big-bank earnings miss and guidance is cut",
+    "expected": {
+      "SPX": -1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "Nvidia beats on every line, chip stocks rally in after-hours trade",
+    "expected": {
+      "SPX": 1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "Bitcoin spot ETF inflows hit a record $2bn in a day",
+    "expected": {
+      "BTCUSD": 1
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "US CPI cools to 2.1% headline but core services inflation re-accelerates",
+    "summary": "Traders see the mixed print leaving the Fed's next move a coin flip",
+    "expected": {
+      "EURUSD": 0,
+      "XAUUSD": 0,
+      "USDJPY": 0
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "Fed cuts 25bp but a split committee leaves December wide open",
+    "summary": "Three officials wanted 50bp, two wanted no change; Powell offers no guidance",
+    "expected": {
+      "EURUSD": 0,
+      "XAUUSD": 0,
+      "USDJPY": 0
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "OPEC+ extends output cuts as the IEA trims its demand forecast again",
+    "expected": {
+      "BRENT": 0
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "Bitcoin holds near $100k as ETF inflows offset miner selling",
+    "expected": {
+      "BTCUSD": 0
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "Sterling flat as UK inflation lands exactly in line with forecasts",
+    "expected": {
+      "GBPUSD": 0
+    }
+  },
+  {
+    "source": "fxstreet",
+    "title": "Local bakery wins regional pie contest",
+    "expected": {}
+  },
+  {
+    "source": "fxstreet",
+    "title": "Goldman Sachs names new head of European equities",
+    "expected": {}
+  },
+  {
+    "source": "fxstreet",
+    "title": "ECB publishes the schedule of its 2027 monetary policy meetings",
+    "expected": {}
+  },
+  {
+    "source": "fxstreet",
+    "title": "NYSE and Nasdaq to close on Monday for the public holiday",
+    "expected": {}
+  },
+  {
+    "source": "fxstreet",
+    "title": "How to read a candlestick chart: a beginner's guide",
+    "expected": {}
+  },
+  {
+    "source": "fxstreet",
+    "title": "Bitcoin conference draws 20,000 attendees to Nashville",
+    "expected": {}
+  },
+  {
+    "source": "fxstreet",
+    "title": "Weekly markets wrap: stocks flat, dollar little changed, gold steady",
+    "expected": {}
+  }
+]
