@@ -38,11 +38,18 @@ def test_formulas_import_only_stdlib_and_themselves() -> None:
 
 
 def test_scoring_inputs_carry_no_price() -> None:
-    """Spot prices are display only (blueprint §4): no formula input may name one."""
+    """Spot prices are display only (blueprint §4): no formula input may name one.
+
+    `AssetSpec.spot` maps a source to a ticker symbol, never a value, so the asset spec is
+    checked for prices too but is allowed that one word.
+    """
     from dataclasses import fields
 
-    from manc.formulas.contract import ScoringInputs
+    from manc.formulas.contract import AssetSpec, ScoringInputs
 
     for field in fields(ScoringInputs):
         described = f"{field.name} {field.type}".lower()
         assert "price" not in described and "spot" not in described, field.name
+    for field in fields(AssetSpec):
+        described = f"{field.name} {field.type}".lower()
+        assert "price" not in described and "close" not in described, field.name
