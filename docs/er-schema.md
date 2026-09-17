@@ -88,14 +88,14 @@ erDiagram
         string asset PK "16"
         date date PK
         float close
-        string source "32, e.g. stooq"
+        string source "32, e.g. yahoo"
         datetime fetched_at
     }
 
     config_asset {
         string symbol PK "config/assets.yaml, e.g. EURUSD"
         string kind "forex | metal | commodity | equity_index | crypto"
-        string spot_symbols "per spot source, e.g. stooq: eurusd"
+        string spot "ticker per spot source, e.g. yahoo: EURUSD=X"
     }
 
     config_economy {

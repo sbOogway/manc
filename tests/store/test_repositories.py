@@ -108,7 +108,7 @@ def _forecast_macro(
 
 
 def _spot(day: date, close: float = 3650.0, asset: str = "XAUUSD") -> SpotPrice:
-    return SpotPrice(asset=asset, date=day, close=close, source="stooq")
+    return SpotPrice(asset=asset, date=day, close=close, source="yahoo")
 
 
 def test_news_round_trip_sorted_and_windowed(store: Store) -> None:

@@ -47,9 +47,7 @@ class YahooSpot:
                 frame = self.history(
                     ticker, day - timedelta(days=LOOKBACK_DAYS), day + timedelta(days=1)
                 )
-            except (
-                Exception
-            ) as error:  # yfinance raises many kinds; one ticker must not stop the rest
+            except Exception as error:  # yfinance raises many kinds; keep the other tickers
                 log.warning("spot %s (%s) skipped: %s", asset.symbol, ticker, error)
                 continue
             price = _last_close(asset.symbol, frame, day)
