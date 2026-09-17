@@ -1,0 +1,109 @@
+# Institutional forecasts (blueprint §4). Forecasts are extracted from news by an LLM; this
+# file says which institutions count, what makes a headline a forecast candidate, and where
+# to look for more of them.
+
+# Read-side default: forecasts below this confidence are stored but hidden by the API.
+min_confidence: 0.5
+
+# Macro metrics the extractor may return for an economy (forecasts_macro.metric).
+metrics: [policy_rate, cpi, gdp, unemployment]
+
+# Case-insensitive regexes: a headline is a candidate only if one of these matches, next to an
+# institution alias. Kept loose on purpose; the LLM does the real filtering.
+signals:
+  - "forecast"
+  - "target"
+  - "\\bsees?\\b"
+  - "\\bexpects?\\b"
+  - "\\bprojects?\\b|projection"
+  - "raises|lifts|hikes|boosts"
+  - "\\bcuts?\\b|lowers|trims|slashes"
+  - "outlook"
+  - "year-end|year end|by end-|12-month|12 month"
+  - "\\bcalls? for\\b"
+  - "\\bdot plot\\b|summary of economic projections|\\bSEP\\b"
+
+# Institutions: `name` is the canonical key stored in the database, `aliases` the spellings
+# that appear in headlines (matched as whole words, case-insensitively), `kind` groups them,
+# `weight` (0..1) only orders the dashboard panel. Unknown institutions are still stored
+# under their snake_cased name, so this list can grow from the data.
+institutions:
+  # sell-side banks
+  - {name: goldman_sachs,     aliases: ["Goldman Sachs", "Goldman", "GS"],                  kind: bank, weight: 1.0}
+  - {name: jpmorgan,          aliases: ["JPMorgan", "JP Morgan", "J.P. Morgan", "JPM"],     kind: bank, weight: 1.0}
+  - {name: morgan_stanley,    aliases: ["Morgan Stanley"],                                  kind: bank, weight: 1.0}
+  - {name: citi,              aliases: ["Citi", "Citigroup", "Citibank"],                   kind: bank, weight: 0.9}
+  - {name: bank_of_america,   aliases: ["Bank of America", "BofA", "BoFA"],                 kind: bank, weight: 0.9}
+  - {name: ubs,               aliases: ["UBS"],                                             kind: bank, weight: 0.9}
+  - {name: hsbc,              aliases: ["HSBC"],                                            kind: bank, weight: 0.8}
+  - {name: deutsche_bank,     aliases: ["Deutsche Bank", "Deutsche"],                       kind: bank, weight: 0.8}
+  - {name: barclays,          aliases: ["Barclays"],                                        kind: bank, weight: 0.8}
+  - {name: ing,               aliases: ["ING", "ING Think"],                                kind: bank, weight: 0.8}
+  - {name: mufg,              aliases: ["MUFG"],                                            kind: bank, weight: 0.7}
+  - {name: nomura,            aliases: ["Nomura"],                                          kind: bank, weight: 0.7}
+  - {name: societe_generale,  aliases: ["Societe Generale", "Société Générale", "SocGen"],  kind: bank, weight: 0.7}
+  - {name: bnp_paribas,       aliases: ["BNP Paribas", "BNP"],                              kind: bank, weight: 0.7}
+  - {name: wells_fargo,       aliases: ["Wells Fargo"],                                     kind: bank, weight: 0.7}
+  - {name: commerzbank,       aliases: ["Commerzbank"],                                     kind: bank, weight: 0.6}
+  - {name: rbc,               aliases: ["RBC", "RBC Capital"],                              kind: bank, weight: 0.6}
+  - {name: scotiabank,        aliases: ["Scotiabank", "Scotia"],                            kind: bank, weight: 0.6}
+  - {name: anz,               aliases: ["ANZ"],                                             kind: bank, weight: 0.6}
+  - {name: westpac,           aliases: ["Westpac"],                                         kind: bank, weight: 0.6}
+  - {name: danske_bank,       aliases: ["Danske Bank", "Danske"],                           kind: bank, weight: 0.6}
+  - {name: nordea,            aliases: ["Nordea"],                                          kind: bank, weight: 0.6}
+  - {name: credit_agricole,   aliases: ["Credit Agricole", "Crédit Agricole"],              kind: bank, weight: 0.6}
+  - {name: macquarie,         aliases: ["Macquarie"],                                       kind: bank, weight: 0.6}
+  # official bodies
+  - {name: fed,               aliases: ["Federal Reserve", "Fed", "FOMC"],                  kind: official, weight: 1.0}
+  - {name: ecb,               aliases: ["European Central Bank", "ECB"],                    kind: official, weight: 1.0}
+  - {name: boe,               aliases: ["Bank of England", "BoE"],                          kind: official, weight: 1.0}
+  - {name: boj,               aliases: ["Bank of Japan", "BoJ"],                            kind: official, weight: 1.0}
+  - {name: imf,               aliases: ["IMF", "International Monetary Fund"],              kind: official, weight: 0.9}
+  - {name: oecd,              aliases: ["OECD"],                                            kind: official, weight: 0.9}
+  - {name: world_bank,        aliases: ["World Bank"],                                      kind: official, weight: 0.9}
+  - {name: eia,               aliases: ["EIA", "Energy Information Administration"],       kind: official, weight: 1.0}
+  - {name: iea,               aliases: ["IEA", "International Energy Agency"],              kind: official, weight: 0.9}
+  - {name: opec,              aliases: ["OPEC", "OPEC+"],                                   kind: official, weight: 0.9}
+  - {name: cbo,               aliases: ["CBO", "Congressional Budget Office"],              kind: official, weight: 0.7}
+  # surveys and consensus
+  - {name: reuters_poll,      aliases: ["Reuters poll", "Reuters survey"],                  kind: survey, weight: 1.0}
+  - {name: bloomberg_survey,  aliases: ["Bloomberg survey", "Bloomberg poll", "Bloomberg consensus"], kind: survey, weight: 1.0}
+  - {name: philly_fed_spf,    aliases: ["Survey of Professional Forecasters", "SPF"],       kind: survey, weight: 0.9}
+  - {name: lbma_survey,       aliases: ["LBMA", "LBMA survey"],                             kind: survey, weight: 0.8}
+  - {name: cme_fedwatch,      aliases: ["FedWatch", "CME FedWatch"],                        kind: survey, weight: 0.8}
+  # specialists
+  - {name: standard_chartered, aliases: ["Standard Chartered", "StanChart"],                kind: specialist, weight: 0.8}
+  - {name: bernstein,         aliases: ["Bernstein"],                                       kind: specialist, weight: 0.7}
+  - {name: world_gold_council, aliases: ["World Gold Council", "WGC"],                      kind: specialist, weight: 0.8}
+  - {name: metals_focus,      aliases: ["Metals Focus"],                                    kind: specialist, weight: 0.7}
+  - {name: capital_economics, aliases: ["Capital Economics"],                               kind: specialist, weight: 0.7}
+  - {name: oxford_economics,  aliases: ["Oxford Economics"],                                kind: specialist, weight: 0.7}
+  - {name: rystad,            aliases: ["Rystad", "Rystad Energy"],                         kind: specialist, weight: 0.7}
+  - {name: fundstrat,         aliases: ["Fundstrat", "Tom Lee"],                            kind: specialist, weight: 0.6}
+  - {name: ark_invest,        aliases: ["ARK Invest", "Cathie Wood"],                       kind: specialist, weight: 0.5}
+
+# One Google News RSS query per asset, fetched with the other news feeds at low weight so the
+# tagger barely hears them, but the extractor sees the forecast headlines. `manc forecasts
+# --since` uses only these for the backfill: each query returns ~100 items spanning months.
+queries:
+  - asset: EURUSD
+    url: "https://news.google.com/rss/search?q=%22EUR%2FUSD%22+(forecast+OR+target)+(bank+OR+analysts)&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: GBPUSD
+    url: "https://news.google.com/rss/search?q=%22GBP%2FUSD%22+OR+%22pound%22+(forecast+OR+target)+(bank+OR+analysts)&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: USDJPY
+    url: "https://news.google.com/rss/search?q=%22USD%2FJPY%22+OR+%22yen%22+(forecast+OR+target)+(bank+OR+analysts)&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: XAUUSD
+    url: "https://news.google.com/rss/search?q=gold+price+(forecast+OR+target)+(bank+OR+analysts)&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: WTI
+    url: "https://news.google.com/rss/search?q=(WTI+OR+%22oil+price%22)+(forecast+OR+target)+(bank+OR+EIA+OR+analysts)&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: SPX
+    url: "https://news.google.com/rss/search?q=%22S%26P+500%22+(%22year-end+target%22+OR+forecast)+strategist&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: BTCUSD
+    url: "https://news.google.com/rss/search?q=bitcoin+price+(forecast+OR+target)+(bank+OR+analysts)&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3

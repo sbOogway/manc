@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from manc.config import load_config
+from manc.config import FORECASTER_KINDS, load_config
 from manc.formulas.registry import get_formula
 
 REPO_CONFIG = Path(__file__).resolve().parents[1] / "config"
@@ -98,3 +98,55 @@ def test_calendar_unknown_category_is_rejected(tmp_path: Path) -> None:
     calendar = {"categories": [{"pattern": "CPI", "category": "prices"}]}
     with pytest.raises(ValueError, match="category"):
         load_config(_write(tmp_path, {"calendar": calendar}))
+
+
+def test_forecasts_config_loads() -> None:
+    config = load_config(REPO_CONFIG)
+    forecasts = config.forecasts
+    names = [institution.name for institution in forecasts.institutions]
+    assert len(names) == len(set(names))
+    assert all(institution.aliases for institution in forecasts.institutions)
+    assert all(institution.kind in FORECASTER_KINDS for institution in forecasts.institutions)
+    assert all(0.0 <= institution.weight <= 1.0 for institution in forecasts.institutions)
+    assert 0.0 <= forecasts.min_confidence <= 1.0
+    assert set(forecasts.metrics) >= {"policy_rate", "cpi", "gdp", "unemployment"}
+    assert {query.asset for query in forecasts.queries} == {asset.symbol for asset in config.assets}
+    assert all(query.feed.url.startswith("https://") for query in forecasts.queries)
+    assert forecasts.signals  # at least one compiled regex
+
+
+def test_forecasts_canonical_resolves_aliases_case_insensitively() -> None:
+    forecasts = load_config(REPO_CONFIG).forecasts
+    assert forecasts.canonical("Goldman Sachs") == "goldman_sachs"
+    assert forecasts.canonical("GOLDMAN") == "goldman_sachs"
+    assert forecasts.canonical("goldman_sachs") == "goldman_sachs"
+    assert forecasts.canonical("Rabobank Research") == "rabobank_research"
+
+
+@pytest.mark.parametrize(
+    ("override", "message"),
+    [
+        (
+            {"institutions": [{"name": "x", "aliases": ["X"], "kind": "hedge_fund", "weight": 1}]},
+            "kind",
+        ),
+        (
+            {"institutions": [{"name": "x", "aliases": ["X"], "kind": "bank", "weight": 2}]},
+            "weight",
+        ),
+        ({"min_confidence": 1.5}, "min_confidence"),
+        ({"queries": [{"asset": "NOPE", "url": "https://x/rss", "weight": 0.3}]}, "asset"),
+    ],
+)
+def test_bad_forecasts_config_is_rejected(tmp_path: Path, override: dict, message: str) -> None:
+    forecasts = yaml.safe_load((REPO_CONFIG / "forecasts.yaml").read_text())
+    forecasts.update(override)
+    with pytest.raises(ValueError, match=message):
+        load_config(_write(tmp_path, {"forecasts": forecasts}))
+
+
+def test_missing_forecasts_file_names_it(tmp_path: Path) -> None:
+    _write(tmp_path, {})
+    (tmp_path / "forecasts.yaml").unlink()
+    with pytest.raises(FileNotFoundError, match=r"forecasts\.yaml"):
+        load_config(tmp_path)
