@@ -39,7 +39,7 @@ def test_run_prints_one_line_per_asset(migrated_db: str, capsys: pytest.CaptureF
     assert lines[0].split() == ["2026-09-15", "EURUSD", "50.0", "v1", "news=0", "events=0"]
 
 
-def test_run_pulls_every_configured_feed(
+def test_run_pulls_every_configured_feed_and_forecast_query(
     migrated_db: str, offline_sources: respx.MockRouter
 ) -> None:
     assert cli.main(["run"]) == 0
@@ -48,7 +48,9 @@ def test_run_pulls_every_configured_feed(
         for call in offline_sources.calls
         if call.request.url.host != "api.nasdaq.com"
     }
-    assert requested == {feed.url for feed in load_config().feeds}
+    config = load_config()
+    query_feeds = {query.feed.url for query in config.forecasts.queries}
+    assert requested == {feed.url for feed in config.feeds} | query_feeds
 
 
 def test_run_pulls_every_day_of_the_calendar_window(

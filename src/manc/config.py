@@ -1,8 +1,9 @@
-"""Typed configuration loaded from the five YAML files in config/ (blueprint section 8)."""
+"""Typed configuration loaded from the YAML files in config/ (blueprint section 8)."""
 
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ DEFAULT_CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
 _VALID_SIGNS = {-1, 0, 1}
 _VALID_CATEGORIES = {"inflation", "employment", "growth", "rates"}
 _VALID_IMPORTANCE = {1, 2, 3}
+FORECASTER_KINDS = ("bank", "official", "survey", "specialist")
 
 
 @dataclass(frozen=True)
@@ -62,22 +64,77 @@ class CalendarConfig:
 
 
 @dataclass(frozen=True)
+class InstitutionSpec:
+    name: str  # canonical, stored in the database: "goldman_sachs"
+    aliases: tuple[str, ...]  # spellings seen in headlines
+    kind: str  # bank | official | survey | specialist
+    weight: float  # 0..1, orders the dashboard panel
+
+
+@dataclass(frozen=True)
+class ForecastQuery:
+    asset: str
+    feed: FeedSpec  # a Google News RSS query, fetched like any other feed
+
+
+@dataclass(frozen=True)
+class ForecastsConfig:
+    institutions: tuple[InstitutionSpec, ...]
+    signals: tuple[re.Pattern[str], ...]  # what makes a headline sound like a forecast
+    metrics: tuple[str, ...]  # macro metrics the extractor may return
+    queries: tuple[ForecastQuery, ...]
+    min_confidence: float
+
+    @property
+    def query_feeds(self) -> tuple[FeedSpec, ...]:
+        return tuple(query.feed for query in self.queries)
+
+    @cached_property
+    def alias_patterns(self) -> tuple[tuple[re.Pattern[str], str], ...]:
+        """(whole-word, case-insensitive alias regex, canonical name), longest alias first."""
+        pairs = [
+            (alias, institution.name)
+            for institution in self.institutions
+            for alias in (institution.name, *institution.aliases)
+        ]
+        pairs.sort(key=lambda pair: -len(pair[0]))
+        return tuple(
+            (re.compile(rf"(?<!\w){re.escape(alias)}(?!\w)", re.IGNORECASE), name)
+            for alias, name in pairs
+        )
+
+    def canonical(self, name: str) -> str:
+        """Alias → canonical name; anything unknown becomes its snake_case form."""
+        wanted = name.strip().lower()
+        for institution in self.institutions:
+            if wanted in {alias.lower() for alias in (institution.name, *institution.aliases)}:
+                return institution.name
+        return re.sub(r"[^a-z0-9]+", "_", wanted).strip("_")
+
+
+@dataclass(frozen=True)
 class Config:
     assets: tuple[AssetSpec, ...]
     feeds: tuple[FeedSpec, ...]
     scoring: ScoringConfig
     llm: LlmConfig
     calendar: CalendarConfig
+    forecasts: ForecastsConfig
 
 
 def load_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> Config:
     """One YAML file per Config field, each parsed by the loader registered in _SECTIONS."""
-    return Config(
+    config = Config(
         **{
             section: load(_read(config_dir / f"{section}.yaml"))
             for section, load in _SECTIONS.items()
         }
     )
+    symbols = {asset.symbol for asset in config.assets}
+    for query in config.forecasts.queries:
+        if query.asset not in symbols:
+            raise ValueError(f"forecasts: query for unknown asset {query.asset!r}")
+    return config
 
 
 def _read(path: Path) -> dict[str, Any]:
@@ -110,14 +167,22 @@ def _load_assets(raw: dict[str, Any]) -> tuple[AssetSpec, ...]:
     return tuple(specs)
 
 
+def _unit_interval(value: Any, what: str) -> float:
+    number = float(value)
+    if not 0.0 <= number <= 1.0:
+        raise ValueError(f"{what} must be within 0..1, got {number}")
+    return number
+
+
 def _load_feeds(raw: dict[str, Any]) -> tuple[FeedSpec, ...]:
-    feeds = []
-    for entry in raw.get("feeds", []):
-        weight = float(entry["weight"])
-        if not 0.0 <= weight <= 1.0:
-            raise ValueError(f"feed {entry['name']}: weight must be within 0..1, got {weight}")
-        feeds.append(FeedSpec(name=entry["name"], url=entry["url"], weight=weight))
-    return tuple(feeds)
+    return tuple(
+        FeedSpec(
+            name=entry["name"],
+            url=entry["url"],
+            weight=_unit_interval(entry["weight"], f"feed {entry['name']}: weight"),
+        )
+        for entry in raw.get("feeds", [])
+    )
 
 
 def _load_scoring(raw: dict[str, Any]) -> ScoringConfig:
@@ -163,10 +228,46 @@ def _load_calendar(raw: dict[str, Any]) -> CalendarConfig:
     )
 
 
+def _load_forecasts(raw: dict[str, Any]) -> ForecastsConfig:
+    institutions = []
+    for entry in raw.get("institutions") or []:
+        if entry["kind"] not in FORECASTER_KINDS:
+            raise ValueError(
+                f"forecasts: institution {entry['name']} has unknown kind {entry['kind']!r}"
+            )
+        institutions.append(
+            InstitutionSpec(
+                name=entry["name"],
+                aliases=tuple(entry.get("aliases") or ()),
+                kind=entry["kind"],
+                weight=_unit_interval(entry["weight"], f"forecasts: {entry['name']} weight"),
+            )
+        )
+    queries = tuple(
+        ForecastQuery(
+            asset=entry["asset"],
+            feed=FeedSpec(
+                name=f"forecasts_{entry['asset'].lower()}",
+                url=entry["url"],
+                weight=_unit_interval(entry["weight"], f"forecasts: {entry['asset']} query weight"),
+            ),
+        )
+        for entry in raw.get("queries") or []
+    )
+    return ForecastsConfig(
+        institutions=tuple(institutions),
+        signals=tuple(re.compile(pattern, re.IGNORECASE) for pattern in raw.get("signals") or []),
+        metrics=tuple(raw.get("metrics") or ()),
+        queries=queries,
+        min_confidence=_unit_interval(raw.get("min_confidence", 0.5), "forecasts: min_confidence"),
+    )
+
+
 _SECTIONS: dict[str, Callable[[dict[str, Any]], Any]] = {
     "assets": _load_assets,
     "feeds": _load_feeds,
     "scoring": _load_scoring,
     "llm": _load_llm,
     "calendar": _load_calendar,
+    "forecasts": _load_forecasts,
 }
