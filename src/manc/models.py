@@ -5,12 +5,24 @@ formula package stays free of app imports; they are re-exported here for conveni
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from hashlib import sha1
 
 from manc.formulas.contract import AssetSpec, IndexScore
 
-__all__ = ["AssetSpec", "CalendarEvent", "IndexScore", "NewsItem", "NewsTag"]
+__all__ = [
+    "AssetSpec",
+    "CalendarEvent",
+    "ForecastAsset",
+    "ForecastMacro",
+    "Forecasts",
+    "IndexScore",
+    "NewsItem",
+    "NewsTag",
+    "SpotPrice",
+]
+
+SOURCE_KINDS = ("extracted", "structured")
 
 
 @dataclass(frozen=True)
@@ -65,3 +77,136 @@ class NewsTag:
             raise ValueError(f"direction must be -1, 0 or 1, got {self.direction}")
         if not 0.0 <= self.confidence <= 1.0:
             raise ValueError(f"confidence must be within 0..1, got {self.confidence}")
+
+
+def _forecast_id(institution: str, subject: str, horizon_date: date, value: float) -> str:
+    """One id per vintage: re-reports of the same call collide, a new value is a new row."""
+    return sha1(
+        f"{institution}|{subject}|{horizon_date.isoformat()}|{value:.6g}".encode()
+    ).hexdigest()
+
+
+def _check_forecast(confidence: float, source_kind: str) -> None:
+    if not 0.0 <= confidence <= 1.0:
+        raise ValueError(f"confidence must be within 0..1, got {confidence}")
+    if source_kind not in SOURCE_KINDS:
+        raise ValueError(f"source_kind must be one of {SOURCE_KINDS}, got {source_kind!r}")
+
+
+@dataclass(frozen=True)
+class ForecastAsset:
+    """An institution's price target for one asset, as first sighted (blueprint section 4)."""
+
+    id: str  # sha1(institution | asset | horizon_date | value)
+    institution: str  # canonical name from config/forecasts.yaml, e.g. "goldman_sachs"
+    asset: str  # "EURUSD"
+    horizon_date: date  # end of the stated period, normalised from published_at
+    horizon_label: str  # as stated: "12 months", "year-end", "Q4 2026"
+    value: float  # price level in the asset's quote unit
+    published_at: datetime  # earliest sighting
+    source_url: str
+    source_kind: str  # "extracted" (from news) | "structured" (publisher data)
+    confidence: float  # 0..1; 1.0 for structured sources
+    model: str  # LLM that extracted it, "" for structured sources
+
+    def __post_init__(self) -> None:
+        _check_forecast(self.confidence, self.source_kind)
+
+    @classmethod
+    def new(
+        cls,
+        *,
+        institution: str,
+        asset: str,
+        horizon_date: date,
+        horizon_label: str,
+        value: float,
+        published_at: datetime,
+        source_url: str,
+        source_kind: str,
+        confidence: float,
+        model: str = "",
+    ) -> "ForecastAsset":
+        return cls(
+            id=_forecast_id(institution, asset, horizon_date, value),
+            institution=institution,
+            asset=asset,
+            horizon_date=horizon_date,
+            horizon_label=horizon_label,
+            value=value,
+            published_at=published_at,
+            source_url=source_url,
+            source_kind=source_kind,
+            confidence=confidence,
+            model=model,
+        )
+
+
+@dataclass(frozen=True)
+class ForecastMacro:
+    """Like ForecastAsset, but about an economy: a policy rate, CPI, GDP or unemployment."""
+
+    id: str  # sha1(institution | economy:metric | horizon_date | value)
+    institution: str
+    economy: str  # "united_states"
+    metric: str  # policy_rate | cpi | gdp | unemployment
+    horizon_date: date
+    horizon_label: str
+    value: float
+    published_at: datetime
+    source_url: str
+    source_kind: str
+    confidence: float
+    model: str
+
+    def __post_init__(self) -> None:
+        _check_forecast(self.confidence, self.source_kind)
+
+    @classmethod
+    def new(
+        cls,
+        *,
+        institution: str,
+        economy: str,
+        metric: str,
+        horizon_date: date,
+        horizon_label: str,
+        value: float,
+        published_at: datetime,
+        source_url: str,
+        source_kind: str,
+        confidence: float,
+        model: str = "",
+    ) -> "ForecastMacro":
+        return cls(
+            id=_forecast_id(institution, f"{economy}:{metric}", horizon_date, value),
+            institution=institution,
+            economy=economy,
+            metric=metric,
+            horizon_date=horizon_date,
+            horizon_label=horizon_label,
+            value=value,
+            published_at=published_at,
+            source_url=source_url,
+            source_kind=source_kind,
+            confidence=confidence,
+            model=model,
+        )
+
+
+@dataclass(frozen=True)
+class Forecasts:
+    """What one ForecastProvider.fetch returns: both kinds at once."""
+
+    asset: tuple[ForecastAsset, ...] = ()
+    macro: tuple[ForecastMacro, ...] = ()
+
+
+@dataclass(frozen=True)
+class SpotPrice:
+    """One daily close, for display next to forecasts only; never a formula input."""
+
+    asset: str
+    date: date
+    close: float
+    source: str  # "stooq"

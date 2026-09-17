@@ -4,17 +4,22 @@ from datetime import UTC, date, datetime, timedelta
 
 from manc.analysis.interface import Analyzer
 from manc.calendar.interface import CalendarProvider
+from manc.forecasts.interface import ForecastProvider
 from manc.formulas.contract import AssetSpec, IndexScore
-from manc.models import CalendarEvent, NewsItem, NewsTag
+from manc.models import CalendarEvent, ForecastAsset, Forecasts, NewsItem, NewsTag, SpotPrice
 from manc.news.interface import NewsProvider
+from manc.spot.interface import SpotProvider
 from manc.store.interface import (
     EventRepository,
+    ForecastAssetRepository,
+    ForecastMacroRepository,
     NewsRepository,
     ScoreRepository,
+    SpotRepository,
     Store,
     TagRepository,
 )
-from tests.fakes import FakeAnalyzer, FakeCalendar, FakeNews, FakeStore
+from tests.fakes import FakeAnalyzer, FakeCalendar, FakeForecasts, FakeNews, FakeSpot, FakeStore
 
 NOW = datetime(2026, 9, 15, 8, 0, tzinfo=UTC)
 ASSET = AssetSpec(symbol="EURUSD", kind="forex", economies=("euro_area", "united_states"))
@@ -24,12 +29,52 @@ def test_fakes_satisfy_protocols() -> None:
     assert isinstance(FakeCalendar(), CalendarProvider)
     assert isinstance(FakeNews(), NewsProvider)
     assert isinstance(FakeAnalyzer(), Analyzer)
+    assert isinstance(FakeForecasts(), ForecastProvider)
+    assert isinstance(FakeSpot(), SpotProvider)
     store = FakeStore()
     assert isinstance(store, Store)
     assert isinstance(store.news, NewsRepository)
     assert isinstance(store.tags, TagRepository)
     assert isinstance(store.events, EventRepository)
     assert isinstance(store.scores, ScoreRepository)
+    assert isinstance(store.forecasts_asset, ForecastAssetRepository)
+    assert isinstance(store.forecasts_macro, ForecastMacroRepository)
+    assert isinstance(store.spot, SpotRepository)
+
+
+def test_fake_forecasts_and_spot_replay_by_window_and_asset() -> None:
+    old = ForecastAsset.new(
+        institution="ubs",
+        asset="XAUUSD",
+        horizon_date=date(2026, 12, 31),
+        horizon_label="year-end",
+        value=3900.0,
+        published_at=NOW - timedelta(days=10),
+        source_url="u",
+        source_kind="extracted",
+        confidence=0.7,
+    )
+    recent = ForecastAsset.new(
+        institution="goldman_sachs",
+        asset="XAUUSD",
+        horizon_date=date(2026, 12, 31),
+        horizon_label="year-end",
+        value=4000.0,
+        published_at=NOW,
+        source_url="u",
+        source_kind="extracted",
+        confidence=0.7,
+    )
+    fetched = FakeForecasts(Forecasts(asset=(old, recent))).fetch(NOW - timedelta(days=1))
+    assert fetched == Forecasts(asset=(recent,))
+    assert FakeForecasts().fetch(NOW) == Forecasts()
+
+    gold = SpotPrice(asset="XAUUSD", date=NOW.date(), close=3650.0, source="stooq")
+    euro = SpotPrice(asset="EURUSD", date=NOW.date(), close=1.17, source="stooq")
+    yesterday = SpotPrice(
+        asset="EURUSD", date=NOW.date() - timedelta(days=1), close=1.16, source="stooq"
+    )
+    assert FakeSpot([gold, euro, yesterday]).fetch([ASSET], NOW.date()) == [euro]
 
 
 def test_fake_analyzer_tags_every_item_for_every_asset_neutral() -> None:

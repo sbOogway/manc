@@ -35,12 +35,14 @@ stays interpretable.
 
 ## 2 · Daily pipeline
 
-One command, five steps, each behind an interface so it can be swapped or faked in tests.
+One command, seven steps, each behind an interface so it can be swapped or faked in tests.
 
 | Step | Name           | What                                                        | Module          |
 |------|----------------|-------------------------------------------------------------|-----------------|
 | 01   | Fetch calendar | Next 30 days of events, plus last 7 days with actuals.      | `calendar/`     |
 | 02   | Fetch news     | Pull every RSS feed, dedupe by URL, keep last 72h.          | `news/`         |
+| 02b  | Fetch forecasts| Institutional forecasts: extracted from the news just stored, plus structured publishers. | `forecasts/` |
+| 02c  | Fetch spot     | One daily close per asset, for display next to forecasts only. | `spot/`     |
 | 03   | Analyse        | Tag headlines to assets with a direction.                   | `analysis/`     |
 | 04   | Score          | Hand the inputs to the configured formula: 0–100 out. No I/O.| `formulas/`     |
 | 05   | Store + report | Write score, components and markdown report to SQLite.      | `store/` `report/` |
@@ -53,7 +55,9 @@ orchestrator.
 ```
 pipeline (cron) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── Dash UI
    manc run                    manc api                  manc ui
-``` Because every input to step 04 is
+```
+
+Because every input to step 04 is
 stored, `manc rescore --formula v2` can replay history under a new formula without refetching
 anything.
 
@@ -68,6 +72,8 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 |------------|---------------------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------|
 | `calendar` | `CalendarProvider.fetch(start, end) -> list[CalendarEvent]`               | Nasdaq's public calendar endpoint over httpx (free, no key)             | parsing, category/importance/country maps, date offset, day windows  |
 | `news`     | `NewsProvider.fetch(since) -> list[NewsItem]`                             | feedparser over `config/feeds.yaml`                                     | parsing, dedupe, per-feed failure isolation                          |
+| `forecasts`| `ForecastProvider.fetch(since) -> Forecasts` (asset and macro lists)        | `extractor.py`: LiteLLM over stored news rows that pass a regex prefilter; `fed_sep.py`, `worldbank.py`, `eia.py` for publishers with structured data (§4) | extractor: prefilter, batching, schema validation, horizon normalisation, dedupe; publishers: recorded fixtures |
+| `spot`     | `SpotProvider.fetch(assets, date) -> list[SpotPrice]`                      | `stooq.py` daily close CSV; the symbol per source sits in `config/assets.yaml`, so another source is a new adapter plus a config edit | parsing, missing symbol, one asset failing does not stop the rest; isolation test that no formula input carries a price |
 | `analysis` | `Analyzer.tag(items, assets) -> list[NewsTag]`                            | LiteLLM `completion()` with a Pydantic response schema, model from config | fake analyzer; batching; schema validation                           |
 | `formulas` | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | plain Python classes, one per version, standard library only (§5) | property tests on every formula; an isolation test that the package imports nothing else from `manc` |
 | `scoring`  | `build_inputs(store, asset, as_of, params) -> ScoringInputs` | thin adapter from the store to the formula contract | adapter builds inputs correctly |
@@ -112,48 +118,12 @@ configuration runs on every commit and blocks it if anything fails.
 
 ### Core dataclasses
 
-```python
-@dataclass(frozen=True)
-class CalendarEvent:
-    id: str  # provider id or hash(date, country, event)
-    date: datetime  # UTC
-    country: str  # "united_states"
-    event: str  # "Consumer Price Index (YoY)"
-    category: str  # inflation | employment | growth | rates | ...
-    importance: int  # 1 low, 2 medium, 3 high
-    consensus: float | None
-    previous: float | None
-    actual: float | None
-
-
-@dataclass(frozen=True)
-class NewsItem:
-    id: str  # sha1(url)
-    source: str  # "reuters", "cnbc", "ecb"
-    title: str
-    url: str
-    published_at: datetime
-    summary: str  # feed summary, HTML stripped
-
-
-@dataclass(frozen=True)
-class NewsTag:
-    news_id: str
-    asset: str
-    direction: int  # -1 bearish, 0 neutral/irrelevant, +1 bullish
-    confidence: float  # 0..1
-
-
-@dataclass(frozen=True)
-class IndexScore:  # defined in manc.formulas.contract, re-exported here
-    asset: str
-    date: date
-    score: float  # 0..100
-    formula: str  # "v1"
-    components: dict[str, float]  # whatever the formula wants to expose, e.g. N, S, R
-    n_news: int
-    n_events: int
-```
+The value objects are the code: `src/manc/models.py` holds `CalendarEvent`, `NewsItem`,
+`NewsTag`, `ForecastAsset`, `ForecastMacro`, `Forecasts` and `SpotPrice`; the score-side types
+(`AssetSpec`, `ScoringInputs`, `IndexScore`) live in `src/manc/formulas/contract.py` so the
+formula package stays free of app imports, and `models.py` re-exports them. Every one is a
+frozen dataclass; ids are content hashes (`NewsItem.id = sha1(url)`, forecast ids are the
+vintage key, §4) so re-fetching is idempotent.
 
 ## 4 · Data sources
 
@@ -218,24 +188,82 @@ Keyword matching is brittle ("Fed" vs "fed up"), so tagging is one LLM call per 
 headlines with a structured response: for each headline, the list of affected assets with a
 direction and confidence. At ~300 headlines a day this is a handful of calls.
 
-All model calls go through LiteLLM's `completion()`, so the model is a single string in
-`config/llm.yaml` and switching providers is a config edit plus the provider's API-key env var:
+All model calls go through LiteLLM's `completion()`, so the model is a single
+provider-prefixed string in `config/llm.yaml` (`anthropic/...`, `openai/...`, `ollama/...`,
+`openrouter/<vendor>/<model>`) and switching providers is a config edit plus the provider's
+API-key env var.
 
-```yaml
-llm:
-  model: anthropic/claude-opus-5     # default
-  # model: openai/gpt-5
-  # model: ollama/llama3.3           # local, no key
-  # model: openrouter/deepseek/deepseek-chat
-  fallback: null                     # optional second model tried on error
-  temperature: 0
-```
+The default is free by design: `openrouter/free` picks a free model per request among those
+that support the parameters sent (it honours `response_format`), so the model behind two runs
+differs. That is why every tag and every extracted forecast stores the `model` string, and
+why the free tier's caps (about 20 requests a minute and a small daily allowance, raised by
+buying credits once) are fine for the daily run but slow a backfill; LiteLLM's retries and
+the configured `fallback` absorb 429s. Switching to a paid model is one config edit.
 
 The response schema is a Pydantic model passed as `response_format`; LiteLLM translates it to
 each provider's native structured-output mechanism (Anthropic, OpenAI, Ollama, Groq, Gemini,
 Bedrock all support it) and `litellm.enable_json_schema_validation = True` validates
 client-side for the ones that don't. Provider-specific parameters never appear in our code. A
 lexicon-based `Analyzer` stays available as an offline fallback and as the test double.
+
+### Institutional forecasts → extracted from news, plus a few publishers
+
+The dashboard shows, per asset, what major institutions expect: price targets (EURUSD 1.18
+at year-end, gold 4,000 in 12 months), policy-rate paths and macro projections (US CPI, GDP,
+unemployment) for the tracked economies. Forecasts are **display only**: they are stored with
+every vintage so a later formula version can be evaluated against them (§9, M6), but v1 does
+not read them.
+
+Probed on 2026-09-17: no institution publishes a free, machine-readable price forecast for
+the FX pairs, SPX or BTC. Bank calls reach the public as headlines ("ING lifts year-end
+EUR/USD forecast to 1.18", "Goldman raises gold target"), so the primary channel is
+extraction from the news already ingested, and structured publishers are supplements:
+
+| Channel     | Source                                                     | Covers                          | Cadence     |
+|-------------|------------------------------------------------------------|---------------------------------|-------------|
+| extracted   | every feed in `feeds.yaml`, plus one Google News RSS query per asset (`EUR/USD forecast (Goldman OR ING OR ...)`) at low news weight | all assets, rate calls | daily; the queries return ~100 items spanning months, used once for a backfill |
+| structured  | Fed SEP (median dots: policy rate, PCE, GDP, unemployment) | `united_states` macro           | quarterly   |
+| structured  | World Bank Commodity Markets Outlook (xlsx)                | XAUUSD, WTI annual averages     | semi-annual |
+| structured  | EIA STEO API (free key, `EIA_API_KEY`)                     | WTI monthly path                | monthly; deferred until the key is set up |
+| not used    | CME FedWatch (403), Bloomberg/Reuters consensus, Trading Economics (paid), bank research pages (scraping; revisit if a must-have appears) | | |
+
+The extractor runs after step 02 over the news rows stored that run: a case-insensitive regex
+prefilter (institution aliases from `config/forecasts.yaml` × `forecast|target|sees|raises|
+cuts|expects|projects`) keeps the handful of candidate items, which go to one LiteLLM call per
+batch with a Pydantic schema: per item, zero or more forecasts with subject (asset symbol or
+economy+metric), value, horizon as stated, institution and a confidence. Rules pinned by tests:
+
+- **horizon normalisation**: "12 months" → published_at + 12 months; "year-end" → 31 Dec of
+  the publication year; "Q4 2026" → 2026-12-31; "2027 average" → 2027-12-31; unparseable
+  → item dropped with a warning. The label is kept verbatim;
+- **dedupe by vintage**: the id is `sha1(institution | subject | horizon_date | value)`, so five
+  outlets reporting the same call collapse into one row keyed to the earliest `published_at`
+  and its URL; a changed value is a new row, which is how revisions ("raised from 3,700 to
+  4,000") stay visible;
+- **nothing is dropped on confidence**: every extraction is stored with its confidence, and
+  the read side filters with `min_confidence` (default in `config/forecasts.yaml`), so the
+  prompt can be tuned against what was actually extracted;
+- **institutions are canonical**: `config/forecasts.yaml` lists each institution with its
+  aliases (`Goldman`, `GS`, `Goldman Sachs`), a kind (`bank | official | survey | specialist`)
+  and a weight used only for ordering in the dashboard. Initial list: Goldman Sachs, JPMorgan,
+  Morgan Stanley, Citi, Bank of America, UBS, HSBC, Deutsche Bank, Barclays, ING, MUFG,
+  Nomura; Fed, ECB, BoE, BoJ, IMF, OECD, World Bank, EIA, IEA, OPEC; Reuters poll, Bloomberg
+  consensus, Philly Fed and ECB SPF, LBMA survey; Standard Chartered and Bernstein (crypto),
+  World Gold Council. A forecast from an institution not on the list is stored under the name
+  the model returned, snake_cased, so nothing is lost and the list can grow from the data.
+
+`manc forecasts --since 2026-01-01` runs the extractor once over the long window of the
+per-asset queries to backfill; the daily run then uses the normal 72h news window.
+
+### Spot price → display only
+
+A target without a spot is unreadable ("gold 4,000" versus what?), so one daily close per
+asset is stored in `spot_prices` and shown next to forecasts as a percentage distance. It is
+the only price in the system and it never reaches a formula: `ScoringInputs` has no price
+field and `tests/formulas/test_isolation.py` keeps it that way. Behind `SpotProvider` the
+first adapter is Stooq's daily CSV (no key, one GET per symbol); the per-source symbol lives in
+`config/assets.yaml` (`spot: {stooq: eurusd}`), so switching to Yahoo or Alpha Vantage is a
+new adapter and a config edit. A symbol that fails is a warning, not a failed run.
 
 ## 5 · Index formula
 
@@ -245,34 +273,11 @@ formula version, and depends on nothing but the standard library and its own `co
 owns the contract (what a formula receives and returns). The app only ever calls
 `get_formula(config.formula).compute(inputs)`.
 
-```python
-# manc/formulas/contract.py  — the only thing the app depends on
-@dataclass(frozen=True)
-class ScoringInputs:
-    asset: AssetSpec  # symbol, kind, economies, sign map
-    as_of: datetime
-    tags: list[NewsTag]  # with source weight + published_at attached
-    released: list[CalendarEvent]  # events with actual != None in lookback
-    upcoming: list[CalendarEvent]  # events in the look-ahead window
-    params: dict[str, float]  # from config/scoring.yaml
-
-
-class IndexFormula(Protocol):
-    name: str  # "v1"
-
-    def compute(self, inputs: ScoringInputs) -> IndexScore: ...
-
-
-# manc/formulas/v1.py  — a plain class, no framework
-class FormulaV1:
-    name = "v1"
-
-    def compute(self, inputs: ScoringInputs) -> IndexScore: ...
-
-
-# manc/formulas/registry.py
-def get_formula(name: str) -> IndexFormula: ...  # "v1" → FormulaV1()
-```
+The contract is `src/manc/formulas/contract.py`: `ScoringInputs` (the asset spec, the
+as-of time, weighted headline tags, released and upcoming event observations, and the
+`params` from `config/scoring.yaml`), `IndexScore`, and the `IndexFormula` Protocol
+(`name`, `compute(inputs) -> IndexScore`). `registry.py` maps a name to a formula class
+(`"v1"` → `FormulaV1` in `v1.py`).
 
 Rules that keep it decoupled: `manc.formulas` imports only the standard library and itself,
 never `manc.models`, the store or anything else in the app (enforced by
@@ -336,8 +341,9 @@ dashboard shows them under the score so a reader can tell whether 62 means "grea
 ## 6 · Storage
 
 One SQLite file, `data/manc.db`, accessed through SQLAlchemy Core (tables, not an ORM) and
-versioned with Alembic. `src/manc/store/schema.py` declares the tables and is the single
-source of truth; every schema change is an Alembic revision generated from it:
+versioned with Alembic. `docs/er-schema.md` draws the tables as an ER diagram.
+`src/manc/store/schema.py` declares the tables and is the single source of truth; every
+schema change is an Alembic revision generated from it:
 
 ```sh
 uv run alembic upgrade head                       # bring the database to the current schema
@@ -357,12 +363,17 @@ committed. Backup is still copying one file.
 | `news_tags`       | `(news_id, asset)`       | `direction, confidence, model, prompt_version, tagged_at`                        |
 | `calendar_events` | `id`                     | `date, country, event, category, importance, consensus, previous, actual, fetched_at` |
 | `scores`          | `(asset, date, formula)` | `score, components_json, n_news, n_events, report_md, created_at`                |
+| `forecasts_asset` | `id`                     | `institution, asset, horizon_date, horizon_label, value, published_at, source_url, source_kind, confidence, model, fetched_at` |
+| `forecasts_macro` | `id`                     | `institution, economy, metric, horizon_date, horizon_label, value, published_at, source_url, source_kind, confidence, model, fetched_at` |
+| `spot_prices`     | `(asset, date)`          | `close, source, fetched_at`                                                      |
 
 Column types: timestamps are timezone-aware `DateTime`, `scores.date` is an ISO date string,
 `components_json` is a JSON column. Re-running `manc run` for the same day overwrites that
 day's row, so a bad run is fixed by running again. `formula` is part of the key so a rescore under `v2` sits next to the `v1` row
 instead of replacing it; the dashboard defaults to the configured formula and can overlay
-others.
+others. Forecast rows are never overwritten: an upsert on an existing id keeps the earlier
+`published_at`, and a new value is a new id, so `forecasts_*` is a point-in-time record and
+`as_of(date)` queries see only what was known that day.
 
 ## 7 · API and dashboard
 
@@ -383,7 +394,12 @@ overview(store, config, as_of)                    -> list[AssetSummary]
 asset_history(store, symbol, formula, start, end) -> AssetHistory
 headlines_behind(store, symbol, as_of)            -> list[HeadlineView]
 upcoming_events(store, config, start, end, min_importance) -> list[CalendarEvent]
+forecasts_for(store, config, symbol, as_of, min_confidence) -> ForecastPanel
 ```
+
+`ForecastPanel` carries the latest vintage per institution and horizon, its distance from the
+latest spot, the previous vintage's value when there is one (a revision arrow in the UI), the
+median across institutions per horizon, and the macro forecasts for the asset's economies.
 
 The CLI and the report builder reuse the same functions, so a band label or a delta is
 computed in exactly one place.
@@ -401,6 +417,9 @@ Pydantic response model. Read-only in v1; writes stay with the pipeline.
 | `GET /api/v1/assets/{symbol}/report?date=`              | that day's markdown report                                     |
 | `GET /api/v1/assets/{symbol}/headlines?date=`           | headlines that moved the score, with direction and source      |
 | `GET /api/v1/events?from=&to=&min_importance=`          | calendar events                                                |
+| `GET /api/v1/assets/{symbol}/forecasts?as_of=&min_confidence=` | the forecast panel: latest vintage per institution and horizon, % vs spot, revisions, median; macro forecasts for the asset's economies |
+| `GET /api/v1/assets/{symbol}/spot?from=&to=`            | daily closes, display only                                     |
+| `GET /api/v1/macro/forecasts?economy=&metric=`          | macro and policy-rate forecasts across institutions            |
 | `GET /api/v1/formulas`                                  | known formulas and the configured default                      |
 | `GET /health`                                           | database at head, last run date                                |
 
@@ -422,7 +441,9 @@ backend is `MANC_API_URL`. `src/manc_ui/client.py` wraps the routes above in typ
 - `/asset/<symbol>` — score history chart (shaded bands, 50 reference line, formula components
   as faint lines, markers on high-impact event days), date-range and formula selectors, today's
   report, upcoming high-impact events table, the headlines that moved the score with their
-  direction and source
+  direction and source, and a forecasts panel: one row per institution and horizon with the
+  target, its distance from spot, a revision arrow, and a median row; the macro forecasts for
+  the asset's economies underneath
 - `/events` — the next 30 days of calendar events across all tracked economies, filterable by
   importance
 
@@ -455,7 +476,8 @@ manc/
 │   ├── feeds.yaml          # RSS urls + weights
 │   ├── scoring.yaml        # formula: v1, params (weights, half-life, windows)
 │   ├── llm.yaml            # model string, fallback, temperature
-│   └── calendar.yaml       # event-name regexes → category and importance; country aliases
+│   ├── calendar.yaml       # event-name regexes → category and importance; country aliases
+│   └── forecasts.yaml      # institutions with aliases, kind and weight; per-asset RSS queries; min_confidence
 ├── docs/blueprint.md       # this file
 ├── src/manc/
 │   ├── models.py           # frozen dataclasses (§3)
@@ -467,13 +489,15 @@ manc/
 │   ├── calendar/           # interface.py, nasdaq.py
 │   ├── news/               # interface.py, rss.py
 │   ├── analysis/           # interface.py, llm.py, lexicon.py
+│   ├── forecasts/          # interface.py, extractor.py (LiteLLM), fed_sep.py, worldbank.py, eia.py
+│   ├── spot/               # interface.py, stooq.py
 │   ├── scoring/            # adapter.py: store → ScoringInputs → formula
 │   ├── store/              # interface.py, schema.py (tables), db.py (engine, upgrade), sql.py
 │   ├── report/             # builder.py
 │   ├── queries.py          # read-side logic over a Store, returns frozen dataclasses
 │   ├── api/                # app.py (FastAPI), routes.py, schemas.py (Pydantic), deps.py
 │   ├── pipeline.py
-│   └── cli.py              # manc run | manc rescore | manc api | manc ui | manc serve
+│   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc ui | manc serve
 ├── src/manc_ui/            # Dash app; imports dash/plotly/httpx, never manc (test-enforced)
 │   ├── app.py, theme.py, client.py
 │   ├── pages/
@@ -484,9 +508,10 @@ manc/
 
 | Dependency                                        | Used for                                                              |
 |---------------------------------------------------|-----------------------------------------------------------------------|
-| `httpx`                                           | Nasdaq calendar endpoint and RSS fetching                             |
+| `httpx`                                           | Nasdaq calendar endpoint, RSS fetching, forecast publishers, spot CSV |
+| `openpyxl`                                        | World Bank outlook workbook                                           |
 | `feedparser`                                      | RSS parsing                                                           |
-| `litellm`, `pydantic`                             | headline tagging and report summary, provider-agnostic; Pydantic for the response schema |
+| `litellm`, `pydantic`                             | forecast extraction, headline tagging and report summary, provider-agnostic; Pydantic for the response schema |
 | `sqlalchemy`, `alembic`                           | store: Core tables and versioned migrations                            |
 | `pyyaml`                                          | config files                                                          |
 | `fastapi`, `uvicorn`, `pydantic`                  | REST API                                                              |
@@ -524,10 +549,19 @@ prints 50 for every asset using fakes.
 - `Store` protocol implementation with round-trip tests
 - CLI with `run`, `rescore` and `serve` stubs
 
-**M2 Ingestion** — done when: a run populates `news` and `calendar_events` from live sources.
+**M2 Ingestion** — done when: a run populates `news`, `calendar_events`, `forecasts_asset`,
+`forecasts_macro` and `spot_prices` from live sources, and `manc forecasts --since` has
+backfilled the forecasts panel for every asset.
 - RSS provider with per-feed failure isolation and dedupe
 - Nasdaq calendar provider with category, importance and country maps
 - recorded fixtures for both
+- forecast and spot models, Protocols, tables and fakes
+- `config/forecasts.yaml` and the regex prefilter
+- LLM forecast extractor through LiteLLM (the first LiteLLM call; brings `litellm` and
+  `config/llm.yaml` wiring forward from M3), `manc forecasts --since` backfill
+- `SpotProvider` with the Stooq adapter and the no-price-in-formula isolation test
+- Fed SEP and World Bank publishers with recorded fixtures; EIA when the key is set up
+- the forecasts panel itself (query, route, page) belongs to M4
 
 **M3 Analysis and index** — done when: real scores are written for all seven assets.
 - LLM tagger through LiteLLM: Pydantic response schema, batching, configurable model with fallback;
@@ -618,6 +652,13 @@ load-bearing enough to block a start.
   same URL but loses Fridays and mislabels times (§4) while adding 52 packages; a 100-line
   module over httpx with recorded fixtures is both smaller and correct.
 - **No price data in the score.** The index measures narrative and data, and stays explainable.
+  One daily close per asset is stored for display next to forecasts, and a test keeps it out
+  of `ScoringInputs`.
+- **Forecasts are extracted from headlines, not licensed.** No free structured source covers
+  the FX pairs, SPX or BTC; bank calls are public only as news. An LLM extraction over feeds
+  already ingested covers every asset, stores every vintage, and the few structured
+  publishers (Fed SEP, World Bank, EIA) sit behind the same Protocol. Display only until M6
+  has evidence for a formula term.
 - **REST API between backend and UI.** The dashboard is one client of `manc api` and lives in
   a package that cannot import the backend. Any future UI consumes the same OpenAPI contract;
   the price is a second process.

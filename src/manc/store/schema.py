@@ -7,6 +7,7 @@ See docs/blueprint.md section 6. Change a table here, then run
 from sqlalchemy import (
     JSON,
     Column,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -68,4 +69,50 @@ scores = Table(
     Column("n_events", Integer, nullable=False),
     Column("report_md", Text, nullable=False, default=""),
     Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
+
+# Forecasts are point-in-time: a row is one vintage and is never overwritten (blueprint §6).
+def _forecast_columns() -> list[Column]:
+    """The tail both forecast tables share; fresh Column objects each call."""
+    return [
+        Column("horizon_date", Date, nullable=False),
+        Column("horizon_label", String(64), nullable=False),
+        Column("value", Float, nullable=False),
+        Column("published_at", DateTime(timezone=True), nullable=False),
+        Column("source_url", Text, nullable=False),
+        Column("source_kind", String(16), nullable=False),  # extracted | structured
+        Column("confidence", Float, nullable=False),  # 0..1
+        Column("model", String(128), nullable=False, default=""),
+        Column("fetched_at", DateTime(timezone=True), nullable=False),
+    ]
+
+
+forecasts_asset = Table(
+    "forecasts_asset",
+    metadata,
+    Column("id", String(40), primary_key=True),  # sha1(institution | asset | horizon | value)
+    Column("institution", String(64), nullable=False),
+    Column("asset", String(16), nullable=False),
+    *_forecast_columns(),
+)
+
+forecasts_macro = Table(
+    "forecasts_macro",
+    metadata,
+    Column("id", String(40), primary_key=True),  # sha1(institution | economy:metric | ...)
+    Column("institution", String(64), nullable=False),
+    Column("economy", String(64), nullable=False),
+    Column("metric", String(32), nullable=False),  # policy_rate | cpi | gdp | unemployment
+    *_forecast_columns(),
+)
+
+spot_prices = Table(
+    "spot_prices",
+    metadata,
+    Column("asset", String(16), primary_key=True),
+    Column("date", Date, primary_key=True),
+    Column("close", Float, nullable=False),
+    Column("source", String(32), nullable=False),
+    Column("fetched_at", DateTime(timezone=True), nullable=False),
 )
