@@ -92,10 +92,10 @@ def test_one_failing_ticker_does_not_stop_the_rest(caplog: pytest.LogCaptureFixt
 
 def test_empty_history_is_a_warning_not_a_price(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING, logger="manc.spot"):
-        prices = YahooSpot(by_ticker(CLF=empty)).fetch(ASSETS, DAY)
+        prices = YahooSpot(by_ticker(BZF=empty)).fetch(ASSETS, DAY)
 
-    assert "WTI" not in {price.asset for price in prices}
-    assert "WTI" in caplog.text and "no close" in caplog.text
+    assert "BRENT" not in {price.asset for price in prices}
+    assert "BRENT" in caplog.text and "no close" in caplog.text
 
 
 def test_only_closes_up_to_the_day_count() -> None:

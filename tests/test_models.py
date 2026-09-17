@@ -75,7 +75,7 @@ def test_forecast_asset_id_is_the_vintage_key() -> None:
     assert _forecast_asset(value=4200.0).id != first.id
     assert _forecast_asset(horizon_date=date(2027, 6, 30)).id != first.id
     assert _forecast_asset(institution="ubs").id != first.id
-    assert _forecast_asset(asset="WTI").id != first.id
+    assert _forecast_asset(asset="BRENT").id != first.id
 
 
 def test_forecast_asset_id_ignores_float_noise() -> None:

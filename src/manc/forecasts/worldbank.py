@@ -3,7 +3,7 @@
 The commodity-markets page links the latest `CMO-<Month>-<Year>-Forecasts.pdf`; the same path
 with `.xlsx` is the forecast table. Its one sheet has the release date in the title row, a
 header row with the forecast years as `2026f`, and one row per commodity with the unit and
-the annual averages. Only gold maps to a tracked asset: the table quotes Brent, not WTI.
+the annual averages. Brent and gold map to tracked assets.
 """
 
 import logging
@@ -21,7 +21,7 @@ from manc.models import ForecastAsset, Forecasts
 log = logging.getLogger(__name__)
 
 OUTLOOK_URL = "https://www.worldbank.org/en/research/commodity-markets"
-COMMODITIES = {"Gold": "XAUUSD"}
+COMMODITIES = {"Crude oil, Brent": "BRENT", "Gold": "XAUUSD"}
 _FORECASTS_LINK = re.compile(
     r'href="(https://thedocs\.worldbank\.org/[^"]*/CMO-[^"/]*-Forecasts)\.pdf"'
 )

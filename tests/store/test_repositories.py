@@ -194,10 +194,10 @@ def test_forecast_assets_round_trip_and_latest_per_institution_and_horizon(store
     newer = _forecast_asset(value=4000.0)
     other_horizon = _forecast_asset(value=4300.0, horizon_date=date(2027, 6, 30))
     ubs = _forecast_asset(value=3900.0, institution="ubs")
-    wti = _forecast_asset(value=60.0, asset="WTI")
-    store.forecasts_asset.add(older, newer, other_horizon, ubs, wti)
+    brent = _forecast_asset(value=60.0, asset="BRENT")
+    store.forecasts_asset.add(older, newer, other_horizon, ubs, brent)
     assert store.forecasts_asset.latest("XAUUSD") == [newer, other_horizon, ubs]
-    assert store.forecasts_asset.latest("WTI") == [wti]
+    assert store.forecasts_asset.latest("BRENT") == [brent]
     assert store.forecasts_asset.latest("EURUSD") == []
     assert store.forecasts_asset.latest("XAUUSD")[0].published_at.tzinfo is not None
 
@@ -226,7 +226,7 @@ def test_forecast_asset_vintages_in_publication_order(store: Store) -> None:
 def test_forecast_asset_as_of_sees_only_what_was_published_by_then(store: Store) -> None:
     initial = _forecast_asset(value=3700.0, published_at=NOW - 60 * DAY)
     raised = _forecast_asset(value=4000.0, published_at=NOW)
-    store.forecasts_asset.add(raised, initial, _forecast_asset(value=61.0, asset="WTI"))
+    store.forecasts_asset.add(raised, initial, _forecast_asset(value=61.0, asset="BRENT"))
     assert store.forecasts_asset.as_of("XAUUSD", (NOW - DAY).date()) == [initial]
     assert store.forecasts_asset.as_of("XAUUSD", NOW.date()) == [initial, raised]
     assert store.forecasts_asset.as_of("XAUUSD", (NOW - 100 * DAY).date()) == []

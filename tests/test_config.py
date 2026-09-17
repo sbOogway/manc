@@ -18,7 +18,7 @@ def test_repo_config_loads() -> None:
         "GBPUSD",
         "USDJPY",
         "XAUUSD",
-        "WTI",
+        "BRENT",
         "SPX",
         "BTCUSD",
     ]

@@ -47,29 +47,24 @@ def test_april_2026_gold_averages_become_asset_forecasts() -> None:
     forecasts = WorldBankOutlook().fetch(datetime(2026, 1, 1, tzinfo=UTC))
 
     assert forecasts.macro == ()
-    assert forecasts.asset == (
+    assert forecasts.asset == tuple(
         ForecastAsset.new(
             institution="world_bank",
-            asset="XAUUSD",
-            horizon_date=date(2026, 12, 31),
-            horizon_label="2026 average",
-            value=4700.0,
+            asset=asset,
+            horizon_date=date(year, 12, 31),
+            horizon_label=f"{year} average",
+            value=value,
             published_at=RELEASED_AT,
             source_url=WORKBOOK_URL,
             source_kind="structured",
             confidence=1.0,
-        ),
-        ForecastAsset.new(
-            institution="world_bank",
-            asset="XAUUSD",
-            horizon_date=date(2027, 12, 31),
-            horizon_label="2027 average",
-            value=4300.0,
-            published_at=RELEASED_AT,
-            source_url=WORKBOOK_URL,
-            source_kind="structured",
-            confidence=1.0,
-        ),
+        )
+        for asset, year, value in [  # sheet order: energy before precious metals
+            ("BRENT", 2026, 86.0),
+            ("BRENT", 2027, 70.0),
+            ("XAUUSD", 2026, 4700.0),
+            ("XAUUSD", 2027, 4300.0),
+        ]
     )
 
 
@@ -86,7 +81,7 @@ def test_release_day_itself_counts() -> None:
     serve_page()
     serve_workbook()
 
-    assert len(WorldBankOutlook().fetch(datetime(2026, 4, 28, 12, tzinfo=UTC)).asset) == 2
+    assert len(WorldBankOutlook().fetch(datetime(2026, 4, 28, 12, tzinfo=UTC)).asset) == 4
 
 
 @respx.mock
@@ -157,7 +152,12 @@ def test_parse_takes_the_first_column_of_each_forecast_year() -> None:
 
     assert parse_workbook(content) == (
         date(2026, 10, 28),
-        [("XAUUSD", 2026, 4700.0), ("XAUUSD", 2027, 4300.0)],
+        [
+            ("BRENT", 2026, 86.0),
+            ("BRENT", 2027, 70.0),
+            ("XAUUSD", 2026, 4700.0),
+            ("XAUUSD", 2027, 4300.0),
+        ],
     )
 
 
