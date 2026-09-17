@@ -98,8 +98,8 @@ queries:
   - asset: XAUUSD
     url: "https://news.google.com/rss/search?q=gold+price+(forecast+OR+target)+(bank+OR+analysts)&hl=en-US&gl=US&ceid=US:en"
     weight: 0.3
-  - asset: WTI
-    url: "https://news.google.com/rss/search?q=(WTI+OR+%22oil+price%22)+(forecast+OR+target)+(bank+OR+EIA+OR+analysts)&hl=en-US&gl=US&ceid=US:en"
+  - asset: BRENT
+    url: "https://news.google.com/rss/search?q=(Brent+OR+%22oil+price%22)+(forecast+OR+target)+(bank+OR+analysts)&hl=en-US&gl=US&ceid=US:en"
     weight: 0.3
   - asset: SPX
     url: "https://news.google.com/rss/search?q=%22S%26P+500%22+(%22year-end+target%22+OR+forecast)+strategist&hl=en-US&gl=US&ceid=US:en"

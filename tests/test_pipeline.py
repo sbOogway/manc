@@ -100,7 +100,7 @@ def test_run_stores_the_forecasts_every_provider_returns() -> None:
     gold = ForecastAsset.new(asset="XAUUSD", value=4000.0, **common)
     rate = ForecastMacro.new(economy="united_states", metric="policy_rate", value=3.4, **common)
     stale = ForecastAsset.new(
-        asset="WTI", value=60.0, **{**common, "published_at": AS_OF - timedelta(days=30)}
+        asset="BRENT", value=60.0, **{**common, "published_at": AS_OF - timedelta(days=30)}
     )
     run(
         as_of=AS_OF,
@@ -117,7 +117,7 @@ def test_run_stores_the_forecasts_every_provider_returns() -> None:
         formula=get_formula("v1"),
     )
     assert store.forecasts_asset.latest("XAUUSD") == [gold]
-    assert store.forecasts_asset.latest("WTI") == []  # outside the news window
+    assert store.forecasts_asset.latest("BRENT") == []  # outside the news window
     assert store.forecasts_macro.latest("united_states") == [rate]
 
 

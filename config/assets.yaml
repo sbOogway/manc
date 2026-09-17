@@ -4,7 +4,7 @@
 # Rule of thumb: hot data -> stronger currency, higher yields. Base currency +1, quote -1;
 # gold and crypto dislike higher US yields; equities like growth but dislike hot inflation.
 # `spot` names the ticker per spot source (display only): Yahoo quotes USDJPY as JPY=X,
-# gold and WTI as the front-month futures GC=F and CL=F, the S&P 500 as ^GSPC.
+# gold and Brent as the front-month futures GC=F and BZ=F, the S&P 500 as ^GSPC.
 assets:
   EURUSD:
     spot: {yahoo: "EURUSD=X"}
@@ -33,8 +33,8 @@ assets:
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment: -1, growth: -1, rates: -1}
-  WTI:
-    spot: {yahoo: "CL=F"}
+  BRENT:
+    spot: {yahoo: "BZ=F"}
     kind: commodity
     economies: [united_states]
     signs:
