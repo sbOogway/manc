@@ -445,7 +445,7 @@ dashboard shows them under the score so a reader can tell whether 62 means "grea
 ## 6 · Storage
 
 One SQLite file, `data/manc.db`, accessed through SQLAlchemy Core (tables, not an ORM) and
-versioned with Alembic. `docs/schema.md` draws the tables as an ER diagram.
+versioned with Alembic. `docs/er-schema.md` draws the tables as an ER diagram.
 `src/manc/store/schema.py` declares the tables and is the single source of truth; every
 schema change is an Alembic revision generated from it:
 
