@@ -1,4 +1,4 @@
-"""Typed configuration loaded from the six YAML files in config/ (blueprint section 8)."""
+"""Typed configuration loaded from the YAML files in config/ (blueprint section 8)."""
 
 import re
 from collections.abc import Callable, Mapping
