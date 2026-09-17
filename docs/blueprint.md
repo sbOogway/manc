@@ -160,6 +160,7 @@ class AssetForecast:
     source_url: str
     source_kind: str  # "extracted" (from news) | "structured" (publisher data)
     confidence: float  # 0..1; 1.0 for structured sources
+    model: str  # LLM that extracted it, "" for structured sources
 
 
 @dataclass(frozen=True)
@@ -175,6 +176,7 @@ class MacroForecast:  # same fields, but about an economy rather than an asset
     source_url: str
     source_kind: str
     confidence: float
+    model: str
 
 
 @dataclass(frozen=True)
@@ -264,13 +266,20 @@ All model calls go through LiteLLM's `completion()`, so the model is a single st
 
 ```yaml
 llm:
-  model: anthropic/claude-opus-5     # default
-  # model: openai/gpt-5
+  model: openrouter/openrouter/free  # default: OpenRouter's router over its free models
+  # model: openrouter/anthropic/claude-opus-5
+  # model: anthropic/claude-opus-5
   # model: ollama/llama3.3           # local, no key
-  # model: openrouter/deepseek/deepseek-chat
-  fallback: null                     # optional second model tried on error
+  fallback: openrouter/nex-agi/nex-n2.5-pro:free  # second model tried on error
   temperature: 0
 ```
+
+The default is free by design: `openrouter/free` picks a free model per request among those
+that support the parameters sent (it honours `response_format`), so the model behind two runs
+differs. That is why every tag and every extracted forecast stores the `model` string, and
+why the free tier's caps (about 20 requests a minute and a small daily allowance, raised by
+buying credits once) are fine for the daily run but slow a backfill; LiteLLM's retries and
+the configured `fallback` absorb 429s. Switching to a paid model is one config edit.
 
 The response schema is a Pydantic model passed as `response_format`; LiteLLM translates it to
 each provider's native structured-output mechanism (Anthropic, OpenAI, Ollama, Groq, Gemini,
@@ -457,8 +466,8 @@ committed. Backup is still copying one file.
 | `news_tags`       | `(news_id, asset)`       | `direction, confidence, model, prompt_version, tagged_at`                        |
 | `calendar_events` | `id`                     | `date, country, event, category, importance, consensus, previous, actual, fetched_at` |
 | `scores`          | `(asset, date, formula)` | `score, components_json, n_news, n_events, report_md, created_at`                |
-| `forecasts_asset` | `id`                     | `institution, asset, horizon_date, horizon_label, value, published_at, source_url, source_kind, confidence, fetched_at` |
-| `forecasts_macro` | `id`                     | `institution, economy, metric, horizon_date, horizon_label, value, published_at, source_url, source_kind, confidence, fetched_at` |
+| `forecasts_asset` | `id`                     | `institution, asset, horizon_date, horizon_label, value, published_at, source_url, source_kind, confidence, model, fetched_at` |
+| `forecasts_macro` | `id`                     | `institution, economy, metric, horizon_date, horizon_label, value, published_at, source_url, source_kind, confidence, model, fetched_at` |
 | `spot_prices`     | `(asset, date)`          | `close, source, fetched_at`                                                      |
 
 Column types: timestamps are timezone-aware `DateTime`, `scores.date` is an ISO date string,
