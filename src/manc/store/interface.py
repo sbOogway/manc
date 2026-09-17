@@ -8,10 +8,10 @@ from datetime import date, datetime
 from typing import Protocol, runtime_checkable
 
 from manc.models import (
-    AssetForecast,
     CalendarEvent,
+    ForecastAsset,
+    ForecastMacro,
     IndexScore,
-    MacroForecast,
     NewsItem,
     NewsTag,
     SpotPrice,
@@ -43,25 +43,25 @@ class ScoreRepository(Protocol):
 
 
 @runtime_checkable
-class AssetForecastRepository(Protocol):
+class ForecastAssetRepository(Protocol):
     """Rows are vintages: ``add`` keeps the earliest sighting of an id, never overwrites."""
 
-    def add(self, *forecasts: AssetForecast) -> None: ...
-    def latest(self, asset: str) -> list[AssetForecast]: ...  # newest per institution + horizon
-    def vintages(self, institution: str, asset: str, horizon_date: date) -> list[AssetForecast]: ...
-    def as_of(self, asset: str, day: date) -> list[AssetForecast]: ...  # published by that day
+    def add(self, *forecasts: ForecastAsset) -> None: ...
+    def latest(self, asset: str) -> list[ForecastAsset]: ...  # newest per institution + horizon
+    def vintages(self, institution: str, asset: str, horizon_date: date) -> list[ForecastAsset]: ...
+    def as_of(self, asset: str, day: date) -> list[ForecastAsset]: ...  # published by that day
 
 
 @runtime_checkable
-class MacroForecastRepository(Protocol):
-    def add(self, *forecasts: MacroForecast) -> None: ...
+class ForecastMacroRepository(Protocol):
+    def add(self, *forecasts: ForecastMacro) -> None: ...
     def latest(
         self, economy: str
-    ) -> list[MacroForecast]: ...  # newest per institution + metric + horizon
+    ) -> list[ForecastMacro]: ...  # newest per institution + metric + horizon
     def vintages(
         self, institution: str, economy: str, metric: str, horizon_date: date
-    ) -> list[MacroForecast]: ...
-    def as_of(self, economy: str, day: date) -> list[MacroForecast]: ...
+    ) -> list[ForecastMacro]: ...
+    def as_of(self, economy: str, day: date) -> list[ForecastMacro]: ...
 
 
 @runtime_checkable
@@ -77,6 +77,6 @@ class Store(Protocol):
     tags: TagRepository
     events: EventRepository
     scores: ScoreRepository
-    forecasts_asset: AssetForecastRepository
-    forecasts_macro: MacroForecastRepository
+    forecasts_asset: ForecastAssetRepository
+    forecasts_macro: ForecastMacroRepository
     spot: SpotRepository

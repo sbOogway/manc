@@ -119,7 +119,7 @@ configuration runs on every commit and blocks it if anything fails.
 ### Core dataclasses
 
 The value objects are the code: `src/manc/models.py` holds `CalendarEvent`, `NewsItem`,
-`NewsTag`, `AssetForecast`, `MacroForecast`, `Forecasts` and `SpotPrice`; the score-side types
+`NewsTag`, `ForecastAsset`, `ForecastMacro`, `Forecasts` and `SpotPrice`; the score-side types
 (`AssetSpec`, `ScoringInputs`, `IndexScore`) live in `src/manc/formulas/contract.py` so the
 formula package stays free of app imports, and `models.py` re-exports them. Every one is a
 frozen dataclass; ids are content hashes (`NewsItem.id = sha1(url)`, forecast ids are the

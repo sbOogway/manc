@@ -6,13 +6,13 @@ from manc.analysis.interface import Analyzer
 from manc.calendar.interface import CalendarProvider
 from manc.forecasts.interface import ForecastProvider
 from manc.formulas.contract import AssetSpec, IndexScore
-from manc.models import AssetForecast, CalendarEvent, Forecasts, NewsItem, NewsTag, SpotPrice
+from manc.models import CalendarEvent, ForecastAsset, Forecasts, NewsItem, NewsTag, SpotPrice
 from manc.news.interface import NewsProvider
 from manc.spot.interface import SpotProvider
 from manc.store.interface import (
-    AssetForecastRepository,
     EventRepository,
-    MacroForecastRepository,
+    ForecastAssetRepository,
+    ForecastMacroRepository,
     NewsRepository,
     ScoreRepository,
     SpotRepository,
@@ -37,13 +37,13 @@ def test_fakes_satisfy_protocols() -> None:
     assert isinstance(store.tags, TagRepository)
     assert isinstance(store.events, EventRepository)
     assert isinstance(store.scores, ScoreRepository)
-    assert isinstance(store.forecasts_asset, AssetForecastRepository)
-    assert isinstance(store.forecasts_macro, MacroForecastRepository)
+    assert isinstance(store.forecasts_asset, ForecastAssetRepository)
+    assert isinstance(store.forecasts_macro, ForecastMacroRepository)
     assert isinstance(store.spot, SpotRepository)
 
 
 def test_fake_forecasts_and_spot_replay_by_window_and_asset() -> None:
-    old = AssetForecast.new(
+    old = ForecastAsset.new(
         institution="ubs",
         asset="XAUUSD",
         horizon_date=date(2026, 12, 31),
@@ -54,7 +54,7 @@ def test_fake_forecasts_and_spot_replay_by_window_and_asset() -> None:
         source_kind="extracted",
         confidence=0.7,
     )
-    recent = AssetForecast.new(
+    recent = ForecastAsset.new(
         institution="goldman_sachs",
         asset="XAUUSD",
         horizon_date=date(2026, 12, 31),

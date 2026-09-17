@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from manc.formulas.contract import IndexScore
-from manc.models import AssetForecast, CalendarEvent, MacroForecast, NewsItem, NewsTag, SpotPrice
+from manc.models import CalendarEvent, ForecastAsset, ForecastMacro, NewsItem, NewsTag, SpotPrice
 from manc.store import db
 from manc.store.interface import Store
 from manc.store.sql import SqlStore
@@ -64,15 +64,15 @@ def _score(day: date, formula: str = "v1", value: float = 55.0) -> IndexScore:
     )
 
 
-def _forecast(
+def _forecast_asset(
     value: float = 4000.0,
     published_at: datetime = NOW,
     institution: str = "goldman_sachs",
     asset: str = "XAUUSD",
     horizon_date: date = date(2026, 12, 31),
     source_url: str = "https://x/gold",
-) -> AssetForecast:
-    return AssetForecast.new(
+) -> ForecastAsset:
+    return ForecastAsset.new(
         institution=institution,
         asset=asset,
         horizon_date=horizon_date,
@@ -86,14 +86,14 @@ def _forecast(
     )
 
 
-def _macro(
+def _forecast_macro(
     value: float = 3.4,
     published_at: datetime = NOW,
     economy: str = "united_states",
     metric: str = "policy_rate",
     institution: str = "fed",
-) -> MacroForecast:
-    return MacroForecast.new(
+) -> ForecastMacro:
+    return ForecastMacro.new(
         institution=institution,
         economy=economy,
         metric=metric,
@@ -189,12 +189,12 @@ def test_add_with_nothing_is_a_no_op(store: Store) -> None:
     assert store.news.since(NOW - DAY) == []
 
 
-def test_asset_forecasts_round_trip_and_latest_per_institution_and_horizon(store: Store) -> None:
-    older = _forecast(value=3700.0, published_at=NOW - 30 * DAY)
-    newer = _forecast(value=4000.0)
-    other_horizon = _forecast(value=4300.0, horizon_date=date(2027, 6, 30))
-    ubs = _forecast(value=3900.0, institution="ubs")
-    wti = _forecast(value=60.0, asset="WTI")
+def test_forecast_assets_round_trip_and_latest_per_institution_and_horizon(store: Store) -> None:
+    older = _forecast_asset(value=3700.0, published_at=NOW - 30 * DAY)
+    newer = _forecast_asset(value=4000.0)
+    other_horizon = _forecast_asset(value=4300.0, horizon_date=date(2027, 6, 30))
+    ubs = _forecast_asset(value=3900.0, institution="ubs")
+    wti = _forecast_asset(value=60.0, asset="WTI")
     store.forecasts_asset.add(older, newer, other_horizon, ubs, wti)
     assert store.forecasts_asset.latest("XAUUSD") == [newer, other_horizon, ubs]
     assert store.forecasts_asset.latest("WTI") == [wti]
@@ -202,10 +202,10 @@ def test_asset_forecasts_round_trip_and_latest_per_institution_and_horizon(store
     assert store.forecasts_asset.latest("XAUUSD")[0].published_at.tzinfo is not None
 
 
-def test_asset_forecast_upsert_keeps_the_earliest_sighting(store: Store) -> None:
-    first = _forecast(published_at=NOW, source_url="https://x/first")
-    re_report = _forecast(published_at=NOW + 3 * DAY, source_url="https://y/later")
-    earlier = _forecast(published_at=NOW - 2 * DAY, source_url="https://z/earlier")
+def test_forecast_asset_upsert_keeps_the_earliest_sighting(store: Store) -> None:
+    first = _forecast_asset(published_at=NOW, source_url="https://x/first")
+    re_report = _forecast_asset(published_at=NOW + 3 * DAY, source_url="https://y/later")
+    earlier = _forecast_asset(published_at=NOW - 2 * DAY, source_url="https://z/earlier")
     store.forecasts_asset.add(first)
     store.forecasts_asset.add(re_report)
     assert store.forecasts_asset.latest("XAUUSD") == [first]
@@ -213,30 +213,30 @@ def test_asset_forecast_upsert_keeps_the_earliest_sighting(store: Store) -> None
     assert store.forecasts_asset.latest("XAUUSD") == [earlier]
 
 
-def test_asset_forecast_vintages_in_publication_order(store: Store) -> None:
-    raised = _forecast(value=4000.0, published_at=NOW)
-    initial = _forecast(value=3700.0, published_at=NOW - 60 * DAY)
-    cut = _forecast(value=3500.0, published_at=NOW - 90 * DAY)
-    store.forecasts_asset.add(raised, initial, cut, _forecast(institution="ubs"))
+def test_forecast_asset_vintages_in_publication_order(store: Store) -> None:
+    raised = _forecast_asset(value=4000.0, published_at=NOW)
+    initial = _forecast_asset(value=3700.0, published_at=NOW - 60 * DAY)
+    cut = _forecast_asset(value=3500.0, published_at=NOW - 90 * DAY)
+    store.forecasts_asset.add(raised, initial, cut, _forecast_asset(institution="ubs"))
     vintages = store.forecasts_asset.vintages("goldman_sachs", "XAUUSD", date(2026, 12, 31))
     assert [vintage.value for vintage in vintages] == [3500.0, 3700.0, 4000.0]
     assert store.forecasts_asset.vintages("goldman_sachs", "XAUUSD", date(2030, 1, 1)) == []
 
 
-def test_asset_forecast_as_of_sees_only_what_was_published_by_then(store: Store) -> None:
-    initial = _forecast(value=3700.0, published_at=NOW - 60 * DAY)
-    raised = _forecast(value=4000.0, published_at=NOW)
-    store.forecasts_asset.add(raised, initial, _forecast(value=61.0, asset="WTI"))
+def test_forecast_asset_as_of_sees_only_what_was_published_by_then(store: Store) -> None:
+    initial = _forecast_asset(value=3700.0, published_at=NOW - 60 * DAY)
+    raised = _forecast_asset(value=4000.0, published_at=NOW)
+    store.forecasts_asset.add(raised, initial, _forecast_asset(value=61.0, asset="WTI"))
     assert store.forecasts_asset.as_of("XAUUSD", (NOW - DAY).date()) == [initial]
     assert store.forecasts_asset.as_of("XAUUSD", NOW.date()) == [initial, raised]
     assert store.forecasts_asset.as_of("XAUUSD", (NOW - 100 * DAY).date()) == []
 
 
-def test_macro_forecasts_round_trip_latest_vintages_and_as_of(store: Store) -> None:
-    older_rate = _macro(value=3.9, published_at=NOW - 90 * DAY)
-    rate = _macro(value=3.4)
-    cpi = _macro(value=2.6, metric="cpi")
-    euro = _macro(value=2.0, economy="euro_area", institution="ecb")
+def test_forecast_macros_round_trip_latest_vintages_and_as_of(store: Store) -> None:
+    older_rate = _forecast_macro(value=3.9, published_at=NOW - 90 * DAY)
+    rate = _forecast_macro(value=3.4)
+    cpi = _forecast_macro(value=2.6, metric="cpi")
+    euro = _forecast_macro(value=2.0, economy="euro_area", institution="ecb")
     store.forecasts_macro.add(older_rate, rate, cpi, euro)
     assert store.forecasts_macro.latest("united_states") == [rate, cpi]
     assert store.forecasts_macro.latest("euro_area") == [euro]
@@ -249,9 +249,9 @@ def test_macro_forecasts_round_trip_latest_vintages_and_as_of(store: Store) -> N
     assert store.forecasts_macro.as_of("united_states", (NOW - DAY).date()) == [older_rate]
 
 
-def test_macro_forecast_upsert_keeps_the_earliest_sighting(store: Store) -> None:
-    store.forecasts_macro.add(_macro(published_at=NOW))
-    store.forecasts_macro.add(_macro(published_at=NOW + DAY))
+def test_forecast_macro_upsert_keeps_the_earliest_sighting(store: Store) -> None:
+    store.forecasts_macro.add(_forecast_macro(published_at=NOW))
+    store.forecasts_macro.add(_forecast_macro(published_at=NOW + DAY))
     [forecast] = store.forecasts_macro.latest("united_states")
     assert forecast.published_at == NOW
 

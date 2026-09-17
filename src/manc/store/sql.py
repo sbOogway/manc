@@ -8,7 +8,7 @@ from sqlalchemy import Engine, Table, case, select
 from sqlalchemy.dialects import postgresql, sqlite
 
 from manc.formulas.contract import IndexScore
-from manc.models import AssetForecast, CalendarEvent, MacroForecast, NewsItem, NewsTag, SpotPrice
+from manc.models import CalendarEvent, ForecastAsset, ForecastMacro, NewsItem, NewsTag, SpotPrice
 from manc.store import db, schema
 
 _SIGHTING_COLUMNS = ("published_at", "source_url", "confidence", "model")
@@ -322,14 +322,14 @@ class SqlStore:
             schema.forecasts_asset,
             "asset",
             ("institution", "asset", "horizon_date"),
-            _asset_forecast,
+            _forecast_asset,
         )
         self.forecasts_macro = SqlForecastRepository(
             engine,
             schema.forecasts_macro,
             "economy",
             ("institution", "economy", "metric", "horizon_date"),
-            _macro_forecast,
+            _forecast_macro,
         )
         self.spot = SqlSpotRepository(engine)
 
@@ -396,12 +396,12 @@ def _forecast_fields(row: Any) -> dict[str, Any]:
     }
 
 
-def _asset_forecast(row: Any) -> AssetForecast:
-    return AssetForecast(asset=row["asset"], **_forecast_fields(row))
+def _forecast_asset(row: Any) -> ForecastAsset:
+    return ForecastAsset(asset=row["asset"], **_forecast_fields(row))
 
 
-def _macro_forecast(row: Any) -> MacroForecast:
-    return MacroForecast(economy=row["economy"], metric=row["metric"], **_forecast_fields(row))
+def _forecast_macro(row: Any) -> ForecastMacro:
+    return ForecastMacro(economy=row["economy"], metric=row["metric"], **_forecast_fields(row))
 
 
 def _spot_price(row: Any) -> SpotPrice:

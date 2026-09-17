@@ -11,12 +11,12 @@ from hashlib import sha1
 from manc.formulas.contract import AssetSpec, IndexScore
 
 __all__ = [
-    "AssetForecast",
     "AssetSpec",
     "CalendarEvent",
+    "ForecastAsset",
+    "ForecastMacro",
     "Forecasts",
     "IndexScore",
-    "MacroForecast",
     "NewsItem",
     "NewsTag",
     "SpotPrice",
@@ -94,7 +94,7 @@ def _check_forecast(confidence: float, source_kind: str) -> None:
 
 
 @dataclass(frozen=True)
-class AssetForecast:
+class ForecastAsset:
     """An institution's price target for one asset, as first sighted (blueprint section 4)."""
 
     id: str  # sha1(institution | asset | horizon_date | value)
@@ -126,7 +126,7 @@ class AssetForecast:
         source_kind: str,
         confidence: float,
         model: str = "",
-    ) -> "AssetForecast":
+    ) -> "ForecastAsset":
         return cls(
             id=_forecast_id(institution, asset, horizon_date, value),
             institution=institution,
@@ -143,8 +143,8 @@ class AssetForecast:
 
 
 @dataclass(frozen=True)
-class MacroForecast:
-    """Like AssetForecast, but about an economy: a policy rate, CPI, GDP or unemployment."""
+class ForecastMacro:
+    """Like ForecastAsset, but about an economy: a policy rate, CPI, GDP or unemployment."""
 
     id: str  # sha1(institution | economy:metric | horizon_date | value)
     institution: str
@@ -177,7 +177,7 @@ class MacroForecast:
         source_kind: str,
         confidence: float,
         model: str = "",
-    ) -> "MacroForecast":
+    ) -> "ForecastMacro":
         return cls(
             id=_forecast_id(institution, f"{economy}:{metric}", horizon_date, value),
             institution=institution,
@@ -198,8 +198,8 @@ class MacroForecast:
 class Forecasts:
     """What one ForecastProvider.fetch returns: both kinds at once."""
 
-    asset: tuple[AssetForecast, ...] = ()
-    macro: tuple[MacroForecast, ...] = ()
+    asset: tuple[ForecastAsset, ...] = ()
+    macro: tuple[ForecastMacro, ...] = ()
 
 
 @dataclass(frozen=True)
