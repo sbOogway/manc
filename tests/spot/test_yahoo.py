@@ -2,7 +2,6 @@
 
 import logging
 from datetime import date, timedelta
-from pathlib import Path
 
 import pandas
 import pytest
@@ -11,16 +10,10 @@ from manc.config import load_config
 from manc.formulas.contract import AssetSpec
 from manc.spot.interface import SpotProvider
 from manc.spot.yahoo import YahooSpot
+from tests.fakes import recorded_history as recorded
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "spot"
 ASSETS = load_config().assets
 DAY = date(2026, 9, 17)  # the fixtures were recorded on this day, a Thursday
-
-
-def recorded(ticker: str, start: date, end: date) -> pandas.DataFrame:
-    """Replay a recorded `Ticker.history` frame; the index is tz-aware like the real one."""
-    assert start < end
-    return pandas.read_csv(FIXTURES / f"{ticker}.csv", index_col="Date", parse_dates=["Date"])
 
 
 def failing(ticker: str, start: date, end: date) -> pandas.DataFrame:
@@ -28,7 +21,7 @@ def failing(ticker: str, start: date, end: date) -> pandas.DataFrame:
 
 
 def empty(ticker: str, start: date, end: date) -> pandas.DataFrame:
-    return pandas.DataFrame(columns=["Open", "High", "Low", "Close", "Volume"])
+    return pandas.DataFrame()  # what yfinance hands back for a ticker it does not know
 
 
 def by_ticker(**handlers: object) -> object:

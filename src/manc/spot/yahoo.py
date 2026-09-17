@@ -32,8 +32,8 @@ def yfinance_history(ticker: str, start: date, end: date) -> "DataFrame":
 
 
 class YahooSpot:
-    def __init__(self, history: History = yfinance_history) -> None:
-        self.history = history
+    def __init__(self, history: History | None = None) -> None:
+        self.history = history or yfinance_history
 
     def fetch(self, assets: Sequence[AssetSpec], day: date) -> list[SpotPrice]:
         """The last close on or before `day` for every asset with a yahoo ticker."""

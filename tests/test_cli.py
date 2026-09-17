@@ -10,15 +10,18 @@ import respx
 
 from manc import cli, llm
 from manc.config import load_config
+from manc.spot import yahoo
 from manc.store import db
 from manc.store.sql import SqlStore
+from tests.fakes import recorded_history
 
 EMPTY_FEED = b'<?xml version="1.0"?><rss version="2.0"><channel><title>x</title></channel></rss>'
 NO_RECORD = {"data": None, "status": {"bCodeMessage": [{"errorMessage": "No record found."}]}}
 
 
 @pytest.fixture(autouse=True)
-def offline_sources() -> Iterator[respx.MockRouter]:
+def offline_sources(monkeypatch: pytest.MonkeyPatch) -> Iterator[respx.MockRouter]:
+    monkeypatch.setattr(yahoo, "yfinance_history", recorded_history)  # yfinance bypasses httpx
     with respx.mock(assert_all_called=False) as router:
         router.get(host="api.nasdaq.com").mock(return_value=httpx.Response(200, json=NO_RECORD))
         router.route(name="feeds").mock(return_value=httpx.Response(200, content=EMPTY_FEED))
@@ -38,6 +41,14 @@ def test_run_prints_one_line_per_asset(migrated_db: str, capsys: pytest.CaptureF
     lines = capsys.readouterr().out.strip().splitlines()
     assert len(lines) == 7
     assert lines[0].split() == ["2026-09-15", "EURUSD", "50.0", "v1", "news=0", "events=0"]
+
+
+def test_run_stores_one_close_per_asset(migrated_db: str) -> None:
+    assert cli.main(["run", "--date", "2026-09-15"]) == 0
+    store = SqlStore(db.make_engine())
+    closes = {asset.symbol: store.spot.latest(asset.symbol) for asset in load_config().assets}
+    assert all(price is not None and price.date == date(2026, 9, 15) for price in closes.values())
+    assert closes["EURUSD"].source == "yahoo"
 
 
 def test_run_pulls_every_configured_feed_and_forecast_query(

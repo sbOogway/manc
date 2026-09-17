@@ -6,9 +6,23 @@ import pytest
 
 from manc.config import load_config
 from manc.formulas.registry import get_formula
-from manc.models import CalendarEvent, ForecastAsset, ForecastMacro, Forecasts, NewsItem
+from manc.models import (
+    CalendarEvent,
+    ForecastAsset,
+    ForecastMacro,
+    Forecasts,
+    NewsItem,
+    SpotPrice,
+)
 from manc.pipeline import rescore, run
-from tests.fakes import FakeAnalyzer, FakeCalendar, FakeForecasts, FakeNews, FakeStore
+from tests.fakes import (
+    FakeAnalyzer,
+    FakeCalendar,
+    FakeForecasts,
+    FakeNews,
+    FakeSpot,
+    FakeStore,
+)
 
 AS_OF = datetime(2026, 9, 15, 8, 0, tzinfo=UTC)
 CONFIG = load_config()
@@ -39,6 +53,7 @@ def test_run_stores_inputs_and_one_score_per_asset() -> None:
         news=FakeNews([item]),
         analyzer=FakeAnalyzer(),
         forecasts=FakeForecasts(),
+        spot=FakeSpot(),
         store=store,
         formula=get_formula("v1"),
     )
@@ -49,6 +64,25 @@ def test_run_stores_inputs_and_one_score_per_asset() -> None:
     assert all(score.date == date(2026, 9, 15) and score.formula == "v1" for score in scores)
     assert all(score.score == 50.0 for score in scores)
     assert store.scores.series("EURUSD", "v1", AS_OF.date(), AS_OF.date()) == [scores[0]]
+
+
+def test_run_stores_the_closes_the_spot_provider_returns() -> None:
+    store = FakeStore()
+    gold = SpotPrice(asset="XAUUSD", date=AS_OF.date(), close=3650.0, source="yahoo")
+    old_gold = SpotPrice(asset="XAUUSD", date=date(2026, 9, 1), close=3600.0, source="yahoo")
+    run(
+        as_of=AS_OF,
+        config=CONFIG,
+        calendar=FakeCalendar(),
+        news=FakeNews(),
+        analyzer=FakeAnalyzer(),
+        forecasts=FakeForecasts(),
+        spot=FakeSpot([gold, old_gold]),
+        store=store,
+        formula=get_formula("v1"),
+    )
+    assert store.spot.latest("XAUUSD") == gold  # FakeSpot answers only for the run's day
+    assert store.spot.between("XAUUSD", date.min, date.max) == [gold]
 
 
 def test_run_stores_the_forecasts_the_provider_returns() -> None:
@@ -75,6 +109,7 @@ def test_run_stores_the_forecasts_the_provider_returns() -> None:
         news=FakeNews(),
         analyzer=FakeAnalyzer(),
         forecasts=FakeForecasts(Forecasts(asset=(gold, stale), macro=(rate,))),
+        spot=FakeSpot(),
         store=store,
         formula=get_formula("v1"),
     )

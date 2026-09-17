@@ -14,6 +14,7 @@ from manc.formulas.contract import IndexScore
 from manc.formulas.registry import get_formula
 from manc.news.rss import RssNews
 from manc.pipeline import rescore, run
+from manc.spot.yahoo import YahooSpot
 from manc.store import db
 from manc.store.sql import SqlStore
 
@@ -43,6 +44,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             news=RssNews(config.feeds + config.forecasts.query_feeds),
             analyzer=EmptyAnalyzer(),
             forecasts=LlmExtractor(config, store.news),
+            spot=YahooSpot(),
             store=store,
             formula=get_formula(config.scoring.formula),
         )

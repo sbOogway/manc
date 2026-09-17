@@ -2,10 +2,15 @@
 
 from collections.abc import Callable, Iterable, Sequence
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
+
+import pandas
 
 from manc.formulas.contract import AssetSpec, IndexScore
 from manc.models import CalendarEvent, Forecasts, NewsItem, NewsTag, SpotPrice
+
+SPOT_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "spot"
 
 
 class FakeCalendar:
@@ -63,6 +68,12 @@ class FakeSpot:
     def fetch(self, assets: Sequence[AssetSpec], day: date) -> list[SpotPrice]:
         symbols = {asset.symbol for asset in assets}
         return [price for price in self.prices if price.asset in symbols and price.date == day]
+
+
+def recorded_history(ticker: str, start: date, end: date) -> pandas.DataFrame:
+    """Replay a recorded `yfinance.Ticker.history` frame; tz-aware index like the real one."""
+    assert start < end
+    return pandas.read_csv(SPOT_FIXTURES / f"{ticker}.csv", index_col="Date", parse_dates=["Date"])
 
 
 class FakeNewsRepository:
