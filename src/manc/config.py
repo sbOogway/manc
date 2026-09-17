@@ -64,6 +64,18 @@ class CalendarConfig:
 
 
 @dataclass(frozen=True)
+class LexiconConfig:
+    """Whole-word regexes for the offline analyzer (config/lexicon.yaml explains the rules)."""
+
+    economies: tuple[tuple[re.Pattern[str], str], ...]  # (term, economy key)
+    categories: tuple[tuple[re.Pattern[str], str], ...]  # (term, event category)
+    assets: tuple[
+        tuple[re.Pattern[str], str, int], ...
+    ]  # (term, symbol, sign of a positive phrase)
+    polarity: tuple[tuple[re.Pattern[str], int], ...]  # (phrase, -1 | 0 | +1), in order
+
+
+@dataclass(frozen=True)
 class InstitutionSpec:
     name: str  # canonical, stored in the database: "goldman_sachs"
     aliases: tuple[str, ...]  # spellings seen in headlines
@@ -120,6 +132,7 @@ class Config:
     llm: LlmConfig
     calendar: CalendarConfig
     forecasts: ForecastsConfig
+    lexicon: LexiconConfig
 
 
 def load_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> Config:
@@ -134,6 +147,13 @@ def load_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> Config:
     for query in config.forecasts.queries:
         if query.asset not in symbols:
             raise ValueError(f"forecasts: query for unknown asset {query.asset!r}")
+    economies = {economy for asset in config.assets for economy in asset.economies}
+    for _pattern, economy in config.lexicon.economies:
+        if economy not in economies:
+            raise ValueError(f"lexicon: unknown economy {economy!r}")
+    for _pattern, symbol, _sign in config.lexicon.assets:
+        if symbol not in symbols:
+            raise ValueError(f"lexicon: unknown asset {symbol!r}")
     return config
 
 
@@ -264,6 +284,43 @@ def _load_forecasts(raw: dict[str, Any]) -> ForecastsConfig:
     )
 
 
+def _term(term: str) -> re.Pattern[str]:
+    """Whole-word match; a term with an uppercase letter is case-sensitive ("Fed", not "fed up")."""
+    flags = 0 if any(char.isupper() for char in term) else re.IGNORECASE
+    return re.compile(rf"(?<!\w)(?:{term})(?!\w)", flags)
+
+
+def _load_lexicon(raw: dict[str, Any]) -> LexiconConfig:
+    categories = []
+    for category, terms in (raw.get("categories") or {}).items():
+        if category not in _VALID_CATEGORIES:
+            raise ValueError(f"lexicon: unknown category {category!r}")
+        categories.extend((_term(term), category) for term in terms)
+    assets = []
+    for symbol, mentions in (raw.get("assets") or {}).items():
+        for term, sign in mentions.items():
+            if sign not in (-1, 1):
+                raise ValueError(f"lexicon: sign for {symbol} {term!r} must be -1 or 1, got {sign}")
+            assets.append((_term(term), symbol, int(sign)))
+    polarity = []
+    for entry in raw.get("polarity") or []:
+        if entry["sign"] not in _VALID_SIGNS:
+            raise ValueError(
+                f"lexicon: sign for {entry['pattern']!r} must be -1, 0 or 1, got {entry['sign']}"
+            )
+        polarity.append((_term(entry["pattern"]), int(entry["sign"])))
+    return LexiconConfig(
+        economies=tuple(
+            (_term(term), economy)
+            for economy, terms in (raw.get("economies") or {}).items()
+            for term in terms
+        ),
+        categories=tuple(categories),
+        assets=tuple(assets),
+        polarity=tuple(polarity),
+    )
+
+
 _SECTIONS: dict[str, Callable[[dict[str, Any]], Any]] = {
     "assets": _load_assets,
     "feeds": _load_feeds,
@@ -271,4 +328,5 @@ _SECTIONS: dict[str, Callable[[dict[str, Any]], Any]] = {
     "llm": _load_llm,
     "calendar": _load_calendar,
     "forecasts": _load_forecasts,
+    "lexicon": _load_lexicon,
 }
