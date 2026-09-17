@@ -256,3 +256,21 @@ def test_run_tags_the_headlines_through_the_llm(
         "free/model",
         "v1",
     )
+
+
+def test_run_tags_with_the_lexicon_when_the_llm_fails(
+    migrated_db: str, offline_sources: respx.MockRouter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    offline_sources["feeds"].mock(return_value=httpx.Response(200, content=FORECAST_FEED))
+
+    def failing_completion(**kwargs: object) -> object:
+        raise RuntimeError("429 rate limited")
+
+    monkeypatch.setattr(llm.litellm, "completion", failing_completion)
+
+    assert cli.main(["run", "--date", "2026-06-01"]) == 0
+
+    store = SqlStore(db.make_engine())
+    [(item, tag)] = store.news.tagged("XAUUSD", datetime(2026, 5, 1, tzinfo=UTC))
+    assert item.url == "https://x/gold"
+    assert (tag.direction, tag.model, tag.prompt_version) == (1, "", "")

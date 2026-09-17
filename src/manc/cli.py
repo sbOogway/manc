@@ -6,6 +6,7 @@ import sys
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time
 
+from manc.analysis.lexicon import LexiconAnalyzer
 from manc.analysis.llm import LlmAnalyzer
 from manc.calendar.nasdaq import NasdaqCalendar
 from manc.config import Config, load_config
@@ -45,7 +46,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             config=config,
             calendar=NasdaqCalendar(config.calendar),
             news=RssNews(config.feeds + config.forecasts.query_feeds),
-            analyzer=LlmAnalyzer(config),
+            analyzer=LlmAnalyzer(config, fallback=LexiconAnalyzer(config.lexicon)),
             forecasts=_forecast_providers(config, store),
             spot=YahooSpot(),
             store=store,
