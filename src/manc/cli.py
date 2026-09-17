@@ -1,4 +1,4 @@
-"""`manc` command line: run | rescore | api | ui | serve."""
+"""`manc` command line: run | rescore | forecasts | api | ui | serve."""
 
 import argparse
 import logging
@@ -8,7 +8,7 @@ from datetime import UTC, date, datetime, time
 
 from manc.analysis.empty import EmptyAnalyzer
 from manc.calendar.nasdaq import NasdaqCalendar
-from manc.config import load_config
+from manc.config import Config, load_config
 from manc.forecasts.extractor import LlmExtractor
 from manc.formulas.contract import IndexScore
 from manc.formulas.registry import get_formula
@@ -33,6 +33,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"manc: {error}", file=sys.stderr)
         return 1
     config = load_config()
+    if args.command == "forecasts":
+        return _backfill_forecasts(config, store, args.since)
     if args.command == "run":
         scores = run(
             as_of=_as_of(args.date),
@@ -54,6 +56,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     for score in scores:
         print(_line(score))
+    return 0
+
+
+def _backfill_forecasts(config: Config, store: SqlStore, since_day: date) -> int:
+    """Pull the per-asset query feeds far back, store them, extract forecasts from the store."""
+    since = datetime.combine(since_day, time.min, tzinfo=UTC)
+    items = RssNews(config.forecasts.query_feeds).fetch(since)
+    store.news.add(*items)
+    found = LlmExtractor(config, store.news).fetch(since)
+    store.forecasts_asset.add(*found.asset)
+    store.forecasts_macro.add(*found.macro)
+    print(f"news={len(items)} forecasts: asset={len(found.asset)} macro={len(found.macro)}")
     return 0
 
 
@@ -83,6 +97,13 @@ def _parser() -> argparse.ArgumentParser:
     rescore_cmd.add_argument("--formula", help="formula name; defaults to config/scoring.yaml")
     rescore_cmd.add_argument("--from", dest="start", type=date.fromisoformat, required=True)
     rescore_cmd.add_argument("--to", dest="end", type=date.fromisoformat, help="default: today")
+
+    forecasts_cmd = commands.add_parser(
+        "forecasts", help="backfill institutional forecasts from the per-asset query feeds"
+    )
+    forecasts_cmd.add_argument(
+        "--since", type=date.fromisoformat, required=True, help="earliest publication day"
+    )
 
     for name in M4_COMMANDS:
         commands.add_parser(name, help="milestone M4")
