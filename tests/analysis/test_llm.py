@@ -154,9 +154,10 @@ def test_a_failing_batch_is_skipped_and_the_others_still_count(
 # Run with `uv run pytest tests/analysis/test_llm.py -m live -s -vv --no-cov`: `-s` prints
 # every tag the model produced, `-vv` every wrong one. `MANC_LIVE_MODEL=openrouter/<vendor>/
 # <model>` benchmarks another model without touching config/llm.yaml (no fallback, so its
-# own failures show). Checked 2026-09-17: nex-agi/nex-n2.5-pro:free passes all eight,
-# liquid/lfm-2.5-2.6b:free fails four (misses EURUSD entirely, flips SPX on an earnings
-# beat), and the openrouter/free router lands on either kind.
+# own failures show). Checked 2026-09-17: nex-agi/nex-n2.5-pro:free passes everything,
+# nex-n2.5-mini:free only calls gold +1 on a hot CPI print, liquid/lfm-2.5-2.6b:free never
+# tags EURUSD and flips SPX on an earnings beat, and the openrouter/free router lands on any
+# of them.
 
 live = pytest.mark.live
 needs_key = pytest.mark.skipif(
@@ -179,8 +180,46 @@ OPEC_CUT = _item("OPEC+ deepens output cuts by 1m barrels a day, crude jumps 4%"
 BANK_MISS = _item("S&P 500 futures slide as big-bank earnings miss and guidance is cut")
 CHIP_RALLY = _item("Nvidia beats on every line, chip stocks rally in after-hours trade")
 BTC_INFLOWS = _item("Bitcoin spot ETF inflows hit a record $2bn in a day")
-NOISE = _item("Local bakery wins regional pie contest")
-BALANCED = _item("Weekly markets wrap: stocks flat, dollar little changed, gold steady")
+# Market-flavoured but signal-free: the right answer is no tag, or a 0 at most.
+NOISE = (
+    _item("Local bakery wins regional pie contest"),
+    _item("Goldman Sachs names new head of European equities"),
+    _item("ECB publishes the schedule of its 2027 monetary policy meetings"),
+    _item("NYSE and Nasdaq to close on Monday for the public holiday"),
+    _item("How to read a candlestick chart: a beginner's guide"),
+    _item("Bitcoin conference draws 20,000 attendees to Nashville"),
+    _item("Weekly markets wrap: stocks flat, dollar little changed, gold steady"),
+)
+# Two-sided for the assets named: a directional call either way is a guess.
+BALANCED = (
+    (
+        _item(
+            "US CPI cools to 2.1% headline but core services inflation re-accelerates",
+            summary="Traders see the mixed print leaving the Fed's next move a coin flip",
+        ),
+        ("EURUSD", "XAUUSD", "USDJPY"),
+    ),
+    (
+        _item(
+            "Fed cuts 25bp but a split committee leaves December wide open",
+            summary="Three officials wanted 50bp, two wanted no change; Powell offers no guidance",
+        ),
+        ("EURUSD", "XAUUSD", "USDJPY"),
+    ),
+    (
+        _item("OPEC+ extends output cuts as the IEA trims its demand forecast again"),
+        ("BRENT",),
+    ),
+    (
+        _item("Bitcoin holds near $100k as ETF inflows offset miner selling"),
+        ("BTCUSD",),
+    ),
+    (
+        _item("Sterling flat as UK inflation lands exactly in line with forecasts"),
+        ("GBPUSD",),
+    ),
+)
+DIRECTIONLESS = {item.id for item in NOISE} | {item.id for item, _ in BALANCED}
 HEADLINES = [
     HOT_CPI,
     WEAK_PAYROLLS,
@@ -192,8 +231,8 @@ HEADLINES = [
     BANK_MISS,
     CHIP_RALLY,
     BTC_INFLOWS,
-    NOISE,
-    BALANCED,
+    *NOISE,
+    *(item for item, _ in BALANCED),
 ]
 
 Directions = dict[tuple[str, str], int]
@@ -243,7 +282,7 @@ def test_live_tags_are_well_formed(live_tags: list[NewsTag]) -> None:
 def test_live_every_market_headline_gets_at_least_one_tag(live_tags: list[NewsTag]) -> None:
     tagged = {tag.news_id for tag in live_tags}
     missed = [
-        item.title for item in HEADLINES if item not in (NOISE, BALANCED) and item.id not in tagged
+        item.title for item in HEADLINES if item.id not in DIRECTIONLESS and item.id not in tagged
     ]
     assert missed == []
 
@@ -313,13 +352,26 @@ def test_live_commodity_equity_and_crypto_headlines(directions: Directions) -> N
 
 @live
 @needs_key
-def test_live_noise_and_balanced_headlines_carry_no_direction(live_tags: list[NewsTag]) -> None:
+def test_live_market_noise_carries_no_direction(live_tags: list[NewsTag]) -> None:
+    titles = {item.id: item.title[:40] for item in NOISE}
     directional = [
-        f"{tag.asset} {tag.direction:+d}"
+        f"{titles[tag.news_id]!r} {tag.asset} {tag.direction:+d}"
         for tag in live_tags
-        if tag.news_id in (NOISE.id, BALANCED.id) and tag.direction != 0
+        if tag.news_id in titles and tag.direction != 0
     ]
     assert directional == []
+
+
+@live
+@needs_key
+def test_live_two_sided_headlines_get_no_directional_call(directions: Directions) -> None:
+    guessed = [
+        f"{item.title[:40]!r} {asset} {directions[item.id, asset]:+d}"
+        for item, assets in BALANCED
+        for asset in assets
+        if directions.get((item.id, asset), 0) != 0
+    ]
+    assert guessed == []
 
 
 @live
