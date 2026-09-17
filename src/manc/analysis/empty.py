@@ -1,4 +1,4 @@
-"""Offline stand-in until the LiteLLM tagger lands (M3)."""
+"""Offline stand-in until the lexicon fallback lands (M3)."""
 
 from collections.abc import Sequence
 

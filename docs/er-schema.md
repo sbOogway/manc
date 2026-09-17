@@ -72,6 +72,8 @@ erDiagram
     VARCHAR(16) asset PK
     INTEGER direction
     FLOAT confidence
+    VARCHAR(128) model
+    VARCHAR(16) prompt_version
     DATETIME tagged_at
   }
 

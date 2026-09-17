@@ -36,6 +36,20 @@ def test_models_are_frozen_and_hashable() -> None:
             obj.asset = "x"  # type: ignore[attr-defined,misc]
 
 
+def test_news_tag_records_which_model_and_prompt_produced_it() -> None:
+    tag = NewsTag(
+        news_id="n",
+        asset="EURUSD",
+        direction=1,
+        confidence=0.8,
+        model="router/x",
+        prompt_version="v1",
+    )
+    assert (tag.model, tag.prompt_version) == ("router/x", "v1")
+    offline = NewsTag(news_id="n", asset="EURUSD", direction=0, confidence=0.0)
+    assert (offline.model, offline.prompt_version) == ("", "")
+
+
 def test_news_tag_rejects_bad_direction_and_confidence() -> None:
     with pytest.raises(ValueError):
         NewsTag(news_id="n", asset="EURUSD", direction=2, confidence=0.5)
