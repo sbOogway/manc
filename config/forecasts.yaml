@@ -6,7 +6,7 @@
 min_confidence: 0.5
 
 # Macro metrics the extractor may return for an economy (forecasts_macro.metric).
-metrics: [policy_rate, cpi, gdp, unemployment]
+metrics: [policy_rate, cpi, pce, gdp, unemployment]
 
 # Case-insensitive regexes: a headline is a candidate only if one of these matches, next to an
 # institution alias. Kept loose on purpose; the LLM does the real filtering.

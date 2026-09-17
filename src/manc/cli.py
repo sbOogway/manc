@@ -10,10 +10,13 @@ from manc.analysis.empty import EmptyAnalyzer
 from manc.calendar.nasdaq import NasdaqCalendar
 from manc.config import Config, load_config
 from manc.forecasts.extractor import LlmExtractor
+from manc.forecasts.fed_sep import FedSep
+from manc.forecasts.interface import ForecastProvider
+from manc.forecasts.worldbank import WorldBankOutlook
 from manc.formulas.contract import IndexScore
 from manc.formulas.registry import get_formula
 from manc.news.rss import RssNews
-from manc.pipeline import rescore, run
+from manc.pipeline import fetch_forecasts, rescore, run
 from manc.spot.yahoo import YahooSpot
 from manc.store import db
 from manc.store.sql import SqlStore
@@ -43,7 +46,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             calendar=NasdaqCalendar(config.calendar),
             news=RssNews(config.feeds + config.forecasts.query_feeds),
             analyzer=EmptyAnalyzer(),
-            forecasts=LlmExtractor(config, store.news),
+            forecasts=_forecast_providers(config, store),
             spot=YahooSpot(),
             store=store,
             formula=get_formula(config.scoring.formula),
@@ -66,11 +69,14 @@ def _backfill_forecasts(config: Config, store: SqlStore, since_day: date) -> int
     since = datetime.combine(since_day, time.min, tzinfo=UTC)
     items = RssNews(config.forecasts.query_feeds).fetch(since)
     store.news.add(*items)
-    found = LlmExtractor(config, store.news).fetch(since)
-    store.forecasts_asset.add(*found.asset)
-    store.forecasts_macro.add(*found.macro)
+    found = fetch_forecasts(_forecast_providers(config, store), since, store)
     print(f"news={len(items)} forecasts: asset={len(found.asset)} macro={len(found.macro)}")
     return 0
+
+
+def _forecast_providers(config: Config, store: SqlStore) -> list[ForecastProvider]:
+    """The extractor over stored news, then the structured publishers."""
+    return [LlmExtractor(config, store.news), FedSep(), WorldBankOutlook()]
 
 
 def _as_of(day: date | None) -> datetime:

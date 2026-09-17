@@ -24,6 +24,7 @@ dependencies = [
     "feedparser>=6.0.14",
     "httpx>=0.28.1",
     "litellm>=1.101.0",
+    "openpyxl>=3.1.5",
     "pydantic>=2.13.5",
     "pyyaml>=6.0.3",
     "sqlalchemy>=2.0",

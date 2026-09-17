@@ -223,8 +223,8 @@ extraction from the news already ingested, and structured publishers are supplem
 | Channel     | Source                                                     | Covers                          | Cadence     |
 |-------------|------------------------------------------------------------|---------------------------------|-------------|
 | extracted   | every feed in `feeds.yaml`, plus one Google News RSS query per asset (`EUR/USD forecast (Goldman OR ING OR ...)`) at low news weight | all assets, rate calls | daily; the queries return ~100 items spanning months, used once for a backfill |
-| structured  | Fed SEP (median dots: policy rate, PCE, GDP, unemployment) | `united_states` macro           | quarterly   |
-| structured  | World Bank Commodity Markets Outlook (xlsx)                | XAUUSD, WTI annual averages     | semi-annual |
+| structured  | Fed SEP (`fed_sep.py`): the medians for the policy rate, PCE inflation, real GDP and unemployment per projection year, from the accessible projections page linked on the FOMC calendar; the undated longer run is skipped | `united_states` macro | quarterly |
+| structured  | World Bank Commodity Markets Outlook (`worldbank.py`): the forecasts xlsx behind the PDF linked on the commodity-markets page, dated by its release line | XAUUSD annual averages (the table quotes Brent, not WTI) | semi-annual |
 | structured  | EIA STEO API (free key, `EIA_API_KEY`)                     | WTI monthly path                | monthly; deferred until the key is set up |
 | not used    | CME FedWatch (403), Bloomberg/Reuters consensus, Trading Economics (paid), bank research pages (scraping; revisit if a must-have appears) | | |
 
@@ -566,7 +566,8 @@ backfilled the forecasts panel for every asset.
 - LLM forecast extractor through LiteLLM (the first LiteLLM call; brings `litellm` and
   `config/llm.yaml` wiring forward from M3), `manc forecasts --since` backfill
 - `SpotProvider` with the Yahoo adapter and the no-price-in-formula isolation test
-- Fed SEP and World Bank publishers with recorded fixtures; EIA when the key is set up
+- Fed SEP and World Bank publishers with recorded fixtures; the pipeline runs every
+  forecast provider; EIA when the key is set up
 - the forecasts panel itself (query, route, page) belongs to M4
 
 **M3 Analysis and index** — done when: real scores are written for all seven assets.

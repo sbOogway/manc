@@ -72,7 +72,7 @@ erDiagram
         string id PK "sha1(institution|economy:metric|horizon_date|value), 40"
         string institution "64"
         string economy "64"
-        string metric "32: policy_rate | cpi | gdp | unemployment"
+        string metric "32: policy_rate | cpi | pce | gdp | unemployment"
         date horizon_date
         string horizon_label "64"
         float value
