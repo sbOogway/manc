@@ -1,4 +1,4 @@
-"""The daily run (blueprint section 2): fetch calendar and news, tag, score, store.
+"""The daily run (blueprint section 2): fetch, tag, extract forecasts, score, store.
 
 Every input the formula sees is persisted first, so `rescore` can replay any date range
 under any formula without touching a provider.
@@ -10,6 +10,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from manc.analysis.interface import Analyzer
 from manc.calendar.interface import CalendarProvider
 from manc.config import Config
+from manc.forecasts.interface import ForecastProvider
 from manc.formulas.contract import IndexFormula, IndexScore
 from manc.news.interface import NewsProvider
 from manc.scoring.adapter import build_inputs
@@ -25,6 +26,7 @@ def run(
     calendar: CalendarProvider,
     news: NewsProvider,
     analyzer: Analyzer,
+    forecasts: ForecastProvider,
     store: Store,
     formula: IndexFormula,
 ) -> list[IndexScore]:
@@ -44,6 +46,11 @@ def run(
     tags = analyzer.tag(items, config.assets)
     store.tags.add(*tags)
     log.info("analysis: %d tags", len(tags))
+
+    found = forecasts.fetch(news_since)
+    store.forecasts_asset.add(*found.asset)
+    store.forecasts_macro.add(*found.macro)
+    log.info("forecasts: %d asset, %d macro", len(found.asset), len(found.macro))
 
     return _score_all(as_of, config, store, formula)
 

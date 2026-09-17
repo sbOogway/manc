@@ -1,16 +1,17 @@
 """`manc` entry point on a real temp database; every feed and the calendar are stubbed empty."""
 
 from collections.abc import Iterator
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import httpx
 import pytest
 import respx
 
-from manc import cli
+from manc import cli, llm
 from manc.config import load_config
 from manc.store import db
+from manc.store.sql import SqlStore
 
 EMPTY_FEED = b'<?xml version="1.0"?><rss version="2.0"><channel><title>x</title></channel></rss>'
 NO_RECORD = {"data": None, "status": {"bCodeMessage": [{"errorMessage": "No record found."}]}}
@@ -20,7 +21,7 @@ NO_RECORD = {"data": None, "status": {"bCodeMessage": [{"errorMessage": "No reco
 def offline_sources() -> Iterator[respx.MockRouter]:
     with respx.mock(assert_all_called=False) as router:
         router.get(host="api.nasdaq.com").mock(return_value=httpx.Response(200, json=NO_RECORD))
-        router.route().mock(return_value=httpx.Response(200, content=EMPTY_FEED))
+        router.route(name="feeds").mock(return_value=httpx.Response(200, content=EMPTY_FEED))
         yield router
 
 
@@ -111,3 +112,53 @@ def test_verbose_logs_each_step(migrated_db: str, caplog: pytest.LogCaptureFixtu
 def test_quiet_by_default(migrated_db: str, caplog: pytest.LogCaptureFixture) -> None:
     assert cli.main(["run", "--date", "2026-09-15"]) == 0
     assert not [record for record in caplog.records if record.name.startswith("manc")]
+
+
+FORECAST_FEED = b"""<?xml version="1.0"?><rss version="2.0"><channel><title>q</title>
+<item><title>Goldman Sachs raises gold target to $4,000 by year-end</title>
+<link>https://x/gold</link><pubDate>Mon, 01 Jun 2026 10:00:00 GMT</pubDate></item>
+<item><title>Markets wrap: stocks drift</title>
+<link>https://x/wrap</link><pubDate>Mon, 01 Jun 2026 11:00:00 GMT</pubDate></item>
+</channel></rss>"""
+
+
+def test_forecasts_backfill_pulls_only_the_query_feeds_and_stores_what_the_llm_finds(
+    migrated_db: str,
+    offline_sources: respx.MockRouter,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    offline_sources["feeds"].mock(return_value=httpx.Response(200, content=FORECAST_FEED))
+    prompts: list[str] = []
+
+    def fake_completion(**kwargs: object) -> object:
+        messages = kwargs["messages"]
+        prompts.append(messages[-1]["content"])  # type: ignore[index]
+        content = (
+            '{"forecasts": [{"item": 0, "institution": "Goldman Sachs", "subject": "XAUUSD",'
+            ' "value": 4000, "horizon": "year-end", "confidence": 0.9}]}'
+        )
+        message = type("Message", (), {"content": content})()
+        choice = type("Choice", (), {"message": message})()
+        return type("Response", (), {"choices": [choice], "model": "free/model"})()
+
+    monkeypatch.setattr(llm.litellm, "completion", fake_completion)
+
+    assert cli.main(["forecasts", "--since", "2026-05-01"]) == 0
+
+    config = load_config()
+    requested = {str(call.request.url) for call in offline_sources.calls}
+    assert requested == {query.feed.url for query in config.forecasts.queries}
+    assert len(prompts) == 1 and "Goldman Sachs raises gold" in prompts[0]
+    assert "Markets wrap" not in prompts[0]
+    store = SqlStore(db.make_engine())
+    [forecast] = store.forecasts_asset.latest("XAUUSD")
+    assert (forecast.institution, forecast.value, forecast.model) == (
+        "goldman_sachs",
+        4000.0,
+        "free/model",
+    )
+    assert forecast.horizon_date == date(2026, 12, 31)
+    stored = store.news.since(datetime(2026, 1, 1, tzinfo=UTC))
+    assert len(stored) == 2  # both items once, although every query answered with the same feed
+    assert capsys.readouterr().out.strip() == "news=2 forecasts: asset=1 macro=0"

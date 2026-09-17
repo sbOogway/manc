@@ -188,7 +188,8 @@ Keyword matching is brittle ("Fed" vs "fed up"), so tagging is one LLM call per 
 headlines with a structured response: for each headline, the list of affected assets with a
 direction and confidence. At ~300 headlines a day this is a handful of calls.
 
-All model calls go through LiteLLM's `completion()`, so the model is a single
+All model calls go through LiteLLM's `completion()`, behind `manc.llm.complete()` (the
+extractor and the tagger share it), so the model is a single
 provider-prefixed string in `config/llm.yaml` (`anthropic/...`, `openai/...`, `ollama/...`,
 `openrouter/<vendor>/<model>`) and switching providers is a config edit plus the provider's
 API-key env var.
@@ -488,7 +489,8 @@ manc/
 │   │   └── v1.py           # class FormulaV1
 │   ├── calendar/           # interface.py, nasdaq.py
 │   ├── news/               # interface.py, rss.py
-│   ├── analysis/           # interface.py, llm.py, lexicon.py
+│   ├── llm.py              # the one LiteLLM call site: complete(config, messages, response_model)
+│   ├── analysis/           # interface.py, llm.py (tagger), lexicon.py
 │   ├── forecasts/          # interface.py, extractor.py (LiteLLM), fed_sep.py, worldbank.py, eia.py
 │   ├── spot/               # interface.py, stooq.py
 │   ├── scoring/            # adapter.py: store → ScoringInputs → formula
