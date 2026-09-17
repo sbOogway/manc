@@ -124,7 +124,7 @@ def test_forecasts_config_loads() -> None:
     assert all(institution.kind in FORECASTER_KINDS for institution in forecasts.institutions)
     assert all(0.0 <= institution.weight <= 1.0 for institution in forecasts.institutions)
     assert 0.0 <= forecasts.min_confidence <= 1.0
-    assert set(forecasts.metrics) >= {"policy_rate", "cpi", "gdp", "unemployment"}
+    assert set(forecasts.metrics) >= {"policy_rate", "cpi", "pce", "gdp", "unemployment"}
     assert {query.asset for query in forecasts.queries} == {asset.symbol for asset in config.assets}
     assert all(query.feed.url.startswith("https://") for query in forecasts.queries)
     assert forecasts.signals  # at least one compiled regex

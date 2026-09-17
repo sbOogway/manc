@@ -149,7 +149,7 @@ class ForecastMacro:
     id: str  # sha1(institution | economy:metric | horizon_date | value)
     institution: str
     economy: str  # "united_states"
-    metric: str  # policy_rate | cpi | gdp | unemployment
+    metric: str  # policy_rate | cpi | pce | gdp | unemployment
     horizon_date: date
     horizon_label: str
     value: float
