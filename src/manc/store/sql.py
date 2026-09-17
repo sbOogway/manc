@@ -119,6 +119,8 @@ class SqlTagRepository:
                     "asset": tag.asset,
                     "direction": tag.direction,
                     "confidence": tag.confidence,
+                    "model": tag.model,
+                    "prompt_version": tag.prompt_version,
                     "tagged_at": now,
                 }
                 for tag in tags
@@ -351,6 +353,8 @@ def _news_tag(row: Any) -> NewsTag:
         asset=row["asset"],
         direction=row["direction"],
         confidence=row["confidence"],
+        model=row["model"],
+        prompt_version=row["prompt_version"],
     )
 
 

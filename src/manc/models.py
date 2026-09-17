@@ -71,6 +71,8 @@ class NewsTag:
     asset: str
     direction: int  # -1 bearish, 0 neutral/irrelevant, +1 bullish
     confidence: float  # 0..1
+    model: str = ""  # LLM that produced the tag, "" for offline analyzers
+    prompt_version: str = ""  # so tags from different prompts can be told apart (M6)
 
     def __post_init__(self) -> None:
         if self.direction not in (-1, 0, 1):

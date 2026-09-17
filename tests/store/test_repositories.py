@@ -127,10 +127,18 @@ def test_news_add_is_an_upsert(store: Store) -> None:
 def test_tagged_joins_news_and_tags_for_one_asset(store: Store) -> None:
     item_a, item_b = _item("u/a"), _item("u/b")
     store.news.add(item_a, item_b)
-    tag_a = NewsTag(news_id=item_a.id, asset="EURUSD", direction=1, confidence=0.9)
+    tag_a = NewsTag(
+        news_id=item_a.id,
+        asset="EURUSD",
+        direction=1,
+        confidence=0.9,
+        model="router/x",
+        prompt_version="v1",
+    )
     tag_b = NewsTag(news_id=item_b.id, asset="XAUUSD", direction=-1, confidence=0.4)
     store.tags.add(tag_a, tag_b)
     assert store.news.tagged("EURUSD", NOW - DAY) == [(item_a, tag_a)]
+    assert store.news.tagged("XAUUSD", NOW - DAY) == [(item_b, tag_b)]
     assert store.news.tagged("BTCUSD", NOW - DAY) == []
 
 

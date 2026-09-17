@@ -39,6 +39,8 @@ news_tags = Table(
     Column("asset", String(16), primary_key=True),
     Column("direction", Integer, nullable=False),  # -1, 0, +1
     Column("confidence", Float, nullable=False),  # 0..1
+    Column("model", String(128), nullable=False, default=""),
+    Column("prompt_version", String(16), nullable=False, default=""),
     Column("tagged_at", DateTime(timezone=True), nullable=False),
 )
 
