@@ -4,6 +4,10 @@ Entity-relationship view of `data/manc.db` as declared in `src/manc/store/schema
 (Alembic head `9bbb45ea6917`). The blueprint, section 6, explains the write rules; this page
 only draws the tables. Keep it in step with `schema.py`: a new revision means an edit here.
 
+Solid lines are foreign keys enforced in SQL. Dashed lines are the links the application
+relies on but SQL does not enforce: the shared key is a name from a YAML file in `config/`,
+drawn here as the three `config_*` entities, and the join happens in `queries.py`.
+
 ```mermaid
 erDiagram
     news {
@@ -88,19 +92,58 @@ erDiagram
         datetime fetched_at
     }
 
+    config_asset {
+        string symbol PK "config/assets.yaml, e.g. EURUSD"
+        string kind "forex | metal | commodity | equity_index | crypto"
+        string spot_symbols "per spot source, e.g. stooq: eurusd"
+    }
+
+    config_economy {
+        string key PK "config/assets.yaml economies, e.g. united_states"
+    }
+
+    config_institution {
+        string name PK "config/forecasts.yaml, e.g. goldman_sachs"
+        string kind "bank | official | survey | specialist"
+        float weight "ordering in the dashboard"
+    }
+
+    %% enforced in SQL
     news ||--o{ news_tags : "tagged for an asset"
+
+    %% by asset symbol
+    config_asset ||..o{ news_tags : "asset"
+    config_asset ||..o{ scores : "asset"
+    config_asset ||..o{ forecasts_asset : "asset"
+    config_asset ||..o{ spot_prices : "asset"
+
+    %% by economy key: an asset lists the economies whose events move it
+    config_asset }o..o{ config_economy : "economies, signs"
+    config_economy ||..o{ calendar_events : "country"
+    config_economy ||..o{ forecasts_macro : "economy"
+
+    %% by institution name
+    config_institution ||..o{ forecasts_asset : "institution"
+    config_institution ||..o{ forecasts_macro : "institution"
 ```
 
 ## Reading the diagram
 
 - **The only foreign key is `news_tags.news_id → news.id`** (cascade on delete). Every other
   table stands alone by design: a rescore or a forecast backfill never has to satisfy a
-  constraint against another table.
+  constraint against another table, and an asset or institution can be added to a YAML file
+  without a migration.
 - **`asset`, `country` / `economy` and `institution` are config keys, not tables.**
   `scores.asset`, `news_tags.asset`, `forecasts_asset.asset` and `spot_prices.asset` hold a
   symbol from `config/assets.yaml`; `calendar_events.country` and `forecasts_macro.economy`
   hold an economy key from the same file; `institution` comes from `config/forecasts.yaml`.
-  They are joined in `queries.py`, not in SQL.
+  The `config_*` entities above are those files, not tables; the dashed lines are where
+  `queries.py` joins.
+- **What connects a score to its inputs is time, not a key.** A `scores` row for `(asset,
+  date)` is computed from `news_tags` for that asset published in the news window, and from
+  `calendar_events` for the asset's economies inside the released and look-ahead windows;
+  the windows come from `config/scoring.yaml`. Storing every input is what lets `manc rescore`
+  replay a day.
 - **Composite keys encode the write rules.** `scores` is `(asset, date, formula)`, so a `v2`
   rescore sits next to the `v1` row; `spot_prices` is `(asset, date)` and a re-run overwrites
   the close; the two forecast tables key on the vintage hash and never overwrite, an upsert on

@@ -55,7 +55,9 @@ orchestrator.
 ```
 pipeline (cron) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── Dash UI
    manc run                    manc api                  manc ui
-``` Because every input to step 04 is
+```
+
+Because every input to step 04 is
 stored, `manc rescore --formula v2` can replay history under a new formula without refetching
 anything.
 
@@ -116,87 +118,12 @@ configuration runs on every commit and blocks it if anything fails.
 
 ### Core dataclasses
 
-```python
-@dataclass(frozen=True)
-class CalendarEvent:
-    id: str  # provider id or hash(date, country, event)
-    date: datetime  # UTC
-    country: str  # "united_states"
-    event: str  # "Consumer Price Index (YoY)"
-    category: str  # inflation | employment | growth | rates | ...
-    importance: int  # 1 low, 2 medium, 3 high
-    consensus: float | None
-    previous: float | None
-    actual: float | None
-
-
-@dataclass(frozen=True)
-class NewsItem:
-    id: str  # sha1(url)
-    source: str  # "reuters", "cnbc", "ecb"
-    title: str
-    url: str
-    published_at: datetime
-    summary: str  # feed summary, HTML stripped
-
-
-@dataclass(frozen=True)
-class NewsTag:
-    news_id: str
-    asset: str
-    direction: int  # -1 bearish, 0 neutral/irrelevant, +1 bullish
-    confidence: float  # 0..1
-
-
-@dataclass(frozen=True)
-class AssetForecast:
-    id: str  # sha1(institution | asset | horizon_date | value): a re-report lands on the same row
-    institution: str  # canonical name from config/forecasts.yaml, e.g. "goldman_sachs"
-    asset: str  # "EURUSD"
-    horizon_date: date  # end of the stated period, normalised from published_at
-    horizon_label: str  # as stated: "12 months", "year-end", "Q4 2026"
-    value: float  # price level in the asset's quote unit
-    published_at: datetime  # earliest sighting
-    source_url: str
-    source_kind: str  # "extracted" (from news) | "structured" (publisher data)
-    confidence: float  # 0..1; 1.0 for structured sources
-    model: str  # LLM that extracted it, "" for structured sources
-
-
-@dataclass(frozen=True)
-class MacroForecast:  # same fields, but about an economy rather than an asset
-    id: str
-    institution: str
-    economy: str  # "united_states"
-    metric: str  # policy_rate | cpi | gdp | unemployment
-    horizon_date: date
-    horizon_label: str
-    value: float
-    published_at: datetime
-    source_url: str
-    source_kind: str
-    confidence: float
-    model: str
-
-
-@dataclass(frozen=True)
-class SpotPrice:  # display only; never part of ScoringInputs (test-enforced)
-    asset: str
-    date: date
-    close: float
-    source: str  # "stooq"
-
-
-@dataclass(frozen=True)
-class IndexScore:  # defined in manc.formulas.contract, re-exported here
-    asset: str
-    date: date
-    score: float  # 0..100
-    formula: str  # "v1"
-    components: dict[str, float]  # whatever the formula wants to expose, e.g. N, S, R
-    n_news: int
-    n_events: int
-```
+The value objects are the code: `src/manc/models.py` holds `CalendarEvent`, `NewsItem`,
+`NewsTag`, `AssetForecast`, `MacroForecast`, `Forecasts` and `SpotPrice`; the score-side types
+(`AssetSpec`, `ScoringInputs`, `IndexScore`) live in `src/manc/formulas/contract.py` so the
+formula package stays free of app imports, and `models.py` re-exports them. Every one is a
+frozen dataclass; ids are content hashes (`NewsItem.id = sha1(url)`, forecast ids are the
+vintage key, §4) so re-fetching is idempotent.
 
 ## 4 · Data sources
 
@@ -261,18 +188,10 @@ Keyword matching is brittle ("Fed" vs "fed up"), so tagging is one LLM call per 
 headlines with a structured response: for each headline, the list of affected assets with a
 direction and confidence. At ~300 headlines a day this is a handful of calls.
 
-All model calls go through LiteLLM's `completion()`, so the model is a single string in
-`config/llm.yaml` and switching providers is a config edit plus the provider's API-key env var:
-
-```yaml
-llm:
-  model: openrouter/openrouter/free  # default: OpenRouter's router over its free models
-  # model: openrouter/anthropic/claude-opus-5
-  # model: anthropic/claude-opus-5
-  # model: ollama/llama3.3           # local, no key
-  fallback: openrouter/nex-agi/nex-n2.5-pro:free  # second model tried on error
-  temperature: 0
-```
+All model calls go through LiteLLM's `completion()`, so the model is a single
+provider-prefixed string in `config/llm.yaml` (`anthropic/...`, `openai/...`, `ollama/...`,
+`openrouter/<vendor>/<model>`) and switching providers is a config edit plus the provider's
+API-key env var.
 
 The default is free by design: `openrouter/free` picks a free model per request among those
 that support the parameters sent (it honours `response_format`), so the model behind two runs
@@ -354,34 +273,11 @@ formula version, and depends on nothing but the standard library and its own `co
 owns the contract (what a formula receives and returns). The app only ever calls
 `get_formula(config.formula).compute(inputs)`.
 
-```python
-# manc/formulas/contract.py  — the only thing the app depends on
-@dataclass(frozen=True)
-class ScoringInputs:
-    asset: AssetSpec  # symbol, kind, economies, sign map
-    as_of: datetime
-    tags: list[NewsTag]  # with source weight + published_at attached
-    released: list[CalendarEvent]  # events with actual != None in lookback
-    upcoming: list[CalendarEvent]  # events in the look-ahead window
-    params: dict[str, float]  # from config/scoring.yaml
-
-
-class IndexFormula(Protocol):
-    name: str  # "v1"
-
-    def compute(self, inputs: ScoringInputs) -> IndexScore: ...
-
-
-# manc/formulas/v1.py  — a plain class, no framework
-class FormulaV1:
-    name = "v1"
-
-    def compute(self, inputs: ScoringInputs) -> IndexScore: ...
-
-
-# manc/formulas/registry.py
-def get_formula(name: str) -> IndexFormula: ...  # "v1" → FormulaV1()
-```
+The contract is `src/manc/formulas/contract.py`: `ScoringInputs` (the asset spec, the
+as-of time, weighted headline tags, released and upcoming event observations, and the
+`params` from `config/scoring.yaml`), `IndexScore`, and the `IndexFormula` Protocol
+(`name`, `compute(inputs) -> IndexScore`). `registry.py` maps a name to a formula class
+(`"v1"` → `FormulaV1` in `v1.py`).
 
 Rules that keep it decoupled: `manc.formulas` imports only the standard library and itself,
 never `manc.models`, the store or anything else in the app (enforced by
