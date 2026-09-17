@@ -9,7 +9,15 @@ from sqlalchemy import inspect
 
 from manc.store import db, schema
 
-EXPECTED_TABLES = {"news", "news_tags", "calendar_events", "scores"}
+EXPECTED_TABLES = {
+    "news",
+    "news_tags",
+    "calendar_events",
+    "scores",
+    "forecasts_asset",
+    "forecasts_macro",
+    "spot_prices",
+}
 
 
 @pytest.fixture
