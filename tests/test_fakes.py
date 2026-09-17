@@ -69,10 +69,10 @@ def test_fake_forecasts_and_spot_replay_by_window_and_asset() -> None:
     assert fetched == Forecasts(asset=(recent,))
     assert FakeForecasts().fetch(NOW) == Forecasts()
 
-    gold = SpotPrice(asset="XAUUSD", date=NOW.date(), close=3650.0, source="stooq")
-    euro = SpotPrice(asset="EURUSD", date=NOW.date(), close=1.17, source="stooq")
+    gold = SpotPrice(asset="XAUUSD", date=NOW.date(), close=3650.0, source="yahoo")
+    euro = SpotPrice(asset="EURUSD", date=NOW.date(), close=1.17, source="yahoo")
     yesterday = SpotPrice(
-        asset="EURUSD", date=NOW.date() - timedelta(days=1), close=1.16, source="stooq"
+        asset="EURUSD", date=NOW.date() - timedelta(days=1), close=1.16, source="yahoo"
     )
     assert FakeSpot([gold, euro, yesterday]).fetch([ASSET], NOW.date()) == [euro]
 

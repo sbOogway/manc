@@ -34,6 +34,21 @@ def test_signs_are_nested_country_then_category() -> None:
     assert eurusd.signs["united_states"]["inflation"] == -1
 
 
+def test_every_asset_has_a_yahoo_spot_symbol() -> None:
+    config = load_config(REPO_CONFIG)
+    assert all(asset.spot["yahoo"] for asset in config.assets)
+    assert next(asset.spot for asset in config.assets if asset.symbol == "EURUSD") == {
+        "yahoo": "EURUSD=X"
+    }
+
+
+def test_asset_without_spot_block_has_no_symbols(tmp_path: Path) -> None:
+    assets = yaml.safe_load((REPO_CONFIG / "assets.yaml").read_text())
+    del assets["assets"]["EURUSD"]["spot"]
+    config = load_config(_write(tmp_path, {"assets": assets}))
+    assert next(asset for asset in config.assets if asset.symbol == "EURUSD").spot == {}
+
+
 def _write(config_dir: Path, overrides: dict[str, dict]) -> Path:
     """Copy the repo config into a temp dir, replacing whole files given in overrides."""
     for source in REPO_CONFIG.glob("*.yaml"):

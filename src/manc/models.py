@@ -209,4 +209,4 @@ class SpotPrice:
     asset: str
     date: date
     close: float
-    source: str  # "stooq"
+    source: str  # "yahoo"

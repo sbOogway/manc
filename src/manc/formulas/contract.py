@@ -17,6 +17,9 @@ class AssetSpec:
     # country -> event category -> -1 | 0 | +1: the direction a hotter-than-expected print
     # pushes this asset. A hot US CPI is -1 for EURUSD, a hot euro-area CPI is +1.
     signs: Mapping[str, Mapping[str, int]] = field(default_factory=dict)
+    # spot source -> its ticker for this asset ({"yahoo": "EURUSD=X"}); display only, no
+    # formula reads it
+    spot: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

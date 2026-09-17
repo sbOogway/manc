@@ -109,7 +109,7 @@ def test_forecasts_reject_bad_confidence_and_source_kind() -> None:
 
 
 def test_forecast_and_spot_models_are_frozen() -> None:
-    spot = SpotPrice(asset="XAUUSD", date=NOW.date(), close=3650.5, source="stooq")
+    spot = SpotPrice(asset="XAUUSD", date=NOW.date(), close=3650.5, source="yahoo")
     for obj in (_forecast_asset(), spot):
         hash(obj)
         with pytest.raises(AttributeError):

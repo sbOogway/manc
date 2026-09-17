@@ -73,7 +73,7 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 | `calendar` | `CalendarProvider.fetch(start, end) -> list[CalendarEvent]`               | Nasdaq's public calendar endpoint over httpx (free, no key)             | parsing, category/importance/country maps, date offset, day windows  |
 | `news`     | `NewsProvider.fetch(since) -> list[NewsItem]`                             | feedparser over `config/feeds.yaml`                                     | parsing, dedupe, per-feed failure isolation                          |
 | `forecasts`| `ForecastProvider.fetch(since) -> Forecasts` (asset and macro lists)        | `extractor.py`: LiteLLM over stored news rows that pass a regex prefilter; `fed_sep.py`, `worldbank.py`, `eia.py` for publishers with structured data (§4) | extractor: prefilter, batching, schema validation, horizon normalisation, dedupe; publishers: recorded fixtures |
-| `spot`     | `SpotProvider.fetch(assets, date) -> list[SpotPrice]`                      | `stooq.py` daily close CSV; the symbol per source sits in `config/assets.yaml`, so another source is a new adapter plus a config edit | parsing, missing symbol, one asset failing does not stop the rest; isolation test that no formula input carries a price |
+| `spot`     | `SpotProvider.fetch(assets, date) -> list[SpotPrice]`                      | `yahoo.py` through `yfinance`, one history call per asset; the ticker per source sits in `config/assets.yaml`, so another source is a new adapter plus a config edit | recorded frames, missing ticker, one asset failing does not stop the rest; isolation test that no formula input carries a price |
 | `analysis` | `Analyzer.tag(items, assets) -> list[NewsTag]`                            | LiteLLM `completion()` with a Pydantic response schema, model from config | fake analyzer; batching; schema validation                           |
 | `formulas` | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | plain Python classes, one per version, standard library only (§5) | property tests on every formula; an isolation test that the package imports nothing else from `manc` |
 | `scoring`  | `build_inputs(store, asset, as_of, params) -> ScoringInputs` | thin adapter from the store to the formula contract | adapter builds inputs correctly |
@@ -262,9 +262,13 @@ A target without a spot is unreadable ("gold 4,000" versus what?), so one daily 
 asset is stored in `spot_prices` and shown next to forecasts as a percentage distance. It is
 the only price in the system and it never reaches a formula: `ScoringInputs` has no price
 field and `tests/formulas/test_isolation.py` keeps it that way. Behind `SpotProvider` the
-first adapter is Stooq's daily CSV (no key, one GET per symbol); the per-source symbol lives in
-`config/assets.yaml` (`spot: {stooq: eurusd}`), so switching to Yahoo or Alpha Vantage is a
-new adapter and a config edit. A symbol that fails is a warning, not a failed run.
+first adapter is Yahoo Finance through the `yfinance` package (`spot/yahoo.py`): the last
+close on or before the run's day, one history call per asset. Stooq's daily CSV was the plan
+(no key, one GET per symbol) but since 2026-09 its endpoint answers a JavaScript challenge
+instead of the CSV, and Yahoo's chart endpoint refuses requests without the cookie-and-crumb
+session that `yfinance` maintains. The per-source ticker lives in `config/assets.yaml`
+(`spot: {yahoo: EURUSD=X}`), so switching to Alpha Vantage or Twelve Data is a new adapter
+and a config edit. A ticker that fails is a warning, not a failed run.
 
 ## 5 · Index formula
 
@@ -492,7 +496,7 @@ manc/
 │   ├── llm.py              # the one LiteLLM call site: complete(config, messages, response_model)
 │   ├── analysis/           # interface.py, llm.py (tagger), lexicon.py
 │   ├── forecasts/          # interface.py, extractor.py (LiteLLM), fed_sep.py, worldbank.py, eia.py
-│   ├── spot/               # interface.py, stooq.py
+│   ├── spot/               # interface.py, yahoo.py
 │   ├── scoring/            # adapter.py: store → ScoringInputs → formula
 │   ├── store/              # interface.py, schema.py (tables), db.py (engine, upgrade), sql.py
 │   ├── report/             # builder.py
@@ -561,7 +565,7 @@ backfilled the forecasts panel for every asset.
 - `config/forecasts.yaml` and the regex prefilter
 - LLM forecast extractor through LiteLLM (the first LiteLLM call; brings `litellm` and
   `config/llm.yaml` wiring forward from M3), `manc forecasts --since` backfill
-- `SpotProvider` with the Stooq adapter and the no-price-in-formula isolation test
+- `SpotProvider` with the Yahoo adapter and the no-price-in-formula isolation test
 - Fed SEP and World Bank publishers with recorded fixtures; EIA when the key is set up
 - the forecasts panel itself (query, route, page) belongs to M4
 

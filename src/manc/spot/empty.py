@@ -1,4 +1,4 @@
-"""Offline stand-in until the Stooq adapter lands (M2)."""
+"""Offline stand-in for the spot provider: no prices, for tests and dry runs."""
 
 from collections.abc import Sequence
 from datetime import date

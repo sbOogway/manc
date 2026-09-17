@@ -162,6 +162,7 @@ def _load_assets(raw: dict[str, Any]) -> tuple[AssetSpec, ...]:
                 kind=fields["kind"],
                 economies=tuple(fields["economies"]),
                 signs=signs,
+                spot={source: str(ticker) for source, ticker in fields.get("spot", {}).items()},
             )
         )
     return tuple(specs)
