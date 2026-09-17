@@ -1,14 +1,17 @@
 """Store implementation over SQLAlchemy Core: one repository per table in schema.py."""
 
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from typing import Any
 
-from sqlalchemy import Engine, Table, select
+from sqlalchemy import Engine, Table, case, select
 from sqlalchemy.dialects import postgresql, sqlite
 
 from manc.formulas.contract import IndexScore
-from manc.models import CalendarEvent, NewsItem, NewsTag
+from manc.models import AssetForecast, CalendarEvent, MacroForecast, NewsItem, NewsTag, SpotPrice
 from manc.store import db, schema
+
+_SIGHTING_COLUMNS = ("published_at", "source_url", "confidence", "model")
 
 
 def _utc(value: datetime) -> datetime:
@@ -16,12 +19,16 @@ def _utc(value: datetime) -> datetime:
     return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
+def _insert(engine: Engine, table: Table, rows: list[dict[str, Any]]) -> Any:
+    insert = {"sqlite": sqlite.insert, "postgresql": postgresql.insert}[engine.dialect.name]
+    return insert(table).values(rows)
+
+
 def _upsert(engine: Engine, table: Table, rows: list[dict[str, Any]]) -> None:
     if not rows:
         return
-    insert = {"sqlite": sqlite.insert, "postgresql": postgresql.insert}[engine.dialect.name]
     key_columns = [column.name for column in table.primary_key.columns]
-    statement = insert(table).values(rows)
+    statement = _insert(engine, table, rows)
     statement = statement.on_conflict_do_update(
         index_elements=key_columns,
         set_={
@@ -30,6 +37,22 @@ def _upsert(engine: Engine, table: Table, rows: list[dict[str, Any]]) -> None:
             if column.name not in key_columns
         },
     )
+    with engine.begin() as connection:
+        connection.execute(statement)
+
+
+def _upsert_keep_earliest(engine: Engine, table: Table, rows: list[dict[str, Any]]) -> None:
+    """Forecast vintages: on an existing id, the sighting columns follow the earlier one."""
+    if not rows:
+        return
+    statement = _insert(engine, table, rows)
+    is_earlier = statement.excluded.published_at < table.c.published_at
+    set_ = {
+        name: case((is_earlier, getattr(statement.excluded, name)), else_=table.c[name])
+        for name in _SIGHTING_COLUMNS
+    }
+    set_["fetched_at"] = statement.excluded.fetched_at
+    statement = statement.on_conflict_do_update(index_elements=["id"], set_=set_)
     with engine.begin() as connection:
         connection.execute(statement)
 
@@ -178,6 +201,109 @@ class SqlScoreRepository:
             return [_index_score(row) for row in connection.execute(statement).mappings()]
 
 
+class SqlForecastRepository:
+    """Both forecast tables behave the same; only the subject columns differ."""
+
+    def __init__(
+        self,
+        engine: Engine,
+        table: Table,
+        subject_column: str,
+        vintage_columns: tuple[str, ...],
+        row_factory: Callable[[Any], Any],
+    ) -> None:
+        self._engine = engine
+        self._table = table
+        self._subject = table.c[subject_column]
+        self._vintage_columns = vintage_columns  # what makes a call distinct, besides the value
+        self._row_factory = row_factory
+
+    def add(self, *forecasts: Any) -> None:
+        now = datetime.now(UTC)
+        rows = []
+        for forecast in forecasts:
+            row = {
+                column.name: getattr(forecast, column.name)
+                for column in self._table.columns
+                if column.name != "fetched_at"
+            }
+            rows.append({**row, "fetched_at": now})
+        _upsert_keep_earliest(self._engine, self._table, rows)
+
+    def latest(self, subject: str) -> list[Any]:
+        newest: dict[tuple[Any, ...], Any] = {}
+        for forecast in self._select(self._subject == subject):
+            key = tuple(getattr(forecast, name) for name in self._vintage_columns)
+            newest[key] = forecast  # rows arrive oldest first, so the last one wins
+        return list(newest.values())
+
+    def vintages(self, institution: str, *subject_and_horizon: Any) -> list[Any]:
+        *subject_values, horizon_date = subject_and_horizon
+        conditions = [
+            self._table.c.institution == institution,
+            self._table.c.horizon_date == horizon_date,
+        ]
+        for name, value in zip(self._vintage_columns[1:-1], subject_values, strict=True):
+            conditions.append(self._table.c[name] == value)
+        return self._select(*conditions)
+
+    def as_of(self, subject: str, day: date) -> list[Any]:
+        end_of_day = datetime.combine(day, datetime.max.time(), tzinfo=UTC)
+        return self._select(self._subject == subject, self._table.c.published_at <= end_of_day)
+
+    def _select(self, *conditions: Any) -> list[Any]:
+        statement = (
+            select(self._table)
+            .where(*conditions)
+            .order_by(self._table.c.published_at, self._table.c.id)
+        )
+        with self._engine.connect() as connection:
+            return [self._row_factory(row) for row in connection.execute(statement).mappings()]
+
+
+class SqlSpotRepository:
+    def __init__(self, engine: Engine) -> None:
+        self._engine = engine
+
+    def add(self, *prices: SpotPrice) -> None:
+        now = datetime.now(UTC)
+        _upsert(
+            self._engine,
+            schema.spot_prices,
+            [
+                {
+                    "asset": price.asset,
+                    "date": price.date,
+                    "close": price.close,
+                    "source": price.source,
+                    "fetched_at": now,
+                }
+                for price in prices
+            ],
+        )
+
+    def latest(self, asset: str) -> SpotPrice | None:
+        statement = (
+            select(schema.spot_prices)
+            .where(schema.spot_prices.c.asset == asset)
+            .order_by(schema.spot_prices.c.date.desc())
+            .limit(1)
+        )
+        with self._engine.connect() as connection:
+            row = connection.execute(statement).mappings().first()
+        return _spot_price(row) if row else None
+
+    def between(self, asset: str, start: date, end: date) -> list[SpotPrice]:
+        statement = (
+            select(schema.spot_prices)
+            .where(schema.spot_prices.c.asset == asset)
+            .where(schema.spot_prices.c.date.between(start, end))
+            .order_by(schema.spot_prices.c.date)
+        )
+        with self._engine.connect() as connection:
+            return [_spot_price(row) for row in connection.execute(statement).mappings()]
+
+
 class SqlStore:
     """Composes one SQL repository per table. Refuses a database that is not migrated."""
 
@@ -191,6 +317,21 @@ class SqlStore:
         self.tags = SqlTagRepository(engine)
         self.events = SqlEventRepository(engine)
         self.scores = SqlScoreRepository(engine)
+        self.forecasts_asset = SqlForecastRepository(
+            engine,
+            schema.forecasts_asset,
+            "asset",
+            ("institution", "asset", "horizon_date"),
+            _asset_forecast,
+        )
+        self.forecasts_macro = SqlForecastRepository(
+            engine,
+            schema.forecasts_macro,
+            "economy",
+            ("institution", "economy", "metric", "horizon_date"),
+            _macro_forecast,
+        )
+        self.spot = SqlSpotRepository(engine)
 
 
 def _news_item(row: Any) -> NewsItem:
@@ -238,3 +379,30 @@ def _index_score(row: Any) -> IndexScore:
         n_events=row["n_events"],
         report_md=row["report_md"],
     )
+
+
+def _forecast_fields(row: Any) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "institution": row["institution"],
+        "horizon_date": row["horizon_date"],
+        "horizon_label": row["horizon_label"],
+        "value": row["value"],
+        "published_at": _utc(row["published_at"]),
+        "source_url": row["source_url"],
+        "source_kind": row["source_kind"],
+        "confidence": row["confidence"],
+        "model": row["model"],
+    }
+
+
+def _asset_forecast(row: Any) -> AssetForecast:
+    return AssetForecast(asset=row["asset"], **_forecast_fields(row))
+
+
+def _macro_forecast(row: Any) -> MacroForecast:
+    return MacroForecast(economy=row["economy"], metric=row["metric"], **_forecast_fields(row))
+
+
+def _spot_price(row: Any) -> SpotPrice:
+    return SpotPrice(asset=row["asset"], date=row["date"], close=row["close"], source=row["source"])
