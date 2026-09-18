@@ -56,6 +56,7 @@ def test_run_stores_inputs_and_one_score_per_asset() -> None:
         spot=FakeSpot(),
         store=store,
         formula=get_formula("v1"),
+        summarize=None,
     )
     assert store.events.rows == {"e1": event}
     assert store.news.rows == {item.id: item}
@@ -80,6 +81,7 @@ def test_run_stores_the_closes_the_spot_provider_returns() -> None:
         spot=FakeSpot([gold, old_gold]),
         store=store,
         formula=get_formula("v1"),
+        summarize=None,
     )
     assert store.spot.latest("XAUUSD") == gold  # FakeSpot answers only for the run's day
     assert store.spot.between("XAUUSD", date.min, date.max) == [gold]
@@ -115,6 +117,7 @@ def test_run_stores_the_forecasts_every_provider_returns() -> None:
         spot=FakeSpot(),
         store=store,
         formula=get_formula("v1"),
+        summarize=None,
     )
     assert store.forecasts_asset.latest("XAUUSD") == [gold]
     assert store.forecasts_asset.latest("BRENT") == []  # outside the news window
@@ -134,6 +137,7 @@ def test_rescore_replays_stored_inputs_without_providers() -> None:
         formula=get_formula("v1"),
         start=date(2026, 9, 14),
         end=date(2026, 9, 15),
+        summarize=None,
     )
     assert len(scores) == 2 * len(CONFIG.assets)
     assert {score.date for score in scores} == {date(2026, 9, 14), date(2026, 9, 15)}
@@ -150,4 +154,53 @@ def test_rescore_rejects_inverted_range() -> None:
             formula=get_formula("v1"),
             start=date(2026, 9, 15),
             end=date(2026, 9, 14),
+            summarize=None,
         )
+
+
+class Paragraph:
+    """A `complete` that answers every summary request with the same line."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def __call__(self, config: object, messages: object, response_model: type) -> tuple:
+        self.calls += 1
+        return response_model(paragraph="Nothing moved."), "free/model"
+
+
+def test_run_stores_a_report_with_the_summary_for_every_asset() -> None:
+    store = FakeStore()
+    summarize = Paragraph()
+    scores = run(
+        as_of=AS_OF,
+        config=CONFIG,
+        calendar=FakeCalendar(),
+        news=FakeNews(),
+        analyzer=FakeAnalyzer(),
+        forecasts=[],
+        spot=FakeSpot(),
+        store=store,
+        formula=get_formula("v1"),
+        summarize=summarize,
+    )
+    assert summarize.calls == len(CONFIG.assets)
+    for score in scores:
+        assert score.report_md.startswith(
+            f"# {score.asset} 2026-09-15: 50 neutral\n\nNothing moved."
+        )
+        assert store.scores.series(score.asset, "v1", AS_OF.date(), AS_OF.date()) == [score]
+
+
+def test_rescore_stores_template_only_reports() -> None:
+    store = FakeStore()
+    [score, *_rest] = rescore(
+        config=CONFIG,
+        store=store,
+        formula=get_formula("v1"),
+        start=date(2026, 9, 15),
+        end=date(2026, 9, 15),
+        summarize=None,
+    )
+    assert score.report_md.startswith("# EURUSD 2026-09-15: 50 neutral\n\n## Components")
+    assert "Summary by" not in score.report_md

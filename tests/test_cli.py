@@ -1,4 +1,4 @@
-"""`manc` entry point on a real temp database; every feed and the calendar are stubbed empty."""
+"""`manc` entry point on a real temp database; every feed, the calendar and the LLM are stubbed."""
 
 import logging
 import re
@@ -35,9 +35,15 @@ OUTLOOK_PAGE = (
 )
 
 
+def offline_completion(**kwargs: object) -> object:
+    """Every model fails: the tagger falls back to the lexicon, the report has no summary."""
+    raise RuntimeError("offline")
+
+
 @pytest.fixture(autouse=True)
 def offline_sources(monkeypatch: pytest.MonkeyPatch) -> Iterator[respx.MockRouter]:
     monkeypatch.setattr(yahoo, "yfinance_history", recorded_history)  # yfinance bypasses httpx
+    monkeypatch.setattr(llm.litellm, "completion", offline_completion)
     with respx.mock(assert_all_called=False) as router:
         router.get(host="api.nasdaq.com").mock(return_value=httpx.Response(200, json=NO_RECORD))
         router.get(fed_sep.CALENDAR_URL).mock(
@@ -254,6 +260,7 @@ def test_run_tags_the_headlines_through_the_llm(
             "Tagging": f'{{"tags": [{{"item": {gold}, "asset": "XAUUSD", "direction": 1,'
             ' "confidence": 0.9}]}',
             "Extraction": '{"forecasts": []}',
+            "Summary": '{"paragraph": "Gold got a target."}',
         }[schema]
         message = type("Message", (), {"content": content})()
         choice = type("Choice", (), {"message": message})()
@@ -273,6 +280,21 @@ def test_run_tags_the_headlines_through_the_llm(
         "free/model",
         "v1",
     )
+    [score] = store.scores.series("XAUUSD", "v1", date(2026, 6, 1), date(2026, 6, 1))
+    assert "\n\nGold got a target.\n\n" in score.report_md
+    assert score.report_md.endswith("Summary by free/model.\n")
+
+
+def test_rescore_never_calls_the_llm(migrated_db: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    def exploding_completion(**kwargs: object) -> object:
+        raise AssertionError("rescore must not call the LLM")
+
+    monkeypatch.setattr(llm.litellm, "completion", exploding_completion)
+    assert cli.main(["rescore", "--from", "2026-09-15", "--to", "2026-09-15"]) == 0
+    [score] = SqlStore(db.make_engine()).scores.series(
+        "EURUSD", "v1", date(2026, 9, 15), date(2026, 9, 15)
+    )
+    assert score.report_md.startswith("# EURUSD 2026-09-15: 50 neutral\n\n## Components")
 
 
 def test_run_tags_with_the_lexicon_when_the_llm_fails(

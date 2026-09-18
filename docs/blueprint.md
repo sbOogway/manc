@@ -59,7 +59,8 @@ pipeline (cron) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── D
 
 Because every input to step 04 is
 stored, `manc rescore --formula v2` can replay history under a new formula without refetching
-anything.
+anything. A replay writes template-only reports: one LLM paragraph per asset and day would
+make it slow and costly, and the sections already carry every fact.
 
 ## 3 · Modules and interfaces
 
@@ -78,7 +79,7 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 | `formulas` | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | plain Python classes, one per version, standard library only (§5) | property tests on every formula; an isolation test that the package imports nothing else from `manc` |
 | `scoring`  | `build_inputs(store, asset, as_of, params) -> ScoringInputs` | thin adapter from the store to the formula contract | adapter builds inputs correctly |
 | `store`    | Repository pattern: `Store` composes `news`, `tags`, `events`, `scores` repositories, each with `add()` and named queries (`since`, `tagged`, `between`, `series`) | SQLAlchemy Core over SQLite; schema in `schema.py`, Alembic migrations | round-trips, idempotent upserts; migrations reach `head` and match `schema.py` |
-| `report`   | `build_report(asset, score, tags, events) -> str`                         | Markdown, summary paragraph written by the configured LLM               | template output with fake analyzer                                   |
+| `report`   | `build_report(store, config, score, complete) -> str`                     | Markdown in fixed sections rendered through `queries`, opening paragraph written by the configured LLM; `complete=None` or an `LlmError` leave the template alone | template sections on `FakeStore`; summary and footer with a fake `complete`; degradation |
 | `queries`  | `overview(store, config, as_of)`, `asset_history(...)`, `headlines_behind(...)`, `upcoming_events(...)` → frozen dataclasses | the read-side logic: bands, deltas, sparklines, event risk, sorting. Plain functions over a `Store` (§7) | unit tests with `FakeStore`; no HTTP involved |
 | `api`      | FastAPI app, `GET /api/v1/...` (§7)                                       | thin routes: parse request → call a query → return a Pydantic model      | `TestClient` against `FakeStore`: status, JSON shape, error cases   |
 | `manc_ui`  | Dash app in its own package; talks to the API over HTTP only              | Dash + Mantine components + Plotly (§7)                                 | callbacks tested against a mocked API (`respx`); render smoke tests; isolation test that it never imports `manc` |
