@@ -24,7 +24,7 @@ from manc.store import db
 from manc.store.sql import SqlStore
 
 M4_COMMANDS = ("api", "ui", "serve")
-LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+LOG_FORMAT = "%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s"
 LOG_DATEFMT = "%H:%M:%S"
 
 log = logging.getLogger(__name__)

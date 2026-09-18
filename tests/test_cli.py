@@ -170,7 +170,7 @@ def test_log_lines_carry_time_level_and_module() -> None:
         {"name": "manc.cli", "levelno": logging.INFO, "levelname": "INFO", "msg": "starting"}
     )
     line = logging.Formatter(cli.LOG_FORMAT, cli.LOG_DATEFMT).format(record)
-    assert re.fullmatch(r"\d\d:\d\d:\d\d INFO manc\.cli: starting", line)
+    assert re.fullmatch(r"\d\d:\d\d:\d\d\.\d{3} INFO manc\.cli: starting", line)
 
 
 def test_run_spins_while_working(
