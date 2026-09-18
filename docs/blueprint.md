@@ -609,7 +609,8 @@ the API only.
 
 **M5 Operations** — done when: two weeks of daily scores exist without manual intervention.
 - cron entry and README runbook
-- run log and failure notification (stderr + exit code is enough)
+- run log (timestamped stderr lines per step and tagging batch, a spinner on a terminal)
+  and failure notification (stderr + exit code is enough)
 - first tuning pass on weights using the accumulated scores
 
 **M6 Formula v2** — done when: `manc rescore --formula v2` has replayed the whole stored
