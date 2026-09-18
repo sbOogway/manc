@@ -16,10 +16,22 @@ benchmarks another model without touching config/llm.yaml (no fallback, so its o
 show), `MANC_LIVE_BATCH=<n>` overrides `llm.batch_size`, and an Ollama server works too:
 `OLLAMA_API_BASE=https://host MANC_LIVE_MODEL=ollama_chat/gemma4:12b`.
 
-Checked 2026-09-17 on the synthetic set: nex-agi/nex-n2.5-pro:free passes everything,
-nemotron-3-super-120b and nex-n2.5-mini miss one each, liquid/lfm-2.5-2.6b never tags
-EURUSD, and the openrouter/free router lands on any of them. On the real set nemotron tags
-every asset for the first few lines of a batch and then stops, whatever the batch size.
+Scores, synthetic / real, no-tag baseline 12/22 and 19/52 (the lexicon scores 22/22 and
+25/52):
+
+- 2026-09-17 openrouter/nex-agi/nex-n2.5-pro:free 22/22 at batch 40; nemotron-3-super-120b
+  and nex-n2.5-mini miss one each; liquid/lfm-2.5-2.6b never tags EURUSD; the
+  openrouter/free router lands on any of them, and nemotron tags every asset for the first
+  few lines of a batch and then stops, whatever the batch size.
+- 2026-09-17 groq/openai/gpt-oss-120b 17/22 and 42/52 at batch 5, 34/52 at batch 10,
+  29/52 at batch 20, 21/52 at batch 40: it under-tags long batches. Groq's 8,000
+  tokens-per-minute cap makes it one call a minute at any batch size. groq/qwen/qwen3.8-27b
+  returns no tags at all.
+- 2026-09-18 mistral/ministral-14b-latest 17/22 and 34/52 at batch 40, no rate limit hit;
+  smaller batches make it over-tag. ministral-8b 17/22 and 25/52. The larger Mistral models
+  are not on the free tier.
+- 2026-09-17 ollama_chat/gemma4:12b tags the first headline only; nemotron3:33b never loads
+  within a proxy timeout.
 """
 
 import os
