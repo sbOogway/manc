@@ -31,8 +31,9 @@ forecasts (LLM)   ─┘                                                  manc a
   news sentiment, data surprise versus consensus, and event risk ahead. Every input is
   stored, so any date range can be replayed under a new formula.
 - **LLM**: every call goes through [LiteLLM](https://github.com/BerriAI/litellm); the model
-  is one string in `config/llm.yaml`, a free OpenRouter model by default. Headlines the LLM
-  cannot tag fall back to a lexicon in `config/lexicon.yaml`.
+  is one string in `config/llm.yaml`, Claude Code headless on your own login by default, a
+  free-tier model as fallback. Headlines no model tags fall back to a lexicon in
+  `config/lexicon.yaml`.
 
 The design, data sources, formula and milestones are in [docs/blueprint.md](docs/blueprint.md);
 the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the formula in
@@ -62,9 +63,10 @@ uv run alembic upgrade head  # create or migrate data/manc.db (MANC_DB_URL for a
 uv run pytest                # tests, no network
 ```
 
-The LLM needs an API key for whichever provider `config/llm.yaml` names. For the defaults
-(Groq, Mistral as fallback) put `GROQ_API_KEY=...` and `MISTRAL_API_KEY=...` in a `.env`
-file at the repo root (gitignored) or export them; both are free tiers without a card. Live tests that hit real sources are marked `live` and skipped by default:
+The default model, `claude_code/opus`, runs Claude Code headless (`claude -p`) on your own
+Claude login, so `claude` must be installed and logged in; no API key. Any other provider
+in `config/llm.yaml` needs its key: the fallback (Mistral, free tier) reads
+`MISTRAL_API_KEY=...` from a `.env` file at the repo root (gitignored) or the environment. Live tests that hit real sources are marked `live` and skipped by default:
 `uv run pytest -m live`.
 
 ## Running

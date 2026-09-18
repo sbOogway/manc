@@ -194,17 +194,23 @@ provider-prefixed string in `config/llm.yaml` (`anthropic/...`, `openai/...`, `o
 `openrouter/<vendor>/<model>`) and switching providers is a config edit plus the provider's
 API-key env var.
 
-The default is free by design: a free-tier model chosen with the tagger benchmark
-(`tests/analysis/test_live_tagger.py`, recorded headlines with the direction a market reader
-expects; `MANC_LIVE_MODEL` benchmarks any model, the docstring keeps the scores). Groq's
-`openai/gpt-oss-120b` tags real news best but only in batches of about five headlines, and
-Groq meters tokens per minute, so `manc.llm` waits out a 429 for the seconds the provider
-asks before trying the `fallback`, Mistral's free `ministral-14b`, which is unmetered and
-nearly as good. OpenRouter's `openrouter/free` router was tried first and dropped: it picks a
-different model per request, and the free models range from ones that pass the benchmark to
-ones that tag every asset for the first headline and stop. Every tag and every extracted
-forecast stores the `model` string. Switching to a paid model, or to a self-hosted Ollama
-server (`ollama_chat/<model>` with `OLLAMA_API_BASE`), is one config edit.
+The default is the owner's Claude subscription, no API key: `claude_code/<model>` is a
+LiteLLM custom provider (`manc.claude_code`) that runs Claude Code headless, `claude -p`
+with the response schema as `--json-schema`, tools off, and returns its `structured_output`.
+It needs the `claude` binary logged in on the machine that runs the pipeline. Models are
+chosen with the tagger benchmark (`tests/analysis/test_live_tagger.py`, recorded headlines
+with the direction a market reader expects; `MANC_LIVE_MODEL` benchmarks any model, the
+docstring keeps the scores): `claude_code/opus` gets 49 of the 52 real headlines right, the
+best free-tier model 42. Free tiers stay as the `fallback` and for machines without Claude
+Code: Groq's `openai/gpt-oss-120b` tags real news well only in batches of about five and is
+metered per minute (`manc.llm` waits out a 429 for the seconds the provider asks before
+trying the fallback), Mistral's free `ministral-14b` is unmetered and takes batches of 40, so
+it is the configured fallback. OpenRouter's `openrouter/free` router was tried first and
+dropped: it picks a different model per request, and the free models range from ones that
+pass the benchmark to ones that tag every asset for the first headline and stop. Every tag
+and every extracted forecast stores the `model` string. Switching to a paid API model, or to
+a self-hosted Ollama server (`ollama_chat/<model>` with `OLLAMA_API_BASE`), is one config
+edit.
 
 The response schema is a Pydantic model passed as `response_format`; LiteLLM translates it to
 each provider's native structured-output mechanism (Anthropic, OpenAI, Ollama, Groq, Gemini,
