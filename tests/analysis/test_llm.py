@@ -160,3 +160,18 @@ def test_a_failing_batch_goes_to_the_fallback_analyzer(caplog: pytest.LogCapture
         (second.id, "BTCUSD", 1, "free/model"),
     ]
     assert any("LexiconAnalyzer" in record.message for record in caplog.records)
+
+
+def test_logs_one_progress_line_per_batch(caplog: pytest.LogCaptureFixture) -> None:
+    complete = FakeComplete(
+        Tagging(tags=[_tag(0, "XAUUSD", 1)]), Tagging(tags=[]), Tagging(tags=[_tag(0, "SPX", -1)])
+    )
+    analyzer = LlmAnalyzer(CONFIG, complete=complete, batch_size=2)
+    with caplog.at_level(logging.INFO, logger="manc.analysis"):
+        analyzer.tag([_item(str(index)) for index in range(5)], CONFIG.assets)
+    progress = [record.message for record in caplog.records if "batch" in record.message]
+    assert progress == [
+        "analysis: batch 1/3, 2 headlines → 1 tags (free/model)",
+        "analysis: batch 2/3, 2 headlines → 0 tags (free/model)",
+        "analysis: batch 3/3, 1 headlines → 1 tags (free/model)",
+    ]
