@@ -7,8 +7,9 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from manc import claude_code, llm
+from manc import llm
 from manc.config import LlmConfig
+from manc.llm import claude_code
 
 CONFIG = LlmConfig(model="claude_code/opus", fallback=None, temperature=0, batch_size=5)
 MESSAGES = [

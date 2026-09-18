@@ -1,4 +1,7 @@
-"""The one place that calls an LLM (blueprint §4): LiteLLM, model string from config."""
+"""The one place that calls an LLM (blueprint §4): LiteLLM, model string from config.
+
+`complete()` is the call site; `claude_code.py` adds Claude Code headless as a provider.
+"""
 
 import logging
 import re
@@ -9,8 +12,8 @@ from typing import Any
 import litellm
 from pydantic import BaseModel
 
-from manc.claude_code import PROVIDER, ClaudeCode
 from manc.config import LlmConfig
+from manc.llm.claude_code import PROVIDER, ClaudeCode
 
 log = logging.getLogger(__name__)
 litellm.custom_provider_map = [{"provider": PROVIDER, "custom_handler": ClaudeCode()}]

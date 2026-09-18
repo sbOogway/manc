@@ -195,7 +195,7 @@ provider-prefixed string in `config/llm.yaml` (`anthropic/...`, `openai/...`, `o
 API-key env var.
 
 The default is the owner's Claude subscription, no API key: `claude_code/<model>` is a
-LiteLLM custom provider (`manc.claude_code`) that runs Claude Code headless, `claude -p`
+LiteLLM custom provider (`manc.llm.claude_code`) that runs Claude Code headless, `claude -p`
 with the response schema as `--json-schema`, tools off, and returns its `structured_output`.
 It needs the `claude` binary logged in on the machine that runs the pipeline. Models are
 chosen with the tagger benchmark (`tests/analysis/test_live_tagger.py`, recorded headlines
@@ -511,7 +511,7 @@ manc/
 │   │   └── v1.py           # class FormulaV1
 │   ├── calendar/           # interface.py, nasdaq.py
 │   ├── news/               # interface.py, rss.py
-│   ├── llm.py              # the one LiteLLM call site: complete(config, messages, response_model)
+│   ├── llm/                # the one LiteLLM call site: complete(config, messages, response_model); claude_code.py provider
 │   ├── analysis/           # interface.py, llm.py (tagger), lexicon.py
 │   ├── forecasts/          # interface.py, extractor.py (LiteLLM), fed_sep.py, worldbank.py
 │   ├── spot/               # interface.py, yahoo.py
