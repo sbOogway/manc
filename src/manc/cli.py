@@ -6,7 +6,6 @@ import sys
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time
 
-from manc import progress
 from manc.analysis.lexicon import LexiconAnalyzer
 from manc.analysis.llm import LlmAnalyzer
 from manc.calendar.nasdaq import NasdaqCalendar
@@ -32,10 +31,8 @@ log = logging.getLogger(__name__)
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    # no-op if a handler is already installed; the handler wipes the spinner before a line
-    logging.basicConfig(
-        handlers=[progress.Handler(sys.stderr)], format=LOG_FORMAT, datefmt=LOG_DATEFMT
-    )
+    # no-op if a handler is already installed
+    logging.basicConfig(stream=sys.stderr, format=LOG_FORMAT, datefmt=LOG_DATEFMT)
     logging.getLogger("manc").setLevel(logging.DEBUG if args.verbose else logging.INFO)
     if args.command in M4_COMMANDS:
         print(f"manc {args.command}: not implemented yet (milestone M4)", file=sys.stderr)
@@ -58,18 +55,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             db.database_url(),
             config.llm.model,
         )
-        with progress.spinner("manc run"):
-            scores = run(
-                as_of=as_of,
-                config=config,
-                calendar=NasdaqCalendar(config.calendar),
-                news=RssNews(config.feeds + config.forecasts.query_feeds),
-                analyzer=LlmAnalyzer(config, fallback=LexiconAnalyzer(config.lexicon)),
-                forecasts=_forecast_providers(config, store),
-                spot=YahooSpot(),
-                store=store,
-                formula=get_formula(config.scoring.formula),
-            )
+        scores = run(
+            as_of=as_of,
+            config=config,
+            calendar=NasdaqCalendar(config.calendar),
+            news=RssNews(config.feeds + config.forecasts.query_feeds),
+            analyzer=LlmAnalyzer(config, fallback=LexiconAnalyzer(config.lexicon)),
+            forecasts=_forecast_providers(config, store),
+            spot=YahooSpot(),
+            store=store,
+            formula=get_formula(config.scoring.formula),
+        )
     else:
         scores = rescore(
             config=config,

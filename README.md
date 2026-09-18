@@ -79,9 +79,8 @@ uv run manc rescore --formula v1 --from 2026-09-01   # replay stored inputs unde
 uv run manc forecasts --since 2026-06-01       # one-off forecast backfill from the query feeds
 ```
 
-Every run logs its start, each step and each tagging batch to stderr with the time, and
-shows a spinner while a step works when stderr is a terminal; the scores go to stdout, one
-line per asset. Scheduling is a cron line: `0 6 * * 1-5 cd ~/quant/manc && uv run manc run`.
+Every run logs its start, each step and each tagging batch to stderr with the time; the
+scores go to stdout, one line per asset. Scheduling is a cron line: `0 6 * * 1-5 cd ~/quant/manc && uv run manc run`.
 
 ## Development
 
