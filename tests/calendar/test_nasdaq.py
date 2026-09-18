@@ -2,6 +2,7 @@
 
 import json
 import logging
+import time
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -218,3 +219,17 @@ def test_live_recent_friday_has_a_jobs_release() -> None:
     assert any(
         event.country == "united_states" and event.category == "employment" for event in events
     )
+
+
+@respx.mock
+def test_days_are_fetched_at_the_same_time() -> None:
+    def slow(request: httpx.Request) -> httpx.Response:
+        time.sleep(0.2)
+        return httpx.Response(200, json={"data": {"rows": []}})
+
+    respx.get(url__startswith="https://api.nasdaq.com/api/calendar/economicevents").mock(
+        side_effect=slow
+    )
+    started = time.perf_counter()
+    NasdaqCalendar(CALENDAR).fetch(date(2026, 9, 1), date(2026, 9, 6))
+    assert time.perf_counter() - started < 0.2 * 6 / 2
