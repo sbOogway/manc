@@ -16,7 +16,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from manc.config import CalendarConfig
-from manc.http import Client
+from manc.http import Client, gather
 from manc.models import CalendarEvent
 
 log = logging.getLogger(__name__)
@@ -35,11 +35,8 @@ class NasdaqCalendar:
 
     def fetch(self, start: date, end: date) -> list[CalendarEvent]:
         """Events for every day in [start, end], sorted by time; a failing day is skipped."""
-        events: list[CalendarEvent] = []
-        day = start
-        while day <= end:
-            events.extend(self._fetch_day(day))
-            day += timedelta(days=1)
+        days = [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
+        events = [event for found in gather(self._fetch_day, days) for event in found]
         return sorted(events, key=lambda event: event.date)
 
     def _fetch_day(self, day: date) -> list[CalendarEvent]:

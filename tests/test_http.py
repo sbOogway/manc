@@ -1,6 +1,9 @@
 """One httpx client for every provider: identified agent, one timeout, redirects followed."""
 
+import time
+
 import httpx
+import pytest
 import respx
 
 from manc import http
@@ -50,3 +53,26 @@ def test_calendar_provider_uses_the_shared_client() -> None:
     client = NasdaqCalendar(load_config().calendar).client
     assert isinstance(client, http.Client)
     assert client.headers["user-agent"] == http.USER_AGENT
+
+
+def test_gather_keeps_input_order() -> None:
+    assert http.gather(lambda number: number * 2, [3, 1, 2]) == [6, 2, 4]
+    assert http.gather(lambda number: number, []) == []
+
+
+def test_gather_runs_calls_at_the_same_time() -> None:
+    def slow(number: int) -> int:
+        time.sleep(0.2)
+        return number
+
+    started = time.perf_counter()
+    assert http.gather(slow, range(http.WORKERS)) == list(range(http.WORKERS))
+    assert time.perf_counter() - started < 0.2 * http.WORKERS / 2
+
+
+def test_gather_propagates_an_uncaught_error() -> None:
+    def failing(number: int) -> int:
+        raise ValueError(f"bad {number}")
+
+    with pytest.raises(ValueError, match="bad 0"):
+        http.gather(failing, [0, 1])

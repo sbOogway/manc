@@ -11,7 +11,7 @@ import feedparser
 import httpx
 
 from manc.config import FeedSpec
-from manc.http import Client
+from manc.http import Client, gather
 from manc.models import NewsItem
 
 log = logging.getLogger(__name__)
@@ -25,8 +25,8 @@ class RssNews:
     def fetch(self, since: datetime) -> list[NewsItem]:
         """Newest first; a URL seen in several feeds is attributed to the first feed."""
         seen: dict[str, NewsItem] = {}
-        for feed in self.feeds:
-            for item in self._fetch_feed(feed, since):
+        for items in gather(lambda feed: self._fetch_feed(feed, since), self.feeds):
+            for item in items:
                 seen.setdefault(item.id, item)
         return sorted(seen.values(), key=lambda item: item.published_at, reverse=True)
 

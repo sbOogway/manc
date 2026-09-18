@@ -132,7 +132,8 @@ vintage key, §4) so re-fetching is idempotent.
 `https://api.nasdaq.com/api/calendar/economicevents?date=YYYY-MM-DD` needs no API key and
 returns, per row, `gmt, country, eventName, actual, previous, consensus, description`. The
 provider (`calendar/nasdaq.py`) issues one request per day of the window over httpx with
-browser-like headers. Quirks verified on 2026-09-16 and pinned by tests:
+browser-like headers, a few days at a time on the thread pool in `manc.http` (as the RSS
+provider does with its feeds). Quirks verified on 2026-09-16 and pinned by tests:
 
 - `date=D` returns the events of **D−1**, so the provider requests `D+1` for each wanted day;
 - the `gmt` column is really **US Eastern** wall-clock time (payrolls at 08:30, FOMC at
