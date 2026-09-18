@@ -9,9 +9,11 @@ from typing import Any
 import litellm
 from pydantic import BaseModel
 
+from manc.claude_code import PROVIDER, ClaudeCode
 from manc.config import LlmConfig
 
 log = logging.getLogger(__name__)
+litellm.custom_provider_map = [{"provider": PROVIDER, "custom_handler": ClaudeCode()}]
 
 # A 429 is waited out this many times before the fallback model is tried, for the seconds the
 # provider asks (Groq's free tier meters tokens per minute and asks for a few seconds).
