@@ -194,16 +194,17 @@ provider-prefixed string in `config/llm.yaml` (`anthropic/...`, `openai/...`, `o
 `openrouter/<vendor>/<model>`) and switching providers is a config edit plus the provider's
 API-key env var.
 
-The default is free by design: a named free model on OpenRouter, chosen with the tagger
-benchmark (`tests/analysis/test_live_tagger.py`, recorded headlines with the direction a
-market reader expects; `MANC_LIVE_MODEL` benchmarks any model). OpenRouter's `openrouter/free`
-router was tried first and dropped: it picks a different model per request, and the free
-models range from ones that pass the benchmark to ones that tag every asset for the first
-headline and stop. Every tag and every extracted forecast stores the `model` string, and
-the free tier's caps (about 20 requests a minute and a small daily allowance, raised by
-buying credits once) are fine for the daily run but slow a backfill; LiteLLM's retries and
-the configured `fallback` absorb 429s. Switching to a paid model, or to a self-hosted
-Ollama server (`ollama_chat/<model>` with `OLLAMA_API_BASE`), is one config edit.
+The default is free by design: a free-tier model chosen with the tagger benchmark
+(`tests/analysis/test_live_tagger.py`, recorded headlines with the direction a market reader
+expects; `MANC_LIVE_MODEL` benchmarks any model, the docstring keeps the scores). Groq's
+`openai/gpt-oss-120b` tags real news best but only in batches of about five headlines, and
+Groq meters tokens per minute, so `manc.llm` waits out a 429 for the seconds the provider
+asks before trying the `fallback`, Mistral's free `ministral-14b`, which is unmetered and
+nearly as good. OpenRouter's `openrouter/free` router was tried first and dropped: it picks a
+different model per request, and the free models range from ones that pass the benchmark to
+ones that tag every asset for the first headline and stop. Every tag and every extracted
+forecast stores the `model` string. Switching to a paid model, or to a self-hosted Ollama
+server (`ollama_chat/<model>` with `OLLAMA_API_BASE`), is one config edit.
 
 The response schema is a Pydantic model passed as `response_format`; LiteLLM translates it to
 each provider's native structured-output mechanism (Anthropic, OpenAI, Ollama, Groq, Gemini,

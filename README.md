@@ -62,9 +62,9 @@ uv run alembic upgrade head  # create or migrate data/manc.db (MANC_DB_URL for a
 uv run pytest                # tests, no network
 ```
 
-The LLM needs an API key for whichever provider `config/llm.yaml` names. For the default
-(OpenRouter) put `OPENROUTER_API_KEY=...` in a `.env` file at the repo root (gitignored) or
-export it. Live tests that hit real sources are marked `live` and skipped by default:
+The LLM needs an API key for whichever provider `config/llm.yaml` names. For the defaults
+(Groq, Mistral as fallback) put `GROQ_API_KEY=...` and `MISTRAL_API_KEY=...` in a `.env`
+file at the repo root (gitignored) or export them; both are free tiers without a card. Live tests that hit real sources are marked `live` and skipped by default:
 `uv run pytest -m live`.
 
 ## Running
