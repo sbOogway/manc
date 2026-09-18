@@ -410,15 +410,17 @@ Between rows in the store and JSON on the wire there is real logic: the delta ve
 the band label for a score, the 30-day sparkline window, the event-risk badge, the ordering of
 the overview. It belongs neither in repositories (they only fetch) nor in route handlers (they
 only parse and serialize). `src/manc/queries.py` holds it as plain functions over a `Store`
-returning frozen dataclasses, tested with `FakeStore` and no HTTP:
+returning frozen dataclasses, tested with `FakeStore` and no HTTP. One function per thing a
+person looks at: the band of a score, the overview, an asset's score history, the headlines
+behind a score, the upcoming events and the forecast panel; the file is the reference for
+their signatures.
 
-```python
-overview(store, config, as_of)                    -> list[AssetSummary]
-asset_history(store, symbol, formula, start, end) -> AssetHistory
-headlines_behind(store, symbol, as_of)            -> list[HeadlineView]
-upcoming_events(store, config, start, end, min_importance) -> list[CalendarEvent]
-forecasts_for(store, config, symbol, as_of, min_confidence) -> ForecastPanel
-```
+Every function takes the config: it names the tracked assets (an unknown symbol raises
+`KeyError`, which the API turns into a 404), the formula, the news window and the feed and
+institution weights. The overview lists only the assets that have a score in the 30-day window
+and orders them by distance from 50; the delta is against the previous stored day. The
+headlines behind a score are the tagged ones inside the news window that carry a direction,
+weighted by confidence times source weight, strongest first.
 
 `ForecastPanel` carries the latest vintage per institution and horizon, its distance from the
 latest spot, the previous vintage's value when there is one (a revision arrow in the UI), the
