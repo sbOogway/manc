@@ -22,6 +22,8 @@ log = logging.getLogger(__name__)
 Complete = Callable[..., tuple[Any, str]]
 
 IMPORTANCE_LABELS = {1: "low", 2: "medium", 3: "high"}
+AHEAD_MIN_IMPORTANCE = 2  # the events worth a line; the formula's R still sums every one
+HEADLINES = 10  # the API serves the full list
 DIRECTION_GLYPHS = {1: "▲", -1: "▼"}
 SYSTEM_PROMPT = """\
 You write the opening paragraph of a daily macro report for {symbol} ({kind}; economies: \
@@ -61,9 +63,24 @@ def _template(store: Store, config: Config, asset: AssetSpec, score: IndexScore)
         for event in store.events.between(released_start, upcoming_end)
         if event.country in asset.economies
     ]
-    released = [event for event in events if event.released and event.date.date() <= score.date]
-    ahead = [event for event in events if event.date.date() > score.date]
-    headlines = queries.headlines_behind(store, config, asset.symbol, score.date)
+    # released: only what can surprise, a consensus and a category the asset reacts to
+    released = sorted(
+        (
+            event
+            for event in events
+            if event.released
+            and event.date.date() <= score.date
+            and event.consensus is not None
+            and asset.signs.get(event.country, {}).get(event.category, 0) != 0
+        ),
+        key=lambda event: (-event.importance, event.date),
+    )
+    ahead = [
+        event
+        for event in events
+        if event.date.date() > score.date and event.importance >= AHEAD_MIN_IMPORTANCE
+    ]
+    headlines = queries.headlines_behind(store, config, asset.symbol, score.date)[:HEADLINES]
 
     sections = [
         f"# {score.asset} {score.date.isoformat()}: {score.score:.0f} "
@@ -151,7 +168,7 @@ def _row(cells: Any) -> str:
 
 
 def _number(value: float | None) -> str:
-    return "n/a" if value is None else f"{value:g}"
+    return "n/a" if value is None else f"{value:,.12g}"
 
 
 def _count(number: int, noun: str) -> str:

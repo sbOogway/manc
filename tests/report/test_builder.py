@@ -53,15 +53,17 @@ def _event(
     country: str = "united_states",
     actual: float | None = None,
     importance: int = 3,
+    consensus: float | None = 3.0,
+    category: str = "inflation",
 ) -> CalendarEvent:
     return CalendarEvent(
         id=event_id,
         date=when,
         country=country,
         event="CPI YoY",
-        category="inflation",
+        category=category,
         importance=importance,
-        consensus=3.0,
+        consensus=consensus,
         previous=2.9,
         actual=actual,
     )
@@ -84,6 +86,9 @@ def _populated_store() -> FakeStore:
         _event("boj", NOON + DAY, country="japan"),  # not one of EURUSD's economies
         _event("stale", NOON - 10 * DAY, actual=2.0),  # outside the surprise window
         _event("far", NOON + 20 * DAY),  # outside the risk window
+        _event("blind", NOON - DAY, actual=1.0, consensus=None),  # no consensus, no surprise
+        _event("rigs", NOON - DAY, actual=450.0, category="other"),  # unsigned for the asset
+        _event("minor", NOON + DAY, importance=1),  # too small to list ahead
     )
     _headline(store, "Euro slips on hot US CPI", -1, 0.9)
     _headline(store, "ECB officials hint at a pause", 1, 0.4)
@@ -105,8 +110,8 @@ def test_components_section_lists_every_component() -> None:
 def test_released_events_of_the_asset_economies_in_the_surprise_window() -> None:
     report = build_report(_populated_store(), CONFIG, SCORE, complete=None)
     released = report.split("## Released data\n")[1].split("## ")[0]
-    assert "| 2026-09-13 | united_states | CPI YoY | 3.1 | 3 | 2.9 |" in released
-    assert "stale" not in released and "2026-09-05" not in released
+    rows = [line for line in released.splitlines() if line.startswith("| 2026")]
+    assert rows == ["| 2026-09-13 | united_states | CPI YoY | 3.1 | 3 | 2.9 |"]
 
 
 def test_events_ahead_of_the_asset_economies_in_the_risk_window() -> None:
@@ -127,6 +132,30 @@ def test_headlines_carry_direction_source_confidence_strongest_first() -> None:
         "- ▼ Euro slips on hot US CPI (reuters, 2026-09-14, 0.90)",
         "- ▲ ECB officials hint at a pause (reuters, 2026-09-14, 0.40)",
     ]
+
+
+def test_released_rows_come_most_important_first_and_numbers_stay_readable() -> None:
+    store = FakeStore()
+    store.events.add(
+        _event("small", NOON - DAY, actual=-1.67e11, consensus=-2.211e11, importance=1),
+        _event("big", NOON - 2 * DAY, actual=3.1, importance=3),
+    )
+    report = build_report(store, CONFIG, SCORE, complete=None)
+    rows = [line for line in report.splitlines() if line.startswith("| 2026")]
+    assert rows == [
+        "| 2026-09-13 | united_states | CPI YoY | 3.1 | 3 | 2.9 |",
+        "| 2026-09-14 | united_states | CPI YoY | -167,000,000,000 | -221,100,000,000 | 2.9 |",
+    ]
+
+
+def test_headlines_are_capped() -> None:
+    store = FakeStore()
+    for number in range(15):
+        _headline(store, f"headline {number:02d}", 1, 1.0 - number / 100)
+    report = build_report(store, CONFIG, SCORE, complete=None)
+    rows = [line for line in report.splitlines() if line.startswith("- ▲")]
+    assert len(rows) == 10
+    assert rows[0].startswith("- ▲ headline 00") and rows[-1].startswith("- ▲ headline 09")
 
 
 def test_empty_sections_say_so() -> None:
