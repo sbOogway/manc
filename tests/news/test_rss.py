@@ -1,6 +1,7 @@
 """RSS provider (blueprint section 4): every feed pulled, deduped by URL, failures isolated."""
 
 import logging
+import time
 from datetime import UTC, datetime, timedelta
 from hashlib import sha1
 from pathlib import Path
@@ -156,3 +157,18 @@ def test_live_feeds_return_recent_items() -> None:
 
     assert items
     assert len({item.source for item in items}) > 1
+
+
+@respx.mock
+def test_feeds_are_fetched_at_the_same_time() -> None:
+    feeds = [FeedSpec(f"feed{number}", f"https://feeds.test/{number}", 1.0) for number in range(6)]
+
+    def slow(request: httpx.Request) -> httpx.Response:
+        time.sleep(0.2)
+        return httpx.Response(200, content=b"<rss><channel></channel></rss>")
+
+    for feed in feeds:
+        respx.get(feed.url).mock(side_effect=slow)
+    started = time.perf_counter()
+    RssNews(feeds).fetch(SINCE)
+    assert time.perf_counter() - started < 0.2 * len(feeds) / 2
