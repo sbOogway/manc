@@ -413,12 +413,20 @@ only parse and serialize). `src/manc/queries.py` holds it as plain functions ove
 returning frozen dataclasses, tested with `FakeStore` and no HTTP:
 
 ```python
-overview(store, config, as_of)                    -> list[AssetSummary]
-asset_history(store, symbol, formula, start, end) -> AssetHistory
-headlines_behind(store, symbol, as_of)            -> list[HeadlineView]
-upcoming_events(store, config, start, end, min_importance) -> list[CalendarEvent]
-forecasts_for(store, config, symbol, as_of, min_confidence) -> ForecastPanel
+band(score)                                                  -> str
+overview(store, config, as_of)                               -> list[AssetSummary]
+asset_history(store, config, symbol, formula, start, end)    -> AssetHistory
+headlines_behind(store, config, symbol, as_of)               -> list[HeadlineView]
+upcoming_events(store, config, start, end, min_importance)   -> list[CalendarEvent]
+forecasts_for(store, config, symbol, as_of, min_confidence)  -> ForecastPanel
 ```
+
+Every function takes the config: it names the tracked assets (an unknown symbol raises
+`KeyError`, which the API turns into a 404), the formula, the news window and the feed and
+institution weights. `overview` lists only the assets that have a score in the 30-day window
+and orders them by distance from 50; the delta is against the previous stored day.
+`headlines_behind` returns the tagged headlines inside the news window that carry a
+direction, weighted by confidence times source weight, strongest first.
 
 `ForecastPanel` carries the latest vintage per institution and horizon, its distance from the
 latest spot, the previous vintage's value when there is one (a revision arrow in the UI), the
