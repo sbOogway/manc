@@ -30,6 +30,8 @@ Scores, synthetic / real, no-tag baseline 12/22 and 19/52 (the lexicon scores 22
 - 2026-09-18 mistral/ministral-14b-latest 17/22 and 34/52 at batch 40, no rate limit hit;
   smaller batches make it over-tag. ministral-8b 17/22 and 25/52. The larger Mistral models
   are not on the free tier.
+- 2026-09-18 claude_code/opus 22/22 and 49/52 at batch 40 (about a minute for the real
+  set); claude_code/sonnet 21/22 and 45/52.
 - 2026-09-17 ollama_chat/gemma4:12b tags the first headline only; nemotron3:33b never loads
   within a proxy timeout.
 """
