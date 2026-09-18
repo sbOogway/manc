@@ -6,6 +6,7 @@ import sys
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time
 
+from manc import progress
 from manc.analysis.lexicon import LexiconAnalyzer
 from manc.analysis.llm import LlmAnalyzer
 from manc.calendar.nasdaq import NasdaqCalendar
@@ -23,12 +24,19 @@ from manc.store import db
 from manc.store.sql import SqlStore
 
 M4_COMMANDS = ("api", "ui", "serve")
+LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+LOG_DATEFMT = "%H:%M:%S"
+
+log = logging.getLogger(__name__)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    logging.basicConfig(stream=sys.stderr)  # no-op if a handler is already installed
-    logging.getLogger("manc").setLevel(logging.INFO if args.verbose else logging.WARNING)
+    # no-op if a handler is already installed; the handler wipes the spinner before a line
+    logging.basicConfig(
+        handlers=[progress.Handler(sys.stderr)], format=LOG_FORMAT, datefmt=LOG_DATEFMT
+    )
+    logging.getLogger("manc").setLevel(logging.DEBUG if args.verbose else logging.INFO)
     if args.command in M4_COMMANDS:
         print(f"manc {args.command}: not implemented yet (milestone M4)", file=sys.stderr)
         return 2
@@ -41,17 +49,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "forecasts":
         return _backfill_forecasts(config, store, args.since)
     if args.command == "run":
-        scores = run(
-            as_of=_as_of(args.date),
-            config=config,
-            calendar=NasdaqCalendar(config.calendar),
-            news=RssNews(config.feeds + config.forecasts.query_feeds),
-            analyzer=LlmAnalyzer(config, fallback=LexiconAnalyzer(config.lexicon)),
-            forecasts=_forecast_providers(config, store),
-            spot=YahooSpot(),
-            store=store,
-            formula=get_formula(config.scoring.formula),
+        as_of = _as_of(args.date)
+        log.info(
+            "manc run: starting, scoring %s as of %s, %d assets, %s, model %s",
+            as_of.date(),
+            as_of.strftime("%H:%M UTC"),
+            len(config.assets),
+            db.database_url(),
+            config.llm.model,
         )
+        with progress.spinner("manc run"):
+            scores = run(
+                as_of=as_of,
+                config=config,
+                calendar=NasdaqCalendar(config.calendar),
+                news=RssNews(config.feeds + config.forecasts.query_feeds),
+                analyzer=LlmAnalyzer(config, fallback=LexiconAnalyzer(config.lexicon)),
+                forecasts=_forecast_providers(config, store),
+                spot=YahooSpot(),
+                store=store,
+                formula=get_formula(config.scoring.formula),
+            )
     else:
         scores = rescore(
             config=config,
@@ -96,7 +114,9 @@ def _line(score: IndexScore) -> str:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="manc", description="macro analysis, news and calendar")
-    parser.add_argument("-v", "--verbose", action="store_true", help="log each step to stderr")
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="also log every feed and calendar day"
+    )
     commands = parser.add_subparsers(dest="command", required=True)
 
     run_cmd = commands.add_parser("run", help="fetch, tag, score and store every asset")

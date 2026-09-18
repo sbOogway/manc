@@ -1,6 +1,9 @@
 """`manc` entry point on a real temp database; every feed and the calendar are stubbed empty."""
 
+import logging
+import re
 from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -145,14 +148,44 @@ def test_unknown_command_exits_2() -> None:
     assert exit_info.value.code == 2
 
 
-def test_verbose_logs_each_step(migrated_db: str, caplog: pytest.LogCaptureFixture) -> None:
-    assert cli.main(["-v", "run", "--date", "2026-09-15"]) == 0
-    assert any("calendar: 0 events" in record.message for record in caplog.records)
-
-
-def test_quiet_by_default(migrated_db: str, caplog: pytest.LogCaptureFixture) -> None:
+def test_logs_the_start_and_each_step_by_default(
+    migrated_db: str, caplog: pytest.LogCaptureFixture
+) -> None:
     assert cli.main(["run", "--date", "2026-09-15"]) == 0
-    assert not [record for record in caplog.records if record.name.startswith("manc")]
+    messages = [record.message for record in caplog.records if record.name.startswith("manc")]
+    assert messages[0].startswith("manc run: starting")
+    assert "2026-09-15" in messages[0] and "7 assets" in messages[0] and migrated_db in messages[0]
+    assert any(message.startswith("calendar: 0 events") for message in messages)
+    assert not [record for record in caplog.records if record.levelno < logging.INFO]
+
+
+def test_verbose_adds_the_debug_lines(migrated_db: str, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG, logger="manc")
+    assert cli.main(["-v", "run", "--date", "2026-09-15"]) == 0
+    assert [record for record in caplog.records if record.levelno == logging.DEBUG]
+
+
+def test_log_lines_carry_time_level_and_module() -> None:
+    record = logging.makeLogRecord(
+        {"name": "manc.cli", "levelno": logging.INFO, "levelname": "INFO", "msg": "starting"}
+    )
+    line = logging.Formatter(cli.LOG_FORMAT, cli.LOG_DATEFMT).format(record)
+    assert re.fullmatch(r"\d\d:\d\d:\d\d INFO manc\.cli: starting", line)
+
+
+def test_run_spins_while_working(
+    migrated_db: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    labels: list[str] = []
+
+    @contextmanager
+    def fake_spinner(label: str, **kwargs: object) -> Iterator[None]:
+        labels.append(label)
+        yield None
+
+    monkeypatch.setattr(cli.progress, "spinner", fake_spinner)
+    assert cli.main(["run", "--date", "2026-09-15"]) == 0
+    assert labels == ["manc run"]
 
 
 FORECAST_FEED = b"""<?xml version="1.0"?><rss version="2.0"><channel><title>q</title>
