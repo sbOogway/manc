@@ -84,10 +84,19 @@ class LlmAnalyzer:
                 f"- {asset.symbol}: {asset.kind}, {', '.join(asset.economies)}" for asset in assets
             )
         )
+        batches = list(batched(items, self.batch_size))
         tags: list[NewsTag] = []
-        for batch in batched(items, self.batch_size):
-            tags.extend(self._tag_batch(batch, symbols, system_prompt, assets))
-        log.info("analysis: %d headlines → %d tags", len(items), len(tags))
+        for number, batch in enumerate(batches, start=1):
+            found, tagged_by = self._tag_batch(batch, symbols, system_prompt, assets)
+            tags.extend(found)
+            log.info(
+                "analysis: batch %d/%d, %d headlines → %d tags (%s)",
+                number,
+                len(batches),
+                len(batch),
+                len(found),
+                tagged_by,
+            )
         return tags
 
     def _tag_batch(
@@ -96,7 +105,8 @@ class LlmAnalyzer:
         symbols: set[str],
         system_prompt: str,
         assets: Sequence[AssetSpec],
-    ) -> list[NewsTag]:
+    ) -> tuple[list[NewsTag], str]:
+        """The batch's tags and who produced them: the model, the fallback, or "skipped"."""
         messages = [
             {"role": "system", "content": system_prompt},
             {
@@ -109,14 +119,12 @@ class LlmAnalyzer:
         except llm.LlmError as error:
             if self.fallback is None:
                 log.warning("analysis: batch of %d headlines skipped: %s", len(batch), error)
-                return []
+                return [], "skipped"
+            fallback = type(self.fallback).__name__
             log.warning(
-                "analysis: batch of %d headlines tagged by %s: %s",
-                len(batch),
-                type(self.fallback).__name__,
-                error,
+                "analysis: batch of %d headlines tagged by %s: %s", len(batch), fallback, error
             )
-            return self.fallback.tag(batch, assets)
+            return self.fallback.tag(batch, assets), fallback
         tags = []
         for found in tagging.tags:
             symbol = found.asset.strip().upper()
@@ -133,7 +141,7 @@ class LlmAnalyzer:
                     prompt_version=PROMPT_VERSION,
                 )
             )
-        return tags
+        return tags, model
 
 
 def _line(index: int, item: NewsItem) -> str:
