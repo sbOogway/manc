@@ -618,10 +618,10 @@ the API only, first against `manc api` on localhost and then published on GitHub
 - `queries.py` with unit tests
 - FastAPI app: routes, Pydantic schemas, store dependency, CORS, `TestClient` tests, `manc api`
 - `site/` shell: Vue app and router, the API client with the configurable URL, design tokens,
-  light/dark, the `node --test` hook
+  light/dark, the `node --test` hook; `manc ui` and `manc serve`
 - overview page with asset cards and sparklines
 - asset page with history chart, selectors, report, events, headlines, forecasts panel
-- events page; `manc ui` and `manc serve`
+- events page
 - `scripts/publish-site.sh` and the `gh-pages` branch
 
 **M5 Operations** — done when: two weeks of daily scores exist without manual intervention.

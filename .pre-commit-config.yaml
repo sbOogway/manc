@@ -32,3 +32,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: site-tests
+        name: site tests (node --test)
+        entry: node --test 'site/tests/*.test.js'
+        language: system
+        pass_filenames: false
+        files: ^site/

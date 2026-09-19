@@ -3,8 +3,12 @@
 import argparse
 import logging
 import sys
+import threading
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 import uvicorn
 
@@ -26,9 +30,10 @@ from manc.spot.yahoo import YahooSpot
 from manc.store import db
 from manc.store.sql import SqlStore
 
-M4_COMMANDS = ("ui", "serve")
 API_HOST = "127.0.0.1"
 API_PORT = 8000
+SITE_PORT = 8050
+SITE_DIR = Path(__file__).resolve().parents[2] / "site"
 LOG_FORMAT = "%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s"
 LOG_DATEFMT = "%H:%M:%S"
 
@@ -40,18 +45,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     # no-op if a handler is already installed
     logging.basicConfig(stream=sys.stderr, format=LOG_FORMAT, datefmt=LOG_DATEFMT)
     logging.getLogger("manc").setLevel(logging.DEBUG if args.verbose else logging.INFO)
-    if args.command in M4_COMMANDS:
-        print(f"manc {args.command}: not implemented yet (milestone M4)", file=sys.stderr)
-        return 2
+    if args.command == "ui":
+        _serve_site()
+        return 0
     try:
         store = SqlStore(db.make_engine())
     except RuntimeError as error:
         print(f"manc: {error}", file=sys.stderr)
         return 1
     config = load_config()
-    if args.command == "api":
+    if args.command in ("api", "serve"):
         log.info("manc api: serving http://%s:%d, %s", API_HOST, API_PORT, db.database_url())
-        uvicorn.run(create_app(config, store), host=API_HOST, port=API_PORT)
+        serve_api = partial(uvicorn.run, create_app(config, store), host=API_HOST, port=API_PORT)
+        if args.command == "api":
+            serve_api()
+            return 0
+        threading.Thread(target=serve_api, daemon=True).start()
+        _serve_site()
         return 0
     if args.command == "forecasts":
         return _backfill_forecasts(config, store, args.since)
@@ -106,6 +116,13 @@ def _forecast_providers(config: Config, store: SqlStore) -> list[ForecastProvide
     return [LlmExtractor(config, store.news), FedSep(), WorldBankOutlook()]
 
 
+def _serve_site() -> None:
+    """The static site from `site/`, for the local test against the API."""
+    handler = partial(SimpleHTTPRequestHandler, directory=str(SITE_DIR))
+    log.info("manc ui: serving %s on http://%s:%d", SITE_DIR, API_HOST, SITE_PORT)
+    ThreadingHTTPServer((API_HOST, SITE_PORT), handler).serve_forever()
+
+
 def _as_of(day: date | None) -> datetime:
     """Now for today; end of day for a past date so its whole news window counts."""
     if day is None or day == datetime.now(UTC).date():
@@ -143,6 +160,6 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     commands.add_parser("api", help=f"serve the REST API on http://{API_HOST}:{API_PORT}")
-    for name in M4_COMMANDS:
-        commands.add_parser(name, help="milestone M4")
+    commands.add_parser("ui", help=f"serve the dashboard on http://{API_HOST}:{SITE_PORT}")
+    commands.add_parser("serve", help="the API and the dashboard together")
     return parser

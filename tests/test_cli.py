@@ -5,6 +5,7 @@ import re
 from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from typing import ClassVar
 
 import httpx
 import pytest
@@ -141,10 +142,45 @@ def test_unmigrated_database_fails_with_hint(
     assert "alembic upgrade head" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("command", ["ui", "serve"])
-def test_m4_commands_are_stubs(command: str, capsys: pytest.CaptureFixture) -> None:
-    assert cli.main([command]) == 2
-    assert "not implemented yet" in capsys.readouterr().err
+class FakeSiteServer:
+    """Records how the site server was built and returns at once instead of serving."""
+
+    instances: ClassVar[list["FakeSiteServer"]] = []
+
+    def __init__(self, address: tuple[str, int], handler: object) -> None:
+        self.address = address
+        self.handler = handler
+        self.served = False
+        FakeSiteServer.instances.append(self)
+
+    def serve_forever(self) -> None:
+        self.served = True
+
+
+@pytest.fixture
+def site_server(monkeypatch: pytest.MonkeyPatch) -> type[FakeSiteServer]:
+    FakeSiteServer.instances.clear()
+    monkeypatch.setattr(cli, "ThreadingHTTPServer", FakeSiteServer)
+    return FakeSiteServer
+
+
+def test_ui_serves_the_site_folder(site_server: type[FakeSiteServer]) -> None:
+    assert cli.main(["ui"]) == 0
+    [server] = site_server.instances
+    assert server.address == ("127.0.0.1", 8050)
+    assert server.served
+    assert (Path(server.handler.keywords["directory"]) / "index.html").is_file()
+
+
+def test_serve_starts_the_api_in_a_thread_and_the_site(
+    site_server: type[FakeSiteServer], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    served: dict[str, object] = {}
+    monkeypatch.setattr(cli.uvicorn, "run", lambda app, **kwargs: served.update(kwargs))
+    assert cli.main(["serve"]) == 0
+    [server] = site_server.instances
+    assert server.served
+    assert served["port"] == 8000
 
 
 def test_api_serves_the_app_with_uvicorn(monkeypatch: pytest.MonkeyPatch) -> None:
