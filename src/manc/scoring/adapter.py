@@ -31,6 +31,7 @@ def build_inputs(
             confidence=tag.confidence,
             source_weight=feed_weights.get(item.source, UNKNOWN_SOURCE_WEIGHT),
             published_at=item.published_at,
+            title=item.title,
         )
         for item, tag in store.news.tagged(asset.symbol, news_since)
     )
