@@ -110,7 +110,7 @@ def _score_all(
 ) -> list[IndexScore]:
     scores = []
     for asset in config.assets:
-        inputs = build_inputs(store, asset, as_of, config)
+        inputs = build_inputs(store, asset, as_of, config, formula.windows)
         scored = formula.compute(inputs)
         score = replace(scored, report_md=build_report(store, config, scored, complete=summarize))
         store.scores.add(score)

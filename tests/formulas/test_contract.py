@@ -102,6 +102,12 @@ def test_every_formula_declares_an_ordered_scale(name: str) -> None:
     assert scale.band(scale.high) == "tailwind"
 
 
+@pytest.mark.parametrize("name", ["v1", "v2"])
+def test_every_formula_declares_its_window_overrides(name: str) -> None:
+    windows = get_formula(name).windows
+    assert all(isinstance(value, int) and value > 0 for value in windows.values())
+
+
 def test_v1_scale_is_the_section_5_scale() -> None:
     scale = get_formula("v1").scale
     assert (scale.low, scale.neutral, scale.high) == (0.0, 50.0, 100.0)

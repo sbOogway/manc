@@ -15,3 +15,4 @@ windows:
   released_days: 7          # released events considered for S
   upcoming_days: 7          # scheduled events considered for R
   calendar_lookahead_days: 30  # how far ahead the calendar is fetched
+  surprise_history_days: 730  # past releases of the same event, for the v2 standardised surprise
