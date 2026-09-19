@@ -1,18 +1,33 @@
 # Which formula scores the assets, its tunable parameters, and the data windows the
 # pipeline feeds it. Changing a param is a config edit; changing the structure is a new
-# formula version (docs/blueprint.md section 5).
-formula: v1
+# formula version (docs/blueprint.md section 5). v1 reads only the shared keys and ignores
+# the rest, so `manc rescore --formula v1` works with this file as it is.
+formula: v2
 
 params:
+  # shared by v1 and v2
   news_weight: 0.6          # weight of the news term N
   surprise_weight: 0.4      # weight of the data-surprise term S
   news_half_life_hours: 48  # recency decay of headlines
   event_risk_scale: 4.0     # sum of upcoming importance that saturates R at 1
-  event_risk_shrink: 0.5    # how much full event risk pulls the score toward 50
+  event_risk_shrink: 0.5    # how much full event risk pulls the score toward neutral
+  # v2 only; each candidate is a switch (1 on, 0 off) so any subset can be replayed
+  standardised_surprise: 1  # surprise in standard deviations of the release's own history
+  surprise_min_history: 8   # past releases needed before the standard deviation is trusted
+  surprise_z_cap: 2.0       # z at which the surprise saturates at ±1
+  decayed_surprise: 1       # releases fade with a half-life instead of a hard cut
+  surprise_half_life_days: 14
+  novelty_weighting: 1      # the k-th copy of a story within 24h weighs decay^(k-1)
+  novelty_decay: 0.75
+  novelty_window_hours: 24
+  novelty_similarity: 0.5   # Jaccard on title words at or above which two titles are one story
+  coarse_confidence: 1      # LLM confidence bucketed to a few levels before weighting
+  confidence_levels: 3
+  bad_news_alpha: 1.25      # negative contributions weigh this much more than positive ones
 
 windows:
   news_hours: 72            # headlines considered for N
-  released_days: 7          # released events considered for S
+  released_days: 7          # released events considered for S (v2 widens this to 90)
   upcoming_days: 7          # scheduled events considered for R
   calendar_lookahead_days: 30  # how far ahead the calendar is fetched
   surprise_history_days: 730  # past releases of the same event, for the v2 standardised surprise

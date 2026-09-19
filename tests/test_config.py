@@ -6,6 +6,7 @@ import pytest
 import yaml
 
 from manc.config import FORECASTER_KINDS, load_config
+from manc.formulas import v2
 from manc.formulas.registry import get_formula
 
 REPO_CONFIG = Path(__file__).resolve().parents[1] / "config"
@@ -23,7 +24,8 @@ def test_repo_config_loads() -> None:
         "BTCUSD",
     ]
     assert all(0.0 <= feed.weight <= 1.0 for feed in config.feeds)
-    assert get_formula(config.scoring.formula).name == config.scoring.formula
+    assert get_formula(config.scoring.formula).name == config.scoring.formula == "v2"
+    assert set(v2.DEFAULT_PARAMS) <= set(config.scoring.params)  # every v2 key is documented
     assert config.llm.model
 
 

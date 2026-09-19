@@ -11,6 +11,7 @@
     S = Σ sₑ·impₑ·δₑ / Σ impₑ·δₑ                δₑ = 0.5^(age_days / half_life_days) over a
                                                  90-day window
     D = std(dᵢ·cᵢ)                              stored, not scored
+    negative contributions in N and S are multiplied by bad_news_alpha ≥ 1 (bad-news asymmetry)
     score = 100·(news_weight·N + surprise_weight·S)·(1 - event_risk_shrink·R)
 
 Bands sit at ±10 and ±40, the same proportions as v1's 45/55 and 30/70. Each candidate is a
@@ -49,6 +50,7 @@ DEFAULT_PARAMS: Mapping[str, float] = {
     "novelty_similarity": 0.5,
     "coarse_confidence": 1,
     "confidence_levels": 3,
+    "bad_news_alpha": 1.25,
 }
 _SOURCE_SUFFIX = re.compile(r"\s+[-|\u2013\u2014]\s+[^-|\u2013\u2014]+$")  # "... - Reuters"
 _WORD = re.compile(r"[a-z0-9]{3,}")
@@ -111,9 +113,14 @@ def _news_term(tags: Sequence[TaggedHeadline], as_of, params: Mapping[str, float
         age_hours = max(0.0, (as_of - tag.published_at).total_seconds() / 3600)
         decay = 0.5 ** (age_hours / half_life_hours)
         weight = tag.confidence * tag.source_weight * decay * freshness
-        weighted_sum += tag.direction * weight
+        weighted_sum += _asymmetric(tag.direction, params) * weight
         weight_sum += weight
     return weighted_sum / weight_sum if weight_sum > 0 else 0.0
+
+
+def _asymmetric(contribution: float, params: Mapping[str, float]) -> float:
+    """Bad news weighs more: a negative contribution times alpha, a positive one unchanged."""
+    return contribution * params["bad_news_alpha"] if contribution < 0 else contribution
 
 
 def _tokens(title: str) -> frozenset[str]:
@@ -179,7 +186,7 @@ def _surprise_term(
         if params["decayed_surprise"]:
             age_days = max(0.0, (as_of - event.date).total_seconds() / 86400)
             weight *= 0.5 ** (age_days / params["surprise_half_life_days"])
-        weighted_sum += sign * surprise * weight
+        weighted_sum += _asymmetric(sign * surprise, params) * weight
         weight_sum += weight
     return weighted_sum / weight_sum if weight_sum > 0 else 0.0
 

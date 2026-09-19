@@ -1,5 +1,6 @@
 """Every section 7 route on TestClient against FakeStore: status, shape, errors."""
 
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -11,7 +12,9 @@ from manc.formulas.contract import IndexScore
 from manc.models import CalendarEvent, ForecastAsset, ForecastMacro, NewsItem, NewsTag, SpotPrice
 from tests.fakes import FakeStore
 
-CONFIG = load_config()
+CONFIG = replace(
+    load_config(), scoring=replace(load_config().scoring, formula="v1")
+)  # the fake holds v1 rows
 TODAY = datetime.now(UTC).date()
 DAY = timedelta(days=1)
 NOON = datetime.combine(TODAY, datetime.min.time(), tzinfo=UTC) + timedelta(hours=12)
@@ -146,7 +149,7 @@ def test_scores_formula_and_range(client: TestClient) -> None:
     assert [point["score"] for point in response.json()["points"]] == [70.0]
 
 
-def test_report_defaults_to_today(client: TestClient) -> None:
+def test_report_defaults_to_today_and_the_configured_formula(client: TestClient) -> None:
     response = client.get("/api/v1/assets/EURUSD/report")
     assert response.status_code == 200
     assert response.json() == {
@@ -155,6 +158,8 @@ def test_report_defaults_to_today(client: TestClient) -> None:
         "formula": "v1",
         "report_md": f"# EURUSD {TODAY}",
     }
+    other = client.get("/api/v1/assets/EURUSD/report", params={"formula": "v2"})
+    assert other.json()["formula"] == "v2"  # the fake holds a v2 row for today too
 
 
 def test_report_missing_day_is_404(client: TestClient) -> None:

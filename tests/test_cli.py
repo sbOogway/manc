@@ -79,7 +79,7 @@ def test_run_prints_one_line_per_asset(migrated_db: str, capsys: pytest.CaptureF
     assert cli.main(["run", "--date", "2026-09-15"]) == 0
     lines = capsys.readouterr().out.strip().splitlines()
     assert len(lines) == 7
-    assert lines[0].split() == ["2026-09-15", "EURUSD", "50.0", "v1", "news=0", "events=0"]
+    assert lines[0].split() == ["2026-09-15", "EURUSD", "0.0", "v2", "news=0", "events=0"]
 
 
 def test_run_stores_one_close_per_asset(migrated_db: str) -> None:
@@ -337,7 +337,7 @@ def test_run_tags_the_headlines_through_the_llm(
         "free/model",
         "v1",
     )
-    [score] = store.scores.series("XAUUSD", "v1", date(2026, 6, 1), date(2026, 6, 1))
+    [score] = store.scores.series("XAUUSD", "v2", date(2026, 6, 1), date(2026, 6, 1))
     assert "\n\nGold got a target.\n\n" in score.report_md
     assert score.report_md.endswith("Summary by free/model.\n")
 
@@ -349,9 +349,9 @@ def test_rescore_never_calls_the_llm(migrated_db: str, monkeypatch: pytest.Monke
     monkeypatch.setattr(llm.litellm, "completion", exploding_completion)
     assert cli.main(["rescore", "--from", "2026-09-15", "--to", "2026-09-15"]) == 0
     [score] = SqlStore(db.make_engine()).scores.series(
-        "EURUSD", "v1", date(2026, 9, 15), date(2026, 9, 15)
+        "EURUSD", "v2", date(2026, 9, 15), date(2026, 9, 15)
     )
-    assert score.report_md.startswith("# EURUSD 2026-09-15: 50 neutral\n\n## Components")
+    assert score.report_md.startswith("# EURUSD 2026-09-15: 0 neutral\n\n## Components")
 
 
 def test_run_tags_with_the_lexicon_when_the_llm_fails(
