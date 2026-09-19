@@ -34,6 +34,7 @@ EPSILON = 1e-9
 class FormulaV1:
     name = "v1"
     scale = Scale(low=0.0, high=100.0, neutral=50.0, edges=(30.0, 45.0, 55.0, 70.0))
+    windows: Mapping[str, int] = {}
 
     def compute(self, inputs: ScoringInputs) -> IndexScore:
         params = {**DEFAULT_PARAMS, **inputs.params}

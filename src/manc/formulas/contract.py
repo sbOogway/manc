@@ -43,6 +43,9 @@ class EventObservation:
     consensus: float | None
     previous: float | None
     actual: float | None
+    # actual - consensus of the earlier releases of the same event, oldest first; what a
+    # standardised surprise needs. Empty when the adapter has no history.
+    past_surprises: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -94,5 +97,6 @@ class IndexScore:
 class IndexFormula(Protocol):
     name: str
     scale: Scale
+    windows: Mapping[str, int]  # overrides of config/scoring.yaml windows this version needs
 
     def compute(self, inputs: ScoringInputs) -> IndexScore: ...

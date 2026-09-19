@@ -2,6 +2,8 @@
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from manc.config import (
     CalendarConfig,
     Config,
@@ -26,7 +28,12 @@ CONFIG = Config(
     scoring=ScoringConfig(
         formula="v1",
         params={"news_weight": 0.6},
-        windows={"news_hours": 72, "released_days": 7, "upcoming_days": 7},
+        windows={
+            "news_hours": 72,
+            "released_days": 7,
+            "upcoming_days": 7,
+            "surprise_history_days": 730,
+        },
     ),
     llm=LlmConfig(model="m", fallback=None, temperature=0, batch_size=40),
     calendar=CalendarConfig(categories=(), importances=(), countries={}),
@@ -67,6 +74,47 @@ def test_splits_released_and_upcoming_within_windows_and_economies() -> None:
     assert inputs.asset == EURUSD
     assert inputs.as_of == AS_OF
     assert inputs.params == {"news_weight": 0.6}
+
+
+def _release(
+    event_id: str, when: datetime, name: str, consensus: float | None, actual: float | None
+):
+    return CalendarEvent(
+        id=event_id,
+        date=when,
+        country="united_states",
+        event=name,
+        category="inflation",
+        importance=3,
+        consensus=consensus,
+        previous=None,
+        actual=actual,
+    )
+
+
+def test_released_events_carry_the_earlier_surprises_of_the_same_release() -> None:
+    store = FakeStore()
+    store.events.add(
+        _release("now", AS_OF - DAY, "CPI", consensus=3.0, actual=3.4),
+        _release("month_ago", AS_OF - 31 * DAY, "CPI", consensus=2.9, actual=3.0),
+        _release("two_months", AS_OF - 61 * DAY, "CPI", consensus=2.8, actual=2.6),
+        _release("no_consensus", AS_OF - 92 * DAY, "CPI", consensus=None, actual=2.5),
+        _release("other_release", AS_OF - 31 * DAY, "Core CPI", consensus=2.0, actual=2.5),
+        _release("too_old", AS_OF - 800 * DAY, "CPI", consensus=2.0, actual=3.0),
+    )
+    [released] = build_inputs(store, EURUSD, AS_OF, CONFIG).released
+    assert released.past_surprises == pytest.approx((-0.2, 0.1))  # oldest first, CPI only
+
+
+def test_formula_windows_override_the_config() -> None:
+    store = FakeStore()
+    store.events.add(
+        _event("recent", AS_OF - 2 * DAY, "united_states", actual=1.2),
+        _event("older", AS_OF - 30 * DAY, "united_states", actual=1.2),
+    )
+    assert len(build_inputs(store, EURUSD, AS_OF, CONFIG).released) == 1
+    widened = build_inputs(store, EURUSD, AS_OF, CONFIG, windows={"released_days": 90})
+    assert [event.date for event in widened.released] == [AS_OF - 30 * DAY, AS_OF - 2 * DAY]
 
 
 def test_tags_carry_feed_weights_and_respect_news_window() -> None:
