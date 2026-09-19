@@ -499,9 +499,10 @@ Serving and publishing:
 - `uv run manc ui` serves `site/` on `localhost:8050` with the standard library's HTTP server,
   for the local test; `uv run manc serve` starts it together with the API. The API allows
   cross-origin reads from any origin: it is read-only and public.
-- `scripts/publish-site.sh` pushes `site/` to the `gh-pages` branch with `git subtree`;
-  GitHub Pages serves that branch. No workflow file, in line with §8. Once the API is
-  reachable through the tunnel, the published site is pointed at it from the header field.
+- `scripts/publish-site.sh` pushes the `site/` tree of `HEAD` to the `gh-pages` branch as its
+  own commit chain (`git commit-tree`, no subtree); GitHub Pages serves that branch. No
+  workflow file, in line with §8. Once the API is reachable through the tunnel, the published
+  site is pointed at it from the header field.
 
 ## 8 · Repo and tooling
 

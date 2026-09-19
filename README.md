@@ -45,12 +45,9 @@ the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the 
 |-----------|-------|
 | M1 Skeleton: models, store, migrations, CLI, fakes, hooks | done |
 | M2 Ingestion: RSS news, Nasdaq calendar, LLM forecast extractor, Yahoo spot closes, Fed SEP and World Bank publishers | done |
-| M3 Analysis and index: LLM tagger, formula v1 | next |
-| M4 Report, API and dashboard | planned |
+| M3 Analysis and index: LLM tagger, lexicon fallback, formula v1 | done |
+| M4 Report, API and dashboard: markdown report, REST API, static dashboard on GitHub Pages | in progress |
 | M5 Operations, M6 Formula v2 | planned |
-
-Until M3 lands the tagger is a stub and every score is 50; the calendar, news and
-forecasts are real.
 
 ## Setup
 
@@ -82,6 +79,24 @@ uv run manc forecasts --since 2026-06-01       # one-off forecast backfill from 
 Every run logs its start, each step and each tagging batch to stderr with the time; the
 scores go to stdout, one line per asset. Scheduling is a cron line: `0 6 * * 1-5 cd ~/quant/manc && uv run manc run`.
 
+### Dashboard
+
+```sh
+uv run manc serve                              # API on :8000 and the dashboard on :8050
+uv run manc api                                # the REST API alone (OpenAPI UI at /docs)
+uv run manc ui                                 # the static dashboard alone
+```
+
+The dashboard is a static site (`site/`, Vue 3 and Plotly.js from a CDN, no build step) that
+only talks to the API; open http://localhost:8050 and it reads `http://localhost:8000`. The
+field in the header points it at another backend, for instance a Cloudflare tunnel in front of
+`manc api`; the choice stays in the browser.
+
+Publishing it to GitHub Pages is `scripts/publish-site.sh`: it pushes `site/` to the `gh-pages`
+branch, which Pages serves (enable Pages on that branch once, the command is in the script).
+The published site starts on `localhost:8000` too, so set the tunnel URL in the header after the
+first load.
+
 ## Development
 
 Test-driven: the failing test comes before the code. Every commit runs the pre-commit
@@ -94,6 +109,8 @@ Layout:
 - `src/manc/` — the application: `calendar/`, `news/`, `forecasts/`, `spot/`, `analysis/`,
   `scoring/`, `store/`, `pipeline.py`, `cli.py`, `llm.py`
 - `src/manc/formulas/` — index formulas as plain classes, standard library only, versioned
+- `src/manc/api/` — the FastAPI routes; `src/manc/queries.py` the read-side logic behind them
+- `site/` — the dashboard; its pure modules are tested with `node --test 'site/tests/*.test.js'`
 - `src/manc/store/schema.py` — declared tables; every change is an Alembic revision in `migrations/`
 - `config/` — assets, feeds, calendar maps, scoring params, LLM model, forecast institutions
 - `tests/` — one folder per module, recorded fixtures under `tests/fixtures/`
