@@ -6,6 +6,7 @@ import {
   componentsFigure,
   eventsFor,
   forecastRows,
+  headlineRows,
   rangeFor,
   revision,
   scoreFigure,
@@ -159,4 +160,18 @@ test("revision arrows", () => {
   assert.equal(revision({ value: 1.0, previous_value: 1.1 }), "▼");
   assert.equal(revision({ value: 1.1, previous_value: 1.1 }), "—");
   assert.equal(revision({ value: 1.1, previous_value: null }), "—");
+});
+
+test("headlineRows scales the weight bars to the strongest headline, in API order", () => {
+  const rows = headlineRows([
+    { title: "a", url: "u/a", source: "reuters", published_at: "2026-09-18T10:00:00Z", direction: -1, confidence: 0.8, source_weight: 1.0, weight: 0.8 },
+    { title: "b", url: "u/b", source: "fxstreet", published_at: "2026-09-18T09:00:00Z", direction: 1, confidence: 0.9, source_weight: 0.6, weight: 0.54 },
+    { title: "c", url: "u/c", source: "blog", published_at: "2026-09-17T09:00:00Z", direction: 1, confidence: 0.2, source_weight: 1.0, weight: 0.2 },
+  ]);
+  assert.deepEqual(rows.map((row) => row.title), ["a", "b", "c"]);
+  assert.deepEqual(rows.map((row) => row.bar), [100, 67.5, 25]);
+  assert.deepEqual(rows.map((row) => row.weight), ["0.80", "0.54", "0.20"]);
+  assert.deepEqual(rows.map((row) => row.glyph), ["▼", "▲", "▲"]);
+  assert.equal(rows[0].date, "18 Sep 2026");
+  assert.deepEqual(headlineRows([]), []);
 });

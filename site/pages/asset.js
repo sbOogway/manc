@@ -1,6 +1,6 @@
 // One asset: score history, components, report, events ahead, headlines, forecasts.
 import { CHART_CONFIG, bandColor, layoutTemplate, readTokens } from "../charts.js";
-import { BANDS, bandLabel, formatDate, formatNumber, formatPercent, formatScore } from "../format.js";
+import { BANDS, bandLabel, formatDate, formatNumber, formatPercent, formatScore, importanceLabel } from "../format.js";
 
 export const RANGE_PRESETS = [30, 90, 180, 365];
 export const COMPONENT_COLORS = { N: "#eb6834", S: "#1baf7a", R: "#eda100", D: "#e87ba4" }; // categorical slots 2-5
@@ -156,6 +156,21 @@ export function eventsFor(events, economies, today, days = EVENTS_AHEAD_DAYS) {
   });
 }
 
+export function headlineRows(headlines) {
+  const strongest = Math.max(0, ...headlines.map((headline) => headline.weight));
+  return headlines.map((headline) => ({
+    title: headline.title,
+    url: headline.url,
+    source: headline.source,
+    date: formatDate(headline.published_at),
+    direction: headline.direction,
+    glyph: headline.direction > 0 ? "▲" : "▼",
+    weight: headline.weight.toFixed(2),
+    confidence: headline.confidence.toFixed(2),
+    bar: strongest > 0 ? (100 * headline.weight) / strongest : 0,
+  }));
+}
+
 export function revision(row) {
   if (row.previous_value === null || row.previous_value === undefined) return "—";
   if (row.value > row.previous_value) return "▲";
@@ -287,12 +302,12 @@ export const AssetPage = {
       upcoming: () => eventsFor(events.value, economies.value, today),
       latest: () => history.value?.points.at(-1),
       groups: () => (panel.value ? forecastRows(panel.value) : []),
+      headlineRows,
+      importanceLabel,
       bandLabel,
       formatDate,
       formatNumber,
       formatScore,
-      glyph: (direction) => (direction > 0 ? "▲" : "▼"),
-      glyphColor: (direction) => bandColor(direction > 0 ? "tailwind" : "headwind", readTokens()),
     };
   },
   template: `
@@ -342,7 +357,7 @@ export const AssetPage = {
                   <td class="num">{{ formatDate(event.date) }}</td>
                   <td>{{ event.country.replaceAll('_', ' ') }}</td>
                   <td>{{ event.event }}</td>
-                  <td>{{ event.importance === 3 ? 'high' : 'medium' }}</td>
+                  <td><span class="badge" :class="'importance-' + event.importance">{{ importanceLabel(event.importance) }}</span></td>
                 </tr>
               </tbody>
             </table>
@@ -353,10 +368,14 @@ export const AssetPage = {
             <h2>Headlines behind the score</h2>
             <p v-if="!headlines.length" class="muted">No directional headline in the window.</p>
             <ul v-else class="headlines scroll">
-              <li v-for="headline in headlines" :key="headline.url">
-                <span class="glyph" :style="{ color: glyphColor(headline.direction) }">{{ glyph(headline.direction) }}</span>
-                <a :href="headline.url" target="_blank" rel="noopener">{{ headline.title }}</a>
-                <span class="muted">{{ headline.source }} · {{ formatDate(headline.published_at) }} · {{ headline.confidence.toFixed(2) }}</span>
+              <li v-for="row in headlineRows(headlines)" :key="row.url" :class="row.direction > 0 ? 'bull' : 'bear'">
+                <div class="headline-line">
+                  <span class="glyph">{{ row.glyph }}</span>
+                  <a :href="row.url" target="_blank" rel="noopener">{{ row.title }}</a>
+                  <span class="num weight" :title="'confidence ' + row.confidence + ' × source weight'">{{ row.weight }}</span>
+                </div>
+                <div class="weight-bar"><span :style="{ width: row.bar + '%' }"></span></div>
+                <span class="muted">{{ row.source }} · {{ row.date }}</span>
               </li>
             </ul>
           </article>

@@ -393,14 +393,51 @@ select {
   gap: var(--space-2);
   font-size: 0.9rem;
 }
+.headlines li {
+  --side: var(--band-neutral);
+}
+.headlines li.bull {
+  --side: var(--band-tailwind);
+}
+.headlines li.bear {
+  --side: var(--band-headwind);
+}
+.headline-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.headline-line a {
+  flex: 1;
+  color: var(--ink);
+}
 .headlines .glyph {
-  display: inline-block;
+  color: var(--side);
   width: 1.2em;
+  flex: none;
+}
+.headlines .weight {
+  flex: none;
+  font-weight: 600;
+  color: var(--side);
+}
+.weight-bar {
+  height: 4px;
+  margin: 2px 0 2px calc(1.2em + var(--space-2));
+  background: var(--grid);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.weight-bar span {
+  display: block;
+  height: 100%;
+  background: var(--side);
+  border-radius: 2px;
 }
 .headlines .muted {
   display: block;
   font-size: 0.8rem;
-  padding-left: 1.2em;
+  padding-left: calc(1.2em + var(--space-2));
 }
 tr.median td {
   font-weight: 600;
@@ -496,4 +533,18 @@ tr.median td {
   position: sticky;
   top: 0;
   background: var(--surface);
+}
+
+/* importance badges, shared by the Ahead table and the calendar */
+.badge.importance-3 {
+  --band-color: var(--critical);
+  color: var(--critical);
+  border-color: var(--critical);
+}
+.badge.importance-2 {
+  --band-color: var(--warning);
+  border-color: var(--warning);
+}
+.badge.importance-1 {
+  --band-color: var(--muted);
 }
