@@ -78,16 +78,18 @@ def migrated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
 def test_run_prints_one_line_per_asset(migrated_db: str, capsys: pytest.CaptureFixture) -> None:
     assert cli.main(["run", "--date", "2026-09-15"]) == 0
     lines = capsys.readouterr().out.strip().splitlines()
-    assert len(lines) == len(load_config().assets)
-    assert lines[0].split() == ["2026-09-15", "EURUSD", "0.0", "v2", "news=0", "events=0"]
+    assert len(lines) == len(load_config().active_assets)
+    assert lines[0].split() == ["2026-09-15", "BTCUSD", "0.0", "v2", "news=0", "events=0"]
 
 
 def test_run_stores_one_close_per_asset(migrated_db: str) -> None:
     assert cli.main(["run", "--date", "2026-09-15"]) == 0
     store = SqlStore(db.make_engine())
-    closes = {asset.symbol: store.spot.latest(asset.symbol) for asset in load_config().assets}
+    config = load_config()
+    closes = {asset.symbol: store.spot.latest(asset.symbol) for asset in config.active_assets}
     assert all(price is not None and price.date == date(2026, 9, 15) for price in closes.values())
-    assert closes["EURUSD"].source == "yahoo"
+    assert closes["BTCUSD"].source == "yahoo"
+    assert store.spot.latest("EURUSD") is None  # forex is not an active kind
 
 
 def test_run_pulls_every_configured_feed_and_forecast_query(
@@ -125,13 +127,13 @@ def test_run_pulls_every_day_of_the_calendar_window(
 
 def test_run_defaults_to_today(migrated_db: str, capsys: pytest.CaptureFixture) -> None:
     assert cli.main(["run"]) == 0
-    assert len(capsys.readouterr().out.strip().splitlines()) == len(load_config().assets)
+    assert len(capsys.readouterr().out.strip().splitlines()) == len(load_config().active_assets)
 
 
 def test_rescore_prints_range(migrated_db: str, capsys: pytest.CaptureFixture) -> None:
     code = cli.main(["rescore", "--formula", "v1", "--from", "2026-09-14", "--to", "2026-09-15"])
     assert code == 0
-    assert len(capsys.readouterr().out.strip().splitlines()) == 2 * len(load_config().assets)
+    assert len(capsys.readouterr().out.strip().splitlines()) == 2 * len(load_config().active_assets)
 
 
 def test_unmigrated_database_fails_with_hint(
@@ -216,7 +218,11 @@ def test_logs_the_start_and_each_step_by_default(
     assert cli.main(["run", "--date", "2026-09-15"]) == 0
     messages = [record.message for record in caplog.records if record.name.startswith("manc")]
     assert messages[0].startswith("manc run: starting")
-    assert "2026-09-15" in messages[0] and "62 assets" in messages[0] and migrated_db in messages[0]
+    assert (
+        "2026-09-15" in messages[0]
+        and f"{len(load_config().active_assets)} assets" in messages[0]
+        and migrated_db in messages[0]
+    )
     assert any(message.startswith("calendar: 0 events") for message in messages)
     assert not [record for record in caplog.records if record.levelno < logging.INFO]
 
@@ -315,7 +321,8 @@ def test_run_tags_the_headlines_through_the_llm(
         gold = next(index for index, line in enumerate(lines) if "gold target" in line)
         content = {
             "Tagging": f'{{"tags": [{{"item": {gold}, "asset": "XAUUSD", "direction": 1,'
-            ' "confidence": 0.9}]}',
+            f' "confidence": 0.9}}, {{"item": {gold}, "asset": "BTCUSD", "direction": 1,'
+            ' "confidence": 0.8}]}',
             "Extraction": '{"forecasts": []}',
             "Summary": '{"paragraph": "Gold got a target."}',
         }[schema]
@@ -337,7 +344,9 @@ def test_run_tags_the_headlines_through_the_llm(
         "free/model",
         "v1",
     )
-    [score] = store.scores.series("XAUUSD", "v2", date(2026, 6, 1), date(2026, 6, 1))
+    assert store.scores.series("XAUUSD", "v2", date(2026, 6, 1), date(2026, 6, 1)) == []
+    [score] = store.scores.series("BTCUSD", "v2", date(2026, 6, 1), date(2026, 6, 1))
+    assert score.score > 0  # tagged for an active kind, so scored
     assert "\n\nGold got a target.\n\n" in score.report_md
     assert score.report_md.endswith("Summary by free/model.\n")
 
@@ -356,9 +365,9 @@ def test_rescore_with_summaries_asks_the_model(
     monkeypatch.setattr(llm.litellm, "completion", fake_completion)
     code = cli.main(["rescore", "--from", "2026-09-15", "--to", "2026-09-15", "--summaries"])
     assert code == 0
-    assert schemas == ["Summary"] * len(load_config().assets)
+    assert schemas == ["Summary"] * len(load_config().active_assets)
     [score] = SqlStore(db.make_engine()).scores.series(
-        "EURUSD", "v2", date(2026, 9, 15), date(2026, 9, 15)
+        "BTCUSD", "v2", date(2026, 9, 15), date(2026, 9, 15)
     )
     assert "\n\nReplayed.\n\n" in score.report_md
 
@@ -370,9 +379,9 @@ def test_rescore_never_calls_the_llm(migrated_db: str, monkeypatch: pytest.Monke
     monkeypatch.setattr(llm.litellm, "completion", exploding_completion)
     assert cli.main(["rescore", "--from", "2026-09-15", "--to", "2026-09-15"]) == 0
     [score] = SqlStore(db.make_engine()).scores.series(
-        "EURUSD", "v2", date(2026, 9, 15), date(2026, 9, 15)
+        "BTCUSD", "v2", date(2026, 9, 15), date(2026, 9, 15)
     )
-    assert score.report_md.startswith("# EURUSD 2026-09-15: 0 neutral\n\n## Components")
+    assert score.report_md.startswith("# BTCUSD 2026-09-15: 0 neutral\n\n## Components")
 
 
 def test_run_tags_with_the_lexicon_when_the_llm_fails(

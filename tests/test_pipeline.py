@@ -61,16 +61,17 @@ def test_run_stores_inputs_and_one_score_per_asset() -> None:
     assert store.events.rows == {"e1": event}
     assert store.news.rows == {item.id: item}
     assert len(store.tags.rows) == len(CONFIG.assets)  # FakeAnalyzer tags every asset
-    assert [score.asset for score in scores] == [asset.symbol for asset in CONFIG.assets]
+    assert [score.asset for score in scores] == [asset.symbol for asset in CONFIG.active_assets]
     assert all(score.date == date(2026, 9, 15) and score.formula == "v1" for score in scores)
     assert all(score.score == 50.0 for score in scores)
-    assert store.scores.series("EURUSD", "v1", AS_OF.date(), AS_OF.date()) == [scores[0]]
+    assert store.scores.series("BTCUSD", "v1", AS_OF.date(), AS_OF.date()) == [scores[0]]
 
 
 def test_run_stores_the_closes_the_spot_provider_returns() -> None:
     store = FakeStore()
     gold = SpotPrice(asset="XAUUSD", date=AS_OF.date(), close=3650.0, source="yahoo")
-    old_gold = SpotPrice(asset="XAUUSD", date=date(2026, 9, 1), close=3600.0, source="yahoo")
+    bitcoin = SpotPrice(asset="BTCUSD", date=AS_OF.date(), close=115000.0, source="yahoo")
+    old_bitcoin = SpotPrice(asset="BTCUSD", date=date(2026, 9, 1), close=110000.0, source="yahoo")
     run(
         as_of=AS_OF,
         config=CONFIG,
@@ -78,13 +79,14 @@ def test_run_stores_the_closes_the_spot_provider_returns() -> None:
         news=FakeNews(),
         analyzer=FakeAnalyzer(),
         forecasts=[],
-        spot=FakeSpot([gold, old_gold]),
+        spot=FakeSpot([gold, bitcoin, old_bitcoin]),
         store=store,
         formula=get_formula("v1"),
         summarize=None,
     )
-    assert store.spot.latest("XAUUSD") == gold  # FakeSpot answers only for the run's day
-    assert store.spot.between("XAUUSD", date.min, date.max) == [gold]
+    assert store.spot.latest("BTCUSD") == bitcoin  # FakeSpot answers only for the run's day
+    assert store.spot.between("BTCUSD", date.min, date.max) == [bitcoin]
+    assert store.spot.latest("XAUUSD") is None  # metal is not an active kind
 
 
 def test_run_stores_the_forecasts_every_provider_returns() -> None:
@@ -139,7 +141,7 @@ def test_rescore_replays_stored_inputs_without_providers() -> None:
         end=date(2026, 9, 15),
         summarize=None,
     )
-    assert len(scores) == 2 * len(CONFIG.assets)
+    assert len(scores) == 2 * len(CONFIG.active_assets)
     assert {score.date for score in scores} == {date(2026, 9, 14), date(2026, 9, 15)}
     assert store.scores.series("SPX", "v1", date(2026, 9, 14), date(2026, 9, 15)) == [
         score for score in scores if score.asset == "SPX"
@@ -184,7 +186,7 @@ def test_run_stores_a_report_with_the_summary_for_every_asset() -> None:
         formula=get_formula("v1"),
         summarize=summarize,
     )
-    assert summarize.calls == len(CONFIG.assets)
+    assert summarize.calls == len(CONFIG.active_assets)
     for score in scores:
         assert score.report_md.startswith(
             f"# {score.asset} 2026-09-15: 50 neutral\n\nNothing moved."
@@ -202,5 +204,5 @@ def test_rescore_stores_template_only_reports() -> None:
         end=date(2026, 9, 15),
         summarize=None,
     )
-    assert score.report_md.startswith("# EURUSD 2026-09-15: 50 neutral\n\n## Components")
+    assert score.report_md.startswith("# BTCUSD 2026-09-15: 50 neutral\n\n## Components")
     assert "Summary by" not in score.report_md

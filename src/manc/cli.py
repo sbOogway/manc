@@ -71,7 +71,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "manc run: starting, scoring %s as of %s, %d assets, %s, model %s",
             as_of.date(),
             as_of.strftime("%H:%M UTC"),
-            len(config.assets),
+            len(config.active_assets),
             db.database_url(),
             config.llm.model,
         )

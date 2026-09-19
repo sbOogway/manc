@@ -58,7 +58,7 @@ def run(
     found = fetch_forecasts(forecasts, news_since, store)
     log.info("forecasts: %d asset, %d macro", len(found.asset), len(found.macro))
 
-    closes = spot.fetch(config.assets, as_of.date())
+    closes = spot.fetch(config.active_assets, as_of.date())
     store.spot.add(*closes)
     log.info("spot: %d closes for %s", len(closes), as_of.date())
 
@@ -109,7 +109,7 @@ def _score_all(
     summarize: Complete | None,
 ) -> list[IndexScore]:
     scores = []
-    for asset in config.assets:
+    for asset in config.active_assets:
         inputs = build_inputs(store, asset, as_of, config, formula.windows)
         scored = formula.compute(inputs)
         score = replace(scored, report_md=build_report(store, config, scored, complete=summarize))

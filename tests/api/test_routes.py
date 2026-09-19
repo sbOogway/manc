@@ -13,8 +13,8 @@ from manc.models import CalendarEvent, ForecastAsset, ForecastMacro, NewsItem, N
 from tests.fakes import FakeStore
 
 CONFIG = replace(
-    load_config(), scoring=replace(load_config().scoring, formula="v1")
-)  # the fake holds v1 rows
+    load_config(), scoring=replace(load_config().scoring, formula="v1"), active_kinds=()
+)  # the fake holds v1 rows for a forex pair and an equity index
 TODAY = datetime.now(UTC).date()
 DAY = timedelta(days=1)
 NOON = datetime.combine(TODAY, datetime.min.time(), tzinfo=UTC) + timedelta(hours=12)
@@ -108,6 +108,14 @@ def test_assets(client: TestClient) -> None:
         "economies": ["euro_area", "united_states"],
     }
     assert len(response.json()) == len(CONFIG.assets)
+
+
+def test_assets_lists_the_active_kinds_only(store: FakeStore) -> None:
+    client = TestClient(create_app(replace(CONFIG, active_kinds=("crypto",)), store))
+    listed = client.get("/api/v1/assets").json()
+    assert listed[0]["symbol"] == "BTCUSD"
+    assert {asset["kind"] for asset in listed} == {"crypto"}
+    assert 0 < len(listed) < len(CONFIG.assets)
 
 
 def test_overview_defaults_to_today_farthest_from_fifty_first(client: TestClient) -> None:
