@@ -407,19 +407,93 @@ tr.median td {
   border-bottom: 2px solid var(--axis);
 }
 
-/* events page */
-tr.day th {
-  color: var(--ink);
-  font-weight: 600;
-  padding-top: var(--space-3);
-  border-bottom: 1px solid var(--axis);
+/* events page: the month grid */
+.calendar {
+  padding: var(--space-2);
+  overflow-x: auto;
 }
-.badge.importance-3 {
-  --band-color: var(--critical);
+.calendar-head,
+.calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  gap: var(--space-1);
 }
-.badge.importance-2 {
-  --band-color: var(--warning);
+.calendar-head span {
+  font-size: 0.8rem;
+  padding: var(--space-1) var(--space-2);
 }
-.badge.importance-1 {
-  --band-color: var(--muted);
+.calendar-week {
+  margin-top: var(--space-1);
+}
+.calendar-day {
+  min-height: 7rem;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.calendar-day.out {
+  opacity: 0.45;
+}
+.calendar-day.today {
+  border-color: var(--accent);
+}
+.calendar-date {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: var(--space-1);
+}
+.calendar-day.today .calendar-date .num {
+  color: var(--accent);
+  font-weight: 700;
+}
+.calendar-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.78rem;
+}
+.calendar-events li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: default;
+}
+.calendar-events .dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.calendar-events .importance-3 .dot {
+  background: var(--critical);
+}
+.calendar-events .importance-2 .dot {
+  background: var(--warning);
+}
+.calendar-events .when {
+  flex: none;
+  color: var(--muted);
+}
+.calendar-events .what {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* asset page: the side panels scroll instead of growing */
+.scroll {
+  max-height: 20rem;
+  overflow-y: auto;
+}
+.scroll table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
 }

@@ -333,7 +333,8 @@ export const AssetPage = {
           <article class="card">
             <h2>Ahead</h2>
             <p v-if="!upcoming().length" class="muted">Nothing scheduled in the next two weeks.</p>
-            <table v-else>
+            <div v-else class="scroll">
+            <table>
               <thead><tr><th>Date</th><th>Country</th><th>Event</th><th>Importance</th></tr></thead>
               <tbody>
                 <tr v-for="event in upcoming()" :key="event.id">
@@ -344,12 +345,13 @@ export const AssetPage = {
                 </tr>
               </tbody>
             </table>
+            </div>
           </article>
 
           <article class="card">
             <h2>Headlines behind the score</h2>
             <p v-if="!headlines.length" class="muted">No directional headline in the window.</p>
-            <ul v-else class="headlines">
+            <ul v-else class="headlines scroll">
               <li v-for="headline in headlines" :key="headline.url">
                 <span class="glyph" :style="{ color: glyphColor(headline.direction) }">{{ glyph(headline.direction) }}</span>
                 <a :href="headline.url" target="_blank" rel="noopener">{{ headline.title }}</a>
