@@ -78,7 +78,7 @@ def migrated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
 def test_run_prints_one_line_per_asset(migrated_db: str, capsys: pytest.CaptureFixture) -> None:
     assert cli.main(["run", "--date", "2026-09-15"]) == 0
     lines = capsys.readouterr().out.strip().splitlines()
-    assert len(lines) == 7
+    assert len(lines) == len(load_config().assets)
     assert lines[0].split() == ["2026-09-15", "EURUSD", "0.0", "v2", "news=0", "events=0"]
 
 
@@ -125,13 +125,13 @@ def test_run_pulls_every_day_of_the_calendar_window(
 
 def test_run_defaults_to_today(migrated_db: str, capsys: pytest.CaptureFixture) -> None:
     assert cli.main(["run"]) == 0
-    assert len(capsys.readouterr().out.strip().splitlines()) == 7
+    assert len(capsys.readouterr().out.strip().splitlines()) == len(load_config().assets)
 
 
 def test_rescore_prints_range(migrated_db: str, capsys: pytest.CaptureFixture) -> None:
     code = cli.main(["rescore", "--formula", "v1", "--from", "2026-09-14", "--to", "2026-09-15"])
     assert code == 0
-    assert len(capsys.readouterr().out.strip().splitlines()) == 14
+    assert len(capsys.readouterr().out.strip().splitlines()) == 2 * len(load_config().assets)
 
 
 def test_unmigrated_database_fails_with_hint(
@@ -216,7 +216,7 @@ def test_logs_the_start_and_each_step_by_default(
     assert cli.main(["run", "--date", "2026-09-15"]) == 0
     messages = [record.message for record in caplog.records if record.name.startswith("manc")]
     assert messages[0].startswith("manc run: starting")
-    assert "2026-09-15" in messages[0] and "7 assets" in messages[0] and migrated_db in messages[0]
+    assert "2026-09-15" in messages[0] and "62 assets" in messages[0] and migrated_db in messages[0]
     assert any(message.startswith("calendar: 0 events") for message in messages)
     assert not [record for record in caplog.records if record.levelno < logging.INFO]
 
@@ -356,7 +356,7 @@ def test_rescore_with_summaries_asks_the_model(
     monkeypatch.setattr(llm.litellm, "completion", fake_completion)
     code = cli.main(["rescore", "--from", "2026-09-15", "--to", "2026-09-15", "--summaries"])
     assert code == 0
-    assert schemas == ["Summary"] * 7
+    assert schemas == ["Summary"] * len(load_config().assets)
     [score] = SqlStore(db.make_engine()).scores.series(
         "EURUSD", "v2", date(2026, 9, 15), date(2026, 9, 15)
     )

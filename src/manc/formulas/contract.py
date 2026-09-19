@@ -12,7 +12,7 @@ from typing import Protocol, runtime_checkable
 @dataclass(frozen=True)
 class AssetSpec:
     symbol: str  # "EURUSD"
-    kind: str  # forex | metal | commodity | equity_index | crypto
+    kind: str  # forex | metal | commodity | equity_index | crypto | bond
     economies: tuple[str, ...]  # countries whose calendar events matter
     # country -> event category -> -1 | 0 | +1: the direction a hotter-than-expected print
     # pushes this asset. A hot US CPI is -1 for EURUSD, a hot euro-area CPI is +1.

@@ -107,3 +107,51 @@ queries:
   - asset: BTCUSD
     url: "https://news.google.com/rss/search?q=bitcoin+price+(forecast+OR+target)+(bank+OR+analysts)&hl=en-US&gl=US&ceid=US:en"
     weight: 0.3
+  - asset: USDCHF
+    url: "https://news.google.com/rss/search?q=%22USD%2FCHF%22+OR+%22Swiss+franc%22+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: USDCAD
+    url: "https://news.google.com/rss/search?q=%22USD%2FCAD%22+OR+%22Canadian+dollar%22+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: AUDUSD
+    url: "https://news.google.com/rss/search?q=%22AUD%2FUSD%22+OR+%22Australian+dollar%22+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: NZDUSD
+    url: "https://news.google.com/rss/search?q=%22NZD%2FUSD%22+OR+%22New+Zealand+dollar%22+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: USDCNY
+    url: "https://news.google.com/rss/search?q=%22yuan%22+OR+%22USD%2FCNY%22+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: XAGUSD
+    url: "https://news.google.com/rss/search?q=silver+price+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: COPPER
+    url: "https://news.google.com/rss/search?q=copper+price+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: WTI
+    url: "https://news.google.com/rss/search?q=%28WTI+OR+%22crude+oil%22%29+price+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: NATGAS
+    url: "https://news.google.com/rss/search?q=%22natural+gas%22+price+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: NDX
+    url: "https://news.google.com/rss/search?q=%22Nasdaq+100%22+%28%22year-end+target%22+OR+forecast%29+strategist&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: DAX
+    url: "https://news.google.com/rss/search?q=DAX+%28%22year-end+target%22+OR+forecast%29+strategist&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: FTSE100
+    url: "https://news.google.com/rss/search?q=%22FTSE+100%22+%28%22year-end+target%22+OR+forecast%29+strategist&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: STOXX50
+    url: "https://news.google.com/rss/search?q=%28%22Stoxx+600%22+OR+%22Euro+Stoxx%22%29+%28%22year-end+target%22+OR+forecast%29+strategist&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: NIKKEI
+    url: "https://news.google.com/rss/search?q=Nikkei+%28%22year-end+target%22+OR+forecast%29+strategist&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: ETHUSD
+    url: "https://news.google.com/rss/search?q=%28ether+OR+ethereum%29+price+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3
+  - asset: US10Y
+    url: "https://news.google.com/rss/search?q=%2210-year%22+Treasury+yield+%28forecast+OR+target%29+%28bank+OR+analysts%29&hl=en-US&gl=US&ceid=US:en"
+    weight: 0.3

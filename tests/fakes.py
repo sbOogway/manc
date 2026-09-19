@@ -71,9 +71,16 @@ class FakeSpot:
 
 
 def recorded_history(ticker: str, start: date, end: date) -> pandas.DataFrame:
-    """Replay a recorded `yfinance.Ticker.history` frame; tz-aware index like the real one."""
+    """Replay a recorded `yfinance.Ticker.history` frame; tz-aware index like the real one.
+
+    Seven tickers are recorded; any other replays the EURUSD frame, so the whole asset list
+    gets a close without a fixture per ticker.
+    """
     assert start < end
-    return pandas.read_csv(SPOT_FIXTURES / f"{ticker}.csv", index_col="Date", parse_dates=["Date"])
+    path = SPOT_FIXTURES / f"{ticker}.csv"
+    if not path.exists():
+        path = SPOT_FIXTURES / "EURUSD=X.csv"
+    return pandas.read_csv(path, index_col="Date", parse_dates=["Date"])
 
 
 class FakeNewsRepository:
