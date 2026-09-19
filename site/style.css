@@ -307,3 +307,102 @@ th.num {
   justify-content: space-between;
   font-size: 0.8rem;
 }
+
+/* asset page */
+.asset-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.asset-head h1 {
+  margin: 0;
+}
+.asset-head .spacer {
+  flex: 1;
+}
+.hero.small {
+  font-size: 2rem;
+}
+.selectors {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+.selectors button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+select {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--axis);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  margin-left: var(--space-2);
+}
+.chart-card {
+  margin-bottom: var(--space-3);
+}
+.chart {
+  width: 100%;
+}
+.columns {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  margin-bottom: var(--space-3);
+}
+@media (max-width: 800px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.report h1 {
+  font-size: 1.15rem;
+}
+.report h2 {
+  font-size: 1rem;
+  margin-top: var(--space-4);
+}
+.report table {
+  font-size: 0.85rem;
+}
+.report p,
+.report li {
+  color: var(--ink-2);
+}
+.report hr {
+  border: 0;
+  border-top: 1px solid var(--grid);
+}
+.headlines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 0.9rem;
+}
+.headlines .glyph {
+  display: inline-block;
+  width: 1.2em;
+}
+.headlines .muted {
+  display: block;
+  font-size: 0.8rem;
+  padding-left: 1.2em;
+}
+tr.median td {
+  font-weight: 600;
+  border-bottom: 2px solid var(--axis);
+}
