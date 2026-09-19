@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { eventRiskLabel, tileModel } from "../pages/overview.js";
+import { eventRiskLabel, filterByKind, kindLabel, kindsOf, tileModel } from "../pages/overview.js";
 
 test("event risk reads as a word", () => {
   assert.equal(eventRiskLabel(0), "quiet");
@@ -39,4 +39,25 @@ test("a first-day tile has no delta and a flat class", () => {
   assert.equal(model.deltaClass, "flat");
   assert.equal(tileModel({ score: 50, band: "neutral", delta: 0, event_risk: 0 }).deltaClass, "flat");
   assert.equal(tileModel({ score: 50, band: "neutral", delta: 2, event_risk: 0 }).deltaClass, "up");
+});
+
+test("kindsOf is distinct, in a fixed order, and filterByKind keeps the API order", () => {
+  const summaries = [
+    { symbol: "SPX", kind: "equity_index" },
+    { symbol: "EURUSD", kind: "forex" },
+    { symbol: "BTCUSD", kind: "crypto" },
+    { symbol: "GBPUSD", kind: "forex" },
+    { symbol: "US10Y", kind: "bond" },
+  ];
+  assert.deepEqual(kindsOf(summaries), ["forex", "equity_index", "crypto", "bond"]);
+  assert.deepEqual(filterByKind(summaries, "forex").map((row) => row.symbol), ["EURUSD", "GBPUSD"]);
+  assert.deepEqual(filterByKind(summaries, "all"), summaries);
+  assert.deepEqual(filterByKind(summaries, "metal"), []);
+});
+
+test("kind labels read as words", () => {
+  assert.equal(kindLabel("equity_index"), "equity indices");
+  assert.equal(kindLabel("forex"), "forex");
+  assert.equal(kindLabel("bond"), "bonds");
+  assert.equal(kindLabel("all"), "all");
 });
