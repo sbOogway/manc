@@ -78,7 +78,10 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 testpaths = ["tests"]
 addopts = "-q -m 'not live' --cov=manc --cov-report=term-missing --cov-fail-under=85"
 markers = ["live: hits real network sources; skipped by default"]
-filterwarnings = ["ignore::DeprecationWarning:feedparser"]  # updated_parsed fallback notice
+filterwarnings = [
+    "ignore::DeprecationWarning:feedparser",  # updated_parsed fallback notice
+    "ignore::DeprecationWarning:starlette.testclient",  # anyio alias, upstream
+]
 
 [tool.coverage.run]
 source = ["src/manc"]
