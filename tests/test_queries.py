@@ -208,6 +208,13 @@ def test_overview_one_summary_per_scored_asset() -> None:
     assert summary.sparkline == (62.0,)
 
 
+def test_overview_skips_assets_whose_kind_is_not_active() -> None:
+    store = FakeStore()
+    store.scores.add(_score("EURUSD", TODAY, 62.0), _score("SPX", TODAY, 40.0))
+    config = replace(CONFIG, active_kinds=("equity_index",))
+    assert [summary.symbol for summary in overview(store, config, TODAY)] == ["SPX"]
+
+
 def test_overview_delta_from_the_previous_stored_day() -> None:
     store = FakeStore()
     store.scores.add(_score("EURUSD", TODAY - 3 * DAY, 40.0), _score("EURUSD", TODAY, 45.0))
@@ -370,6 +377,9 @@ def test_upcoming_events_filters_economies_and_importance_sorted_by_date() -> No
     )
     events = upcoming_events(store, CONFIG, TODAY, TODAY + 7 * DAY, min_importance=2)
     assert [event.id for event in events] == ["soon", "later"]
+    config = replace(CONFIG, active_kinds=("equity_index",))  # SPX: united_states only
+    events = upcoming_events(store, config, TODAY, TODAY + 7 * DAY, min_importance=2)
+    assert [event.id for event in events] == ["later"]
 
 
 # --- forecasts_for ----------------------------------------------------------

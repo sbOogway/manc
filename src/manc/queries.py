@@ -123,12 +123,12 @@ def band(score: float, scale: Scale) -> str:
 
 
 def overview(store: Any, config: Config, as_of: date) -> list[AssetSummary]:
-    """One summary per asset scored in the sparkline window, farthest from neutral first."""
+    """One summary per active asset scored in the sparkline window, farthest from neutral first."""
     formula = config.scoring.formula
     scale = scale_of(formula)
     start = as_of - timedelta(days=SPARKLINE_DAYS - 1)
     summaries = []
-    for asset in config.assets:
+    for asset in config.active_assets:
         series = store.scores.series(asset.symbol, formula, start, as_of)
         if not series:
             continue
@@ -190,8 +190,8 @@ def headlines_behind(store: Any, config: Config, symbol: str, as_of: date) -> li
 def upcoming_events(
     store: Any, config: Config, start: date, end: date, min_importance: int
 ) -> list[CalendarEvent]:
-    """Calendar events for the economies of any tracked asset, at or above the floor."""
-    economies = {economy for asset in config.assets for economy in asset.economies}
+    """Calendar events for the economies of any active asset, at or above the floor."""
+    economies = {economy for asset in config.active_assets for economy in asset.economies}
     return [
         event
         for event in store.events.between(start, end)

@@ -24,7 +24,10 @@ the main agriculturals), equity indices (the US benchmarks and those of Europe, 
 Latin America), crypto (the eight largest coins) and US Treasury yields. Each entry names the
 economies whose calendar moves it and the sign of a hotter-than-expected print per category;
 the file's header states the rules of thumb behind the signs. The dashboard filters the
-overview by kind.
+overview by kind. `active_kinds` in the same file says which kinds a daily run scores and the
+site lists (crypto only since 2026-09-20, while the run time of the full set is being judged);
+the other assets stay defined so headlines keep being tagged for them and their history stays
+reachable through the API.
 
 What it is **not**: a price predictor or a trading signal. It measures the macro narrative and
 data flow, which is one input among many. Prices are deliberately not part of the score so it

@@ -126,23 +126,36 @@ class ForecastsConfig:
 
 @dataclass(frozen=True)
 class Config:
-    assets: tuple[AssetSpec, ...]
+    assets: tuple[AssetSpec, ...]  # everything defined: tagging and old history know them all
     feeds: tuple[FeedSpec, ...]
     scoring: ScoringConfig
     llm: LlmConfig
     calendar: CalendarConfig
     forecasts: ForecastsConfig
     lexicon: LexiconConfig
+    active_kinds: tuple[str, ...] = ()  # the kinds a run scores and the site lists; empty = all
+
+    @property
+    def active_assets(self) -> tuple[AssetSpec, ...]:
+        if not self.active_kinds:
+            return self.assets
+        return tuple(asset for asset in self.assets if asset.kind in self.active_kinds)
 
 
 def load_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> Config:
     """One YAML file per Config field, each parsed by the loader registered in _SECTIONS."""
+    raw_assets = _read(config_dir / "assets.yaml")
     config = Config(
         **{
             section: load(_read(config_dir / f"{section}.yaml"))
             for section, load in _SECTIONS.items()
-        }
+        },
+        active_kinds=tuple(raw_assets.get("active_kinds") or ()),
     )
+    kinds = {asset.kind for asset in config.assets}
+    for kind in config.active_kinds:
+        if kind not in kinds:
+            raise ValueError(f"assets: active kind {kind!r} matches no asset")
     symbols = {asset.symbol for asset in config.assets}
     for query in config.forecasts.queries:
         if query.asset not in symbols:

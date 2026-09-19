@@ -40,7 +40,7 @@ def _unknown_asset(symbol: str) -> HTTPException:
 def assets(config: ConfigDep) -> list[AssetOut]:
     return [
         AssetOut(symbol=asset.symbol, kind=asset.kind, economies=list(asset.economies))
-        for asset in config.assets
+        for asset in config.active_assets
     ]
 
 
