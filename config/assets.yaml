@@ -8,6 +8,11 @@
 # on growth; energy on jobs and growth; a yield likes every hot print.
 # `spot` names the ticker per spot source (display only). Yahoo quotes USD-quoted pairs as
 # "JPY=X", futures as "GC=F", indices as "^GSPC", coins as "BTC-USD", US yields as "^TNX".
+# `active_kinds` lists the kinds a daily run scores and the dashboard shows; the other assets
+# stay defined so headlines keep being tagged for them and old scores stay reachable. Leave
+# the list empty to run everything (about 15 minutes a day for all 62 assets).
+active_kinds: [crypto]
+
 assets:
   # forex
   EURUSD:

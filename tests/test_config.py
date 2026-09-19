@@ -31,6 +31,29 @@ def test_repo_config_loads() -> None:
     assert all(0.0 <= feed.weight <= 1.0 for feed in config.feeds)
 
 
+def test_active_kinds_select_the_assets_a_run_touches() -> None:
+    config = load_config(REPO_CONFIG)
+    assert config.active_kinds == ("crypto",)
+    assert config.active_assets
+    assert all(asset.kind == "crypto" for asset in config.active_assets)
+    assert len(config.active_assets) < len(config.assets)
+
+
+def test_missing_active_kinds_means_every_asset(tmp_path: Path) -> None:
+    assets = yaml.safe_load((REPO_CONFIG / "assets.yaml").read_text())
+    del assets["active_kinds"]
+    config = load_config(_write(tmp_path, {"assets": assets}))
+    assert config.active_kinds == ()
+    assert config.active_assets == config.assets
+
+
+def test_unknown_active_kind_is_rejected(tmp_path: Path) -> None:
+    assets = yaml.safe_load((REPO_CONFIG / "assets.yaml").read_text())
+    assets["active_kinds"] = ["crypto", "stamps"]
+    with pytest.raises(ValueError, match="stamps"):
+        load_config(_write(tmp_path, {"assets": assets}))
+
+
 def test_every_currency_pair_is_base_plus_quote_minus() -> None:
     config = load_config(REPO_CONFIG)
     for asset in config.assets:
