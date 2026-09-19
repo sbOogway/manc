@@ -27,10 +27,12 @@ HEADLINES = 10  # the API serves the full list
 DIRECTION_GLYPHS = {1: "▲", -1: "▼"}
 SYSTEM_PROMPT = """\
 You write the opening paragraph of a daily macro report for {symbol} ({kind}; economies: \
-{economies}). The report below scores the macro backdrop from 0 (strong headwind) to 100 \
-(strong tailwind); it is not a price forecast. In three or four plain sentences, say what \
-the score is, what drove it (the data surprises, the headlines) and what scheduled risk lies \
-ahead. Use only the facts in the report; no advice, no hedging, no bullet points."""
+{economies}). The report below scores the macro backdrop from {low} (strong headwind) to \
+{high} (strong tailwind), neutral at {neutral}; the bands are {bands}. Today's score is \
+{score}, which is {band}. It is not a price forecast. In three or four plain sentences, say \
+what the score is and which band it sits in, what drove it (the data surprises, the \
+headlines) and what scheduled risk lies ahead. Use only the facts in the report; no advice, \
+no hedging, no bullet points."""
 
 
 class Summary(BaseModel):
@@ -46,7 +48,7 @@ def build_report(
     if complete is None:
         return template
     try:
-        summary, model = complete(config.llm, _messages(asset, template), Summary)
+        summary, model = complete(config.llm, _messages(asset, score, template), Summary)
     except llm.LlmError as error:
         log.warning("report: %s %s without summary: %s", score.asset, score.date, error)
         return template
@@ -138,12 +140,26 @@ def _template(store: Store, config: Config, asset: AssetSpec, score: IndexScore)
     return "\n\n".join(sections) + "\n"
 
 
-def _messages(asset: AssetSpec, template: str) -> list[dict[str, str]]:
+def _messages(asset: AssetSpec, score: IndexScore, template: str) -> list[dict[str, str]]:
+    scale = queries.scale_of(score.formula)
+    floors = (scale.low, *scale.edges, scale.high)
+    bands = ", ".join(
+        f"{floors[index]:g} to {floors[index + 1]:g} {name.replace('_', ' ')}"
+        for index, name in enumerate(queries.BANDS)
+    )
     return [
         {
             "role": "system",
             "content": SYSTEM_PROMPT.format(
-                symbol=asset.symbol, kind=asset.kind, economies=", ".join(asset.economies)
+                symbol=asset.symbol,
+                kind=asset.kind,
+                economies=", ".join(asset.economies),
+                low=f"{scale.low:g}",
+                high=f"{scale.high:g}",
+                neutral=f"{scale.neutral:g}",
+                bands=bands,
+                score=f"{score.score:.0f}",
+                band=queries.band(score.score, scale).replace("_", " "),
             ),
         },
         {"role": "user", "content": template},

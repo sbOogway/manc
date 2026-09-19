@@ -1,6 +1,7 @@
 """The report builder renders the stored inputs behind a score as markdown."""
 
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
@@ -181,6 +182,26 @@ def test_llm_is_given_the_template_and_the_asset() -> None:
     assert "EURUSD" in messages[0]["content"]
     assert "## Headlines" in messages[1]["content"]
     assert "Euro slips on hot US CPI" in messages[1]["content"]
+
+
+def test_prompt_states_the_scale_and_the_band_of_the_score() -> None:
+    complete = FakeComplete()
+    build_report(FakeStore(), CONFIG, SCORE, complete=complete)
+    [v1_messages] = complete.calls
+    system = v1_messages[0]["content"]
+    assert "from 0 (strong headwind) to 100 (strong tailwind), neutral at 50" in system
+    assert "45 to 55 neutral" in system
+    assert "Today's score is 49, which is neutral" in system
+
+    complete = FakeComplete()
+    v2_score = replace(SCORE, formula="v2", score=11.4)
+    build_report(FakeStore(), CONFIG, v2_score, complete=complete)
+    [v2_messages] = complete.calls
+    system = v2_messages[0]["content"]
+    assert "from -100 (strong headwind) to 100 (strong tailwind), neutral at 0" in system
+    assert "-10 to 10 neutral" in system
+    assert "10 to 40 lean for" in system
+    assert "Today's score is 11, which is lean for" in system
 
 
 def test_llm_failure_degrades_to_the_template() -> None:

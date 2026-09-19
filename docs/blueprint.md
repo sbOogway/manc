@@ -59,8 +59,9 @@ pipeline (cron) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── s
 
 Because every input to step 04 is
 stored, `manc rescore --formula v2` can replay history under a new formula without refetching
-anything. A replay writes template-only reports: one LLM paragraph per asset and day would
-make it slow and costly, and the sections already carry every fact.
+anything. A replay writes template-only reports unless `--summaries` is passed: one LLM
+paragraph per asset and day would make a long replay slow and costly, and the sections
+already carry every fact.
 
 ## 3 · Modules and interfaces
 

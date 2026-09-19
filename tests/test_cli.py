@@ -342,6 +342,27 @@ def test_run_tags_the_headlines_through_the_llm(
     assert score.report_md.endswith("Summary by free/model.\n")
 
 
+def test_rescore_with_summaries_asks_the_model(
+    migrated_db: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    schemas: list[str] = []
+
+    def fake_completion(**kwargs: object) -> object:
+        schemas.append(kwargs["response_format"].__name__)  # type: ignore[attr-defined]
+        message = type("Message", (), {"content": '{"paragraph": "Replayed."}'})()
+        choice = type("Choice", (), {"message": message})()
+        return type("Response", (), {"choices": [choice], "model": "free/model"})()
+
+    monkeypatch.setattr(llm.litellm, "completion", fake_completion)
+    code = cli.main(["rescore", "--from", "2026-09-15", "--to", "2026-09-15", "--summaries"])
+    assert code == 0
+    assert schemas == ["Summary"] * 7
+    [score] = SqlStore(db.make_engine()).scores.series(
+        "EURUSD", "v2", date(2026, 9, 15), date(2026, 9, 15)
+    )
+    assert "\n\nReplayed.\n\n" in score.report_md
+
+
 def test_rescore_never_calls_the_llm(migrated_db: str, monkeypatch: pytest.MonkeyPatch) -> None:
     def exploding_completion(**kwargs: object) -> object:
         raise AssertionError("rescore must not call the LLM")
