@@ -94,7 +94,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             formula=get_formula(args.formula or config.scoring.formula),
             start=args.start,
             end=args.end or date.today(),
-            summarize=None,  # a replay keeps the template-only report
+            summarize=complete if args.summaries else None,
         )
     for score in scores:
         print(_line(score))
@@ -151,6 +151,11 @@ def _parser() -> argparse.ArgumentParser:
     rescore_cmd.add_argument("--formula", help="formula name; defaults to config/scoring.yaml")
     rescore_cmd.add_argument("--from", dest="start", type=date.fromisoformat, required=True)
     rescore_cmd.add_argument("--to", dest="end", type=date.fromisoformat, help="default: today")
+    rescore_cmd.add_argument(
+        "--summaries",
+        action="store_true",
+        help="also ask the model for the report's opening paragraph (one call per asset and day)",
+    )
 
     forecasts_cmd = commands.add_parser(
         "forecasts", help="backfill institutional forecasts from the per-asset query feeds"
