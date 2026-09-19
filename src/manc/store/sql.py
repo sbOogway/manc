@@ -4,7 +4,7 @@ from collections.abc import Callable
 from datetime import UTC, date, datetime
 from typing import Any
 
-from sqlalchemy import Engine, Table, case, select
+from sqlalchemy import Engine, Table, case, func, select
 from sqlalchemy.dialects import postgresql, sqlite
 
 from manc.formulas.contract import IndexScore
@@ -201,6 +201,12 @@ class SqlScoreRepository:
         )
         with self._engine.connect() as connection:
             return [_index_score(row) for row in connection.execute(statement).mappings()]
+
+    def latest_day(self) -> date | None:
+        statement = select(func.max(schema.scores.c.date))
+        with self._engine.connect() as connection:
+            newest = connection.execute(statement).scalar()
+        return date.fromisoformat(newest) if newest else None
 
 
 class SqlForecastRepository:

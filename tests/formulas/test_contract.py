@@ -13,7 +13,7 @@ from manc.formulas.contract import (
     ScoringInputs,
     TaggedHeadline,
 )
-from manc.formulas.registry import get_formula
+from manc.formulas.registry import formula_names, get_formula
 
 AS_OF = datetime(2026, 9, 15, 8, 0, tzinfo=UTC)
 ASSET = AssetSpec(symbol="EURUSD", kind="forex", economies=("euro_area", "united_states"))
@@ -85,3 +85,7 @@ def test_v1_stays_within_bounds(tags, released, upcoming) -> None:
     )
     score = get_formula("v1").compute(inputs)
     assert 0.0 <= score.score <= 100.0
+
+
+def test_formula_names_lists_every_version() -> None:
+    assert formula_names() == ["v1"]

@@ -121,6 +121,7 @@ def test_fake_store_round_trips() -> None:
     assert store.events.between(date(2026, 9, 15), date(2026, 9, 20)) == [event]
     assert store.scores.series("EURUSD", "v1", date(2026, 9, 1), date(2026, 9, 30)) == [score]
     assert store.scores.series("EURUSD", "v2", date(2026, 9, 1), date(2026, 9, 30)) == []
+    assert store.scores.latest_day() == score.date
 
 
 def test_fake_store_upserts() -> None:
