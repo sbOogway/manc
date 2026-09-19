@@ -366,6 +366,21 @@ select {
   flex-direction: column;
   gap: var(--space-3);
 }
+.report .summary {
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.report .small {
+  font-size: 0.8rem;
+}
+.report details {
+  margin-top: var(--space-3);
+}
+.report summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+}
 .report h1 {
   font-size: 1.15rem;
 }

@@ -9,6 +9,7 @@ import {
   headlineRows,
   rangeFor,
   reportDay,
+  reportParts,
   revision,
   scoreFigure,
 } from "../pages/asset.js";
@@ -181,4 +182,41 @@ test("reportDay is the last scored day, or today without scores", () => {
   assert.equal(reportDay(HISTORY, "2026-09-19"), "2026-09-17");
   assert.equal(reportDay({ points: [] }, "2026-09-19"), "2026-09-19");
   assert.equal(reportDay(null, "2026-09-19"), "2026-09-19");
+});
+
+test("reportParts splits the summary, the sections and the model footer", () => {
+  const markdown = [
+    "# EURUSD 2026-09-19: -21 lean against",
+    "",
+    "The macro backdrop scores -21 today, in the lean-against band.",
+    "",
+    "## Components",
+    "",
+    "- N: -0.70",
+    "",
+    "## Headlines",
+    "",
+    "- ▼ Euro slips (reuters, 2026-09-18, 0.90)",
+    "",
+    "---",
+    "",
+    "Summary by claude_code/opus.",
+    "",
+  ].join("\n");
+  const parts = reportParts(markdown);
+  assert.equal(parts.title, "EURUSD 2026-09-19: -21 lean against");
+  assert.equal(parts.summary, "The macro backdrop scores -21 today, in the lean-against band.");
+  assert.equal(parts.model, "claude_code/opus");
+  assert.ok(parts.rest.startsWith("## Components"));
+  assert.ok(parts.rest.includes("## Headlines"));
+  assert.ok(!parts.rest.includes("Summary by"));
+});
+
+test("reportParts on a template-only report has no summary and no model", () => {
+  const markdown = "# EURUSD 2026-09-18: -23 lean against\n\n## Components\n\n- N: -0.71\n";
+  const parts = reportParts(markdown);
+  assert.equal(parts.summary, "");
+  assert.equal(parts.model, "");
+  assert.ok(parts.rest.startsWith("## Components"));
+  assert.deepEqual(reportParts(""), { title: "", summary: "", model: "", rest: "" });
 });
