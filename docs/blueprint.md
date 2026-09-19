@@ -362,6 +362,44 @@ from `config/scoring.yaml` so they can be tuned without a new version. A structu
 such as moving the surprise normaliser to a per-event z-score once history accumulates, is a
 `v2`.
 
+### Formula v2
+
+The default since 2026-09-19. The same three ingredients on a scale from −100 (strong
+headwind) to +100 (strong tailwind), neutral at 0, plus the M6 candidates from §9, each
+behind a `params` switch so any subset can be replayed:
+
+```
+news sentiment
+  N = Σᵢ dᵢ·ĉᵢ·wᵢ·λᵢ·νᵢ / Σᵢ ĉᵢ·wᵢ·λᵢ·νᵢ     ĉᵢ = ⌈cᵢ·3⌉/3 (coarse confidence)
+                                              νᵢ = 0.75^(k−1) for the k-th strongest copy of a
+                                              story within 24h, same direction (novelty)
+data surprise
+  sₑ = clip(zₑ / 2, −1, 1) · sign(asset, category)   zₑ = (actual − consensus) / σₑ, σₑ from
+                                              the release's own past surprises; the v1
+                                              normaliser below 8 observations or when σₑ = 0
+  S  = Σₑ sₑ·impₑ·δₑ / Σₑ impₑ·δₑ            δₑ = 0.5^(age_days / 14), releases within 90d
+
+bad-news asymmetry
+  a negative dᵢ or sₑ counts α = 1.25 times before summing; the denominators do not change
+
+event risk ahead
+  R as in v1
+
+dispersion
+  D = std(dᵢ·ĉᵢ)                              stored next to N, S, R; not in the score
+
+index
+  raw   = 0.6·N + 0.4·S
+  score = clip(100·raw·(1 − 0.5·R), −100, 100)
+```
+
+Bands: −100..−40 headwind · −40..−10 lean against · −10..10 neutral · 10..40 lean for ·
+40..100 tailwind, the same proportions as v1. The v1 worked example gives −1.5. Every number
+above is a key in `config/scoring.yaml`; the novelty clusters form within one direction,
+strongest copy first, so adding a headline never lowers the weight its own side already had
+(a property test guards it). The formula declares a 90-day released window through
+`IndexFormula.windows`; v1 keeps its seven days.
+
 Also stored per day: the formula name, its components (N, S, R for v1) and counts. The
 dashboard shows them under the score so a reader can tell whether 62 means "great data" or
 "loud news".
@@ -639,10 +677,11 @@ the API only, first against `manc api` on localhost and then published on GitHub
 **M6 Formula v2** — done when: `manc rescore --formula v2` has replayed the whole stored
 history, the dashboard shows either formula for every asset, and the owner has picked the
 default. Grounded in `docs/prior-art.md` (survey of 2026-09-16): every item below cites the
-evidence for it. Brought forward on 2026-09-19 at the owner's request; the standardised
-surprise falls back to the v1 normaliser until enough history exists. v2 scores run from
-−100 (strong headwind) to +100 (strong tailwind) around 0, and always stores the dispersion
-`D` next to N, S and R.
+evidence for it. Brought forward on 2026-09-19 at the owner's request and shipped that day
+(§5, Formula v2): every candidate below is in `v2.py` behind a `params` switch, the
+standardised surprise falls back to the v1 normaliser until enough history exists, v2 scores
+run from −100 to +100 around 0, D is stored next to N, S and R, and v2 is the configured
+default with the stored history replayed under it. The evaluation items remain open.
 
 Prerequisite, done in M3 when the tagger lands: `news_tags` stores the `model` string and a
 `prompt_version`, so tags produced by different models can be told apart when comparing

@@ -26,6 +26,7 @@ BASE = {
     "decayed_surprise": 0,
     "novelty_weighting": 0,
     "coarse_confidence": 0,
+    "bad_news_alpha": 1.0,
 }
 
 
@@ -228,6 +229,30 @@ def test_coarse_confidence_weights_the_news_term_by_the_bucket() -> None:
     assert _news(tags=[bull, bear]) == pytest.approx((0.9 - 0.5) / 1.4)
 
 
+# --- bad-news asymmetry ----------------------------------------------------
+
+ASYMMETRIC = {"bad_news_alpha": 1.5}
+
+
+def test_alpha_one_is_the_symmetric_formula_and_a_miss_weighs_more_above_it() -> None:
+    beat = _event(country="euro_area", consensus=1.0, previous=1.0, actual=1.5)
+    miss = _event(country="euro_area", consensus=1.0, previous=1.0, actual=0.5)
+    assert _score(released=[beat]) == pytest.approx(20.0)
+    assert _score(released=[miss]) == pytest.approx(-20.0)
+    assert _score(released=[beat], params=ASYMMETRIC) == pytest.approx(20.0)
+    assert _score(released=[miss], params=ASYMMETRIC) == pytest.approx(-30.0)
+    # N is weight-normalised, so a unanimous bearish day reads -alpha, a bullish one +1
+    assert _score(tags=[_tag(-1, confidence=0.5)], params=ASYMMETRIC) == pytest.approx(-90.0)
+    assert _score(tags=[_tag(1, confidence=0.5)], params=ASYMMETRIC) == pytest.approx(60.0)
+    mixed = _news(tags=[_tag(1), _tag(-1)], params=ASYMMETRIC)
+    assert mixed == pytest.approx((1 - 1.5) / 2)
+
+
+def test_asymmetry_stays_on_the_scale() -> None:
+    cold = _event(country="euro_area", consensus=1.0, previous=1.0, actual=-3.0)
+    assert _score(tags=[_tag(-1)], released=[cold], params={"bad_news_alpha": 3.0}) == -100.0
+
+
 # --- standardised surprise -------------------------------------------------
 
 STANDARDISED = {"standardised_surprise": 1, "surprise_min_history": 4, "surprise_z_cap": 2.0}
@@ -327,6 +352,7 @@ ALL_ON = {
     "decayed_surprise": 1,
     "novelty_weighting": 1,
     "coarse_confidence": 1,
+    "bad_news_alpha": 1.0,
 }
 upcoming_events = st.builds(
     EventObservation,
@@ -357,7 +383,7 @@ def test_bounded_and_neutral_without_information(tags, released, upcoming, switc
 def test_a_bullish_headline_never_lowers_and_a_bearish_never_raises(
     tags, released, upcoming, extra, switches
 ) -> None:
-    params = ALL_ON if switches else {}
+    params = {**ALL_ON, "bad_news_alpha": 1.5} if switches else {}
     base = _score(tags=tags, released=released, upcoming=upcoming, params=params)
     bull = replace(extra, direction=1)
     bear = replace(extra, direction=-1)
@@ -381,6 +407,23 @@ def test_flipping_every_sign_mirrors_the_score_around_0(tags, released, upcoming
     score = _score(tags=tags, released=released, upcoming=upcoming, params=params)
     mirror = _score(tags=flipped_tags, released=flipped_events, upcoming=upcoming, params=params)
     assert score + mirror == pytest.approx(0.0, abs=1e-6)
+
+
+@settings(max_examples=200)
+@given(tag_lists, released_lists, upcoming_lists, st.floats(1.0, 3.0))
+def test_bad_news_asymmetry_never_favours_the_good_side(tags, released, upcoming, alpha) -> None:
+    params = {**ALL_ON, "bad_news_alpha": alpha}
+    flipped_tags = [replace(tag, direction=-tag.direction) for tag in tags]
+    flipped_events = [
+        replace(event, actual=2 * event.consensus - event.actual)
+        if event.actual is not None and event.consensus is not None
+        else event
+        for event in released
+    ]
+    score = _score(tags=tags, released=released, upcoming=upcoming, params=params)
+    mirror = _score(tags=flipped_tags, released=flipped_events, upcoming=upcoming, params=params)
+    assert score + mirror <= 1e-6
+    assert -100.0 <= score <= 100.0
 
 
 @settings(max_examples=200)
