@@ -14,11 +14,11 @@ from statistics import median
 from typing import Any
 
 from manc.config import Config
-from manc.formulas.contract import AssetSpec, IndexScore
+from manc.formulas.contract import BANDS, AssetSpec, IndexScore, Scale
+from manc.formulas.registry import get_formula
 from manc.models import CalendarEvent, ForecastAsset, ForecastMacro
 
-BANDS = ("headwind", "lean_against", "neutral", "lean_for", "tailwind")
-BAND_FLOORS = (0.0, 30.0, 45.0, 55.0, 70.0)  # lower bound of each band, inclusive
+__all__ = ["BANDS"]
 SPARKLINE_DAYS = 30
 UNKNOWN_SOURCE_WEIGHT = 1.0
 UNKNOWN_INSTITUTION_WEIGHT = 0.0
@@ -54,6 +54,7 @@ class ScorePoint:
 class AssetHistory:
     symbol: str
     formula: str
+    scale: Scale  # where the scores live, so a chart can draw the bands and the neutral line
     points: tuple[ScorePoint, ...]
 
 
@@ -112,18 +113,19 @@ class ForecastPanel:
     macro: tuple[MacroForecastRow, ...]
 
 
-def band(score: float) -> str:
-    """The section 5 scale: headwind, lean against, neutral, lean for, tailwind."""
-    label = BANDS[0]
-    for floor, name in zip(BAND_FLOORS, BANDS, strict=True):
-        if score >= floor:
-            label = name
-    return label
+def scale_of(formula: str) -> Scale:
+    return get_formula(formula).scale
+
+
+def band(score: float, scale: Scale) -> str:
+    """headwind, lean against, neutral, lean for, tailwind on the formula's scale."""
+    return scale.band(score)
 
 
 def overview(store: Any, config: Config, as_of: date) -> list[AssetSummary]:
-    """One summary per asset scored in the sparkline window, farthest from 50 first."""
+    """One summary per asset scored in the sparkline window, farthest from neutral first."""
     formula = config.scoring.formula
+    scale = scale_of(formula)
     start = as_of - timedelta(days=SPARKLINE_DAYS - 1)
     summaries = []
     for asset in config.assets:
@@ -139,23 +141,24 @@ def overview(store: Any, config: Config, as_of: date) -> list[AssetSummary]:
                 formula=formula,
                 date=latest.date,
                 score=latest.score,
-                band=band(latest.score),
+                band=band(latest.score, scale),
                 delta=None if previous is None else latest.score - previous.score,
                 sparkline=tuple(score.score for score in series),
                 event_risk=latest.components.get(EVENT_RISK_COMPONENT, 0.0),
             )
         )
-    return sorted(summaries, key=lambda summary: -abs(summary.score - 50.0))
+    return sorted(summaries, key=lambda summary: -abs(summary.score - scale.neutral))
 
 
 def asset_history(
     store: Any, config: Config, symbol: str, formula: str, start: date, end: date
 ) -> AssetHistory:
     asset = _asset(config, symbol)
+    scale = scale_of(formula)
     points = tuple(
-        _point(score) for score in store.scores.series(asset.symbol, formula, start, end)
+        _point(score, scale) for score in store.scores.series(asset.symbol, formula, start, end)
     )
-    return AssetHistory(symbol=asset.symbol, formula=formula, points=points)
+    return AssetHistory(symbol=asset.symbol, formula=formula, scale=scale, points=points)
 
 
 def headlines_behind(store: Any, config: Config, symbol: str, as_of: date) -> list[HeadlineView]:
@@ -284,11 +287,11 @@ def _asset(config: Config, symbol: str) -> AssetSpec:
     raise KeyError(symbol)
 
 
-def _point(score: IndexScore) -> ScorePoint:
+def _point(score: IndexScore, scale: Scale) -> ScorePoint:
     return ScorePoint(
         date=score.date,
         score=score.score,
-        band=band(score.score),
+        band=band(score.score, scale),
         components=dict(score.components),
         n_news=score.n_news,
         n_events=score.n_events,

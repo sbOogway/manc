@@ -84,7 +84,7 @@ def _template(store: Store, config: Config, asset: AssetSpec, score: IndexScore)
 
     sections = [
         f"# {score.asset} {score.date.isoformat()}: {score.score:.0f} "
-        f"{queries.band(score.score).replace('_', ' ')}",
+        f"{queries.band(score.score, queries.scale_of(score.formula)).replace('_', ' ')}",
         "## Components\n\n"
         + "\n".join(f"- {name}: {value:+.2f}" for name, value in score.components.items())
         + f"\n\n{_count(score.n_news, 'headline')}, {_count(score.n_events, 'released event')}",

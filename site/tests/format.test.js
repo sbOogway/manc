@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 import {
   BANDS,
   bandLabel,
-  bandOf,
   formatDate,
   formatDelta,
   formatNumber,
@@ -18,16 +17,6 @@ test("the five bands in order, each with a label", () => {
   assert.equal(bandLabel("lean_against"), "lean against");
   assert.equal(bandLabel("tailwind"), "tailwind");
   assert.equal(bandLabel("unknown"), "unknown");
-});
-
-test("bandOf follows the section 5 scale with inclusive floors", () => {
-  assert.equal(bandOf(0), "headwind");
-  assert.equal(bandOf(29.9), "headwind");
-  assert.equal(bandOf(30), "lean_against");
-  assert.equal(bandOf(45), "neutral");
-  assert.equal(bandOf(55), "lean_for");
-  assert.equal(bandOf(70), "tailwind");
-  assert.equal(bandOf(100), "tailwind");
 });
 
 test("scores round to a whole number", () => {

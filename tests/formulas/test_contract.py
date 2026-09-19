@@ -88,4 +88,30 @@ def test_v1_stays_within_bounds(tags, released, upcoming) -> None:
 
 
 def test_formula_names_lists_every_version() -> None:
-    assert formula_names() == ["v1"]
+    assert formula_names() == ["v1", "v2"]
+
+
+@pytest.mark.parametrize("name", ["v1", "v2"])
+def test_every_formula_declares_an_ordered_scale(name: str) -> None:
+    scale = get_formula(name).scale
+    assert scale.low < scale.neutral < scale.high
+    assert list(scale.edges) == sorted(scale.edges)
+    assert scale.low < scale.edges[0] and scale.edges[-1] < scale.high
+    assert scale.band(scale.low) == "headwind"
+    assert scale.band(scale.neutral) == "neutral"
+    assert scale.band(scale.high) == "tailwind"
+
+
+def test_v1_scale_is_the_section_5_scale() -> None:
+    scale = get_formula("v1").scale
+    assert (scale.low, scale.neutral, scale.high) == (0.0, 50.0, 100.0)
+    assert [scale.band(value) for value in (29.9, 30, 44.9, 45, 54.9, 55, 69.9, 70)] == [
+        "headwind",
+        "lean_against",
+        "lean_against",
+        "neutral",
+        "neutral",
+        "lean_for",
+        "lean_for",
+        "tailwind",
+    ]

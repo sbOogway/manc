@@ -33,6 +33,7 @@ const TOKENS = {
 const HISTORY = {
   symbol: "EURUSD",
   formula: "v1",
+  scale: { low: 0, high: 100, neutral: 50, edges: [30, 45, 55, 70] },
   points: [
     { date: "2026-09-16", score: 41.2, band: "lean_against", components: { N: -0.5, S: -0.1, R: 1 }, n_news: 80, n_events: 100 },
     { date: "2026-09-17", score: 40.8, band: "lean_against", components: { N: -0.55, S: -0.09, R: 1 }, n_news: 85, n_events: 116 },
@@ -62,12 +63,13 @@ test("the score figure: area over the dates, band shading, the 50 line, event ha
   assert.match(area.text[1], /S -0\.09/);
   assert.match(area.text[1], /R 1\.00/);
   assert.deepEqual(layout.yaxis.range, [0, 100]);
+  assert.deepEqual(layout.yaxis.tickvals, [0, 30, 45, 55, 70, 100]);
   const bands = layout.shapes.filter((shape) => shape.name === "band");
   assert.equal(bands.length, 5);
   assert.deepEqual(bands.map((shape) => [shape.y0, shape.y1]), [[0, 30], [30, 45], [45, 55], [55, 70], [70, 100]]);
   assert.equal(bands[0].fillcolor, "rgba(227,73,72,0.12)");
-  const fifty = layout.shapes.find((shape) => shape.name === "fifty");
-  assert.deepEqual([fifty.y0, fifty.y1], [50, 50]);
+  const neutral = layout.shapes.find((shape) => shape.name === "neutral");
+  assert.deepEqual([neutral.y0, neutral.y1], [50, 50]);
   const hairlines = layout.shapes.filter((shape) => shape.name === "event");
   assert.equal(hairlines.length, 1); // two events on the same day, one hairline
   assert.equal(hairlines[0].x0, "2026-09-17");
@@ -77,9 +79,23 @@ test("the score figure: area over the dates, band shading, the 50 line, event ha
   assert.equal(layout.showlegend, false);
 });
 
+test("the score figure follows a -100..100 scale", () => {
+  const history = { ...HISTORY, formula: "v2", scale: { low: -100, high: 100, neutral: 0, edges: [-40, -10, 10, 40] } };
+  const { data, layout } = scoreFigure(history, [], TOKENS);
+  assert.deepEqual(layout.yaxis.range, [-100, 100]);
+  assert.deepEqual(layout.yaxis.tickvals, [-100, -40, -10, 10, 40, 100]);
+  const bands = layout.shapes.filter((shape) => shape.name === "band");
+  assert.deepEqual(bands.map((shape) => [shape.y0, shape.y1]), [[-100, -40], [-40, -10], [-10, 10], [10, 40], [40, 100]]);
+  const neutral = layout.shapes.find((shape) => shape.name === "neutral");
+  assert.equal(neutral.y0, 0);
+  assert.equal(data[0].fill, "tozeroy"); // the area fills toward 0, the neutral point
+  assert.equal(data[1].y[0], undefined); // no event marks without events
+});
+
 test("the components figure: one trace per component in fixed order, its own scale", () => {
   const { data, layout } = componentsFigure(HISTORY, TOKENS);
   assert.deepEqual(data.map((trace) => trace.name), ["N", "S", "R"]);
+  assert.deepEqual(componentsFigure({ ...HISTORY, points: HISTORY.points.map((point) => ({ ...point, components: { ...point.components, D: 0.3 } })) }, TOKENS).data.map((trace) => trace.name), ["N", "S", "R", "D"]);
   assert.deepEqual(data[0].y, [-0.5, -0.55]);
   assert.deepEqual(data.map((trace) => trace.line.color), ["N", "S", "R"].map((name) => COMPONENT_COLORS[name]));
   assert.deepEqual(layout.yaxis.range, [-1.05, 1.05]);
