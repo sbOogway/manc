@@ -253,3 +253,57 @@ th.num {
   border-radius: 50%;
   background: var(--band-color, var(--muted));
 }
+
+/* overview tiles */
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-top: 3px solid var(--band-color, var(--border));
+}
+.tile-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.tile-symbol {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+.tile-score {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.hero {
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.tile-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+.delta {
+  font-size: 0.9rem;
+  color: var(--ink-2);
+}
+.delta.up {
+  color: var(--good);
+}
+.delta.down {
+  color: var(--critical);
+}
+.sparkline {
+  height: 48px;
+}
+.tile-foot {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
