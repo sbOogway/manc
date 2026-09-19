@@ -55,6 +55,29 @@ class ScoringInputs:
     params: Mapping[str, float]  # from config/scoring.yaml
 
 
+BANDS = ("headwind", "lean_against", "neutral", "lean_for", "tailwind")
+
+
+@dataclass(frozen=True)
+class Scale:
+    """Where a formula's scores live: the ends, the neutral point and the four band edges."""
+
+    low: float
+    high: float
+    neutral: float
+    edges: tuple[float, float, float, float]  # inner boundaries, lower bound inclusive
+
+    def band(self, score: float) -> str:
+        label = BANDS[0]
+        for edge, name in zip(self.edges, BANDS[1:], strict=True):
+            if score >= edge:
+                label = name
+        return label
+
+    def clip(self, score: float) -> float:
+        return min(self.high, max(self.low, score))
+
+
 @dataclass(frozen=True)
 class IndexScore:
     asset: str
@@ -70,5 +93,6 @@ class IndexScore:
 @runtime_checkable
 class IndexFormula(Protocol):
     name: str
+    scale: Scale
 
     def compute(self, inputs: ScoringInputs) -> IndexScore: ...

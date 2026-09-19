@@ -2,9 +2,11 @@
 
 from .contract import IndexFormula
 from .v1 import FormulaV1
+from .v2 import FormulaV2
 
 _FORMULAS: dict[str, type] = {
     FormulaV1.name: FormulaV1,
+    FormulaV2.name: FormulaV2,
 }
 
 

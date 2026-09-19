@@ -2,10 +2,9 @@
 import { CHART_CONFIG, bandColor, layoutTemplate, readTokens } from "../charts.js";
 import { BANDS, bandLabel, formatDate, formatNumber, formatPercent, formatScore } from "../format.js";
 
-const BAND_FLOORS = [0, 30, 45, 55, 70, 100];
 export const RANGE_PRESETS = [30, 90, 180, 365];
-export const COMPONENT_COLORS = { N: "#eb6834", S: "#1baf7a", R: "#eda100" }; // categorical slots 2-4
-const COMPONENT_NAMES = { N: "news", S: "surprise", R: "event risk" };
+export const COMPONENT_COLORS = { N: "#eb6834", S: "#1baf7a", R: "#eda100", D: "#e87ba4" }; // categorical slots 2-5
+const COMPONENT_NAMES = { N: "news", S: "surprise", R: "event risk", D: "dispersion" };
 const EVENTS_AHEAD_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -34,6 +33,8 @@ function componentText(components) {
 
 export function scoreFigure(history, events, tokens) {
   const points = history.points;
+  const scale = history.scale;
+  const floors = [scale.low, ...scale.edges, scale.high];
   const dates = points.map((point) => point.date);
   const byDay = new Map();
   for (const event of events) {
@@ -59,7 +60,7 @@ export function scoreFigure(history, events, tokens) {
       mode: "markers",
       name: "events",
       x: eventDays,
-      y: eventDays.map(() => 2),
+      y: eventDays.map(() => scale.low + 0.02 * (scale.high - scale.low)),
       text: eventDays.map((day) => byDay.get(day).join(" · ")),
       hovertemplate: "%{x}<br>%{text}<extra></extra>",
       marker: { color: tokens.muted, size: 8, symbol: "diamond" },
@@ -71,20 +72,20 @@ export function scoreFigure(history, events, tokens) {
     xref: "paper",
     x0: 0,
     x1: 1,
-    y0: BAND_FLOORS[index],
-    y1: BAND_FLOORS[index + 1],
+    y0: floors[index],
+    y1: floors[index + 1],
     fillcolor: rgba(bandColor(band, tokens), tokens.bandFillAlpha),
     line: { width: 0 },
     layer: "below",
   }));
   shapes.push({
-    name: "fifty",
+    name: "neutral",
     type: "line",
     xref: "paper",
     x0: 0,
     x1: 1,
-    y0: 50,
-    y1: 50,
+    y0: scale.neutral,
+    y1: scale.neutral,
     line: { color: tokens.axis, width: 1, dash: "dot" },
     layer: "below",
   });
@@ -106,7 +107,7 @@ export function scoreFigure(history, events, tokens) {
     ...template,
     height: 320,
     hovermode: "x unified",
-    yaxis: { ...template.yaxis, range: [0, 100], tickvals: [0, 30, 45, 55, 70, 100], showgrid: false },
+    yaxis: { ...template.yaxis, range: [scale.low, scale.high], tickvals: floors, showgrid: false },
     xaxis: { ...template.xaxis, showgrid: false },
     shapes,
   };

@@ -1,5 +1,6 @@
 """Read-side logic over a Store: bands, deltas, sparklines, headlines, events, forecasts."""
 
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -25,6 +26,7 @@ from manc.queries import (
     forecasts_for,
     headlines_behind,
     overview,
+    scale_of,
     upcoming_events,
 )
 from tests.fakes import FakeStore
@@ -162,13 +164,28 @@ def _macro(institution: str, economy: str, value: float, published_at: datetime)
     ],
 )
 def test_band_boundaries(score: float, expected: str) -> None:
-    assert band(score) == expected
+    assert band(score, scale_of("v1")) == expected
 
 
-@given(st.floats(0, 100), st.floats(0, 100))
-def test_band_is_monotone_in_the_score(low: float, high: float) -> None:
+@pytest.mark.parametrize(
+    ("score", "expected"),
+    [
+        (-100.0, "headwind"),
+        (-40.0, "lean_against"),
+        (-10.0, "neutral"),
+        (10.0, "lean_for"),
+        (40.0, "tailwind"),
+    ],
+)
+def test_band_on_the_v2_scale(score: float, expected: str) -> None:
+    assert band(score, scale_of("v2")) == expected
+
+
+@given(st.floats(-100, 100), st.floats(-100, 100), st.sampled_from(["v1", "v2"]))
+def test_band_is_monotone_in_the_score(low: float, high: float, formula: str) -> None:
     low, high = sorted((low, high))
-    assert BANDS.index(band(low)) <= BANDS.index(band(high))
+    scale = scale_of(formula)
+    assert BANDS.index(band(low, scale)) <= BANDS.index(band(high, scale))
 
 
 # --- overview ---------------------------------------------------------------
@@ -235,6 +252,19 @@ def test_overview_orders_by_distance_from_fifty() -> None:
     assert [summary.symbol for summary in overview(store, CONFIG, TODAY)] == ["SPX", "EURUSD"]
 
 
+def test_overview_under_v2_orders_by_distance_from_zero_and_bands_on_its_scale() -> None:
+    store = FakeStore()
+    store.scores.add(
+        _score("EURUSD", TODAY, 5.0, formula="v2"), _score("SPX", TODAY, -45.0, formula="v2")
+    )
+    config = replace(CONFIG, scoring=replace(CONFIG.scoring, formula="v2"))
+    summaries = overview(store, config, TODAY)
+    assert [(summary.symbol, summary.band) for summary in summaries] == [
+        ("SPX", "headwind"),
+        ("EURUSD", "neutral"),
+    ]
+
+
 # --- asset_history ----------------------------------------------------------
 
 
@@ -254,6 +284,15 @@ def test_asset_history_series_within_range_and_formula() -> None:
     ]
     assert history.points[0].components == {"N": 0.1, "S": -0.2, "R": 0.0}
     assert (history.points[0].n_news, history.points[0].n_events) == (3, 1)
+    assert history.scale == scale_of("v1")
+
+
+def test_asset_history_under_v2_carries_its_scale_and_bands() -> None:
+    store = FakeStore()
+    store.scores.add(_score("EURUSD", TODAY, -30.0, formula="v2"))
+    history = asset_history(store, CONFIG, "EURUSD", "v2", TODAY, TODAY)
+    assert (history.scale.low, history.scale.high, history.scale.neutral) == (-100.0, 100.0, 0.0)
+    assert history.points[0].band == "lean_against"
 
 
 def test_asset_history_unknown_symbol() -> None:

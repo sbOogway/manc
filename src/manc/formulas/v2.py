@@ -1,15 +1,15 @@
-"""Formula v1: news sentiment, data surprise, event-risk shrink (blueprint section 5).
+"""Formula v2: v1's terms on a -100..100 scale, plus the dispersion of the tags.
 
-    N = Σ dᵢ·cᵢ·wᵢ·λᵢ / Σ cᵢ·wᵢ·λᵢ            λᵢ = 0.5^(ageᵢ / half_life)
-    sₑ = clip((actual - consensus) / max(|consensus|, |previous|, ε), -1, 1) · sign(asset, event)
-    S = Σ sₑ·impₑ / Σ impₑ                       imp: importance 1/2/3 → 0.25/0.5/1
-    R = min(1, Σ_upcoming impₑ / event_risk_scale)
-    score = 50 + 50·(news_weight·N + surprise_weight·S)·(1 - event_risk_shrink·R)
+    N, S, R as in v1
+    D = std(dᵢ·cᵢ)                              stored, not scored (blueprint section 9, M6)
+    score = 100·(news_weight·N + surprise_weight·S)·(1 - event_risk_shrink·R)
 
-Every weight is a param; the defaults mirror config/scoring.yaml so empty params still score.
+Bands sit at ±10 and ±40, the same proportions as v1's 45/55 and 30/70. The other M6
+candidates arrive as `params` switches, each defaulting to on once it lands.
 """
 
 from collections.abc import Mapping, Sequence
+from statistics import pstdev
 
 from .contract import (
     AssetSpec,
@@ -31,23 +31,24 @@ IMPORTANCE_WEIGHT = {1: 0.25, 2: 0.5, 3: 1.0}
 EPSILON = 1e-9
 
 
-class FormulaV1:
-    name = "v1"
-    scale = Scale(low=0.0, high=100.0, neutral=50.0, edges=(30.0, 45.0, 55.0, 70.0))
+class FormulaV2:
+    name = "v2"
+    scale = Scale(low=-100.0, high=100.0, neutral=0.0, edges=(-40.0, -10.0, 10.0, 40.0))
 
     def compute(self, inputs: ScoringInputs) -> IndexScore:
         params = {**DEFAULT_PARAMS, **inputs.params}
         news = _news_term(inputs.tags, inputs.as_of, params["news_half_life_hours"])
         surprise = _surprise_term(inputs.released, inputs.asset)
         risk = _event_risk(inputs.upcoming, params["event_risk_scale"])
+        dispersion = _dispersion(inputs.tags)
         raw = params["news_weight"] * news + params["surprise_weight"] * surprise
-        score = 50 + 50 * raw * (1 - params["event_risk_shrink"] * risk)
+        score = 100 * raw * (1 - params["event_risk_shrink"] * risk)
         return IndexScore(
             asset=inputs.asset.symbol,
             date=inputs.as_of.date(),
-            score=min(100.0, max(0.0, score)),
+            score=self.scale.clip(score),
             formula=self.name,
-            components={"N": news, "S": surprise, "R": risk},
+            components={"N": news, "S": surprise, "R": risk, "D": dispersion},
             n_news=len(inputs.tags),
             n_events=len(inputs.released),
         )
@@ -62,6 +63,13 @@ def _news_term(tags: Sequence[TaggedHeadline], as_of, half_life_hours: float) ->
         weighted_sum += tag.direction * weight
         weight_sum += weight
     return weighted_sum / weight_sum if weight_sum > 0 else 0.0
+
+
+def _dispersion(tags: Sequence[TaggedHeadline]) -> float:
+    """How much the tags disagree: the spread of dᵢ·cᵢ, 0 when unanimous or empty."""
+    if len(tags) < 2:
+        return 0.0
+    return pstdev(tag.direction * tag.confidence for tag in tags)
 
 
 def _surprise_term(released: Sequence[EventObservation], asset: AssetSpec) -> float:

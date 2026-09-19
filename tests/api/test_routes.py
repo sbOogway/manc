@@ -130,6 +130,12 @@ def test_scores_series_with_components(client: TestClient) -> None:
     assert [point["score"] for point in body["points"]] == [40.0, 62.0]
     assert body["points"][1]["components"] == {"N": 0.1, "S": -0.2, "R": 0.5}
     assert body["points"][1]["band"] == "lean_for"
+    assert body["scale"] == {
+        "low": 0.0,
+        "high": 100.0,
+        "neutral": 50.0,
+        "edges": [30.0, 45.0, 55.0, 70.0],
+    }
 
 
 def test_scores_formula_and_range(client: TestClient) -> None:
@@ -224,7 +230,7 @@ def test_macro_forecasts(client: TestClient) -> None:
 
 
 def test_formulas(client: TestClient) -> None:
-    assert client.get("/api/v1/formulas").json() == {"default": "v1", "known": ["v1"]}
+    assert client.get("/api/v1/formulas").json() == {"default": "v1", "known": ["v1", "v2"]}
 
 
 def test_health(client: TestClient) -> None:

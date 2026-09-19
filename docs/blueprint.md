@@ -298,9 +298,14 @@ owns the contract (what a formula receives and returns). The app only ever calls
 
 The contract is `src/manc/formulas/contract.py`: `ScoringInputs` (the asset spec, the
 as-of time, weighted headline tags, released and upcoming event observations, and the
-`params` from `config/scoring.yaml`), `IndexScore`, and the `IndexFormula` Protocol
-(`name`, `compute(inputs) -> IndexScore`). `registry.py` maps a name to a formula class
-(`"v1"` → `FormulaV1` in `v1.py`).
+`params` from `config/scoring.yaml`), `IndexScore`, `Scale` and the `IndexFormula` Protocol
+(`name`, `scale`, `compute(inputs) -> IndexScore`). `registry.py` maps a name to a formula
+class (`"v1"` → `FormulaV1` in `v1.py`, `"v2"` → `FormulaV2` in `v2.py`).
+
+Each formula declares its `Scale`: the two ends, the neutral point and the four band edges.
+v1 scores 0–100 around 50; v2 scores −100..100 around 0 with the bands at ±10 and ±40, the
+same proportions. Everything downstream (bands, the overview ordering, the chart's shading
+and neutral line) reads the scale from the formula instead of assuming 0–100.
 
 Rules that keep it decoupled: `manc.formulas` imports only the standard library and itself,
 never `manc.models`, the store or anything else in the app (enforced by
@@ -632,10 +637,12 @@ the API only, first against `manc api` on localhost and then published on GitHub
 - first tuning pass on weights using the accumulated scores
 
 **M6 Formula v2** — done when: `manc rescore --formula v2` has replayed the whole stored
-history, the dashboard overlays v1 and v2 for every asset, and the owner has picked the
+history, the dashboard shows either formula for every asset, and the owner has picked the
 default. Grounded in `docs/prior-art.md` (survey of 2026-09-16): every item below cites the
-evidence for it. Starts only after M5 has accumulated about three months of scores and
-released events, because the surprise normaliser needs history.
+evidence for it. Brought forward on 2026-09-19 at the owner's request; the standardised
+surprise falls back to the v1 normaliser until enough history exists. v2 scores run from
+−100 (strong headwind) to +100 (strong tailwind) around 0, and always stores the dispersion
+`D` next to N, S and R.
 
 Prerequisite, done in M3 when the tagger lands: `news_tags` stores the `model` string and a
 `prompt_version`, so tags produced by different models can be told apart when comparing

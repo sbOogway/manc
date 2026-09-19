@@ -1,18 +1,9 @@
 // The pure formatting the pages share; the bands mirror manc.queries.
 
 export const BANDS = ["headwind", "lean_against", "neutral", "lean_for", "tailwind"];
-const BAND_FLOORS = [0, 30, 45, 55, 70];
 const DASH = "—";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const IMPORTANCE = { 1: "low", 2: "medium", 3: "high" };
-
-export function bandOf(score) {
-  let band = BANDS[0];
-  BAND_FLOORS.forEach((floor, index) => {
-    if (score >= floor) band = BANDS[index];
-  });
-  return band;
-}
 
 export function bandLabel(band) {
   return band.replaceAll("_", " ");
