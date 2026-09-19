@@ -8,6 +8,7 @@ import {
   forecastRows,
   headlineRows,
   rangeFor,
+  reportDay,
   revision,
   scoreFigure,
 } from "../pages/asset.js";
@@ -174,4 +175,10 @@ test("headlineRows scales the weight bars to the strongest headline, in API orde
   assert.deepEqual(rows.map((row) => row.glyph), ["▼", "▲", "▲"]);
   assert.equal(rows[0].date, "18 Sep 2026");
   assert.deepEqual(headlineRows([]), []);
+});
+
+test("reportDay is the last scored day, or today without scores", () => {
+  assert.equal(reportDay(HISTORY, "2026-09-19"), "2026-09-17");
+  assert.equal(reportDay({ points: [] }, "2026-09-19"), "2026-09-19");
+  assert.equal(reportDay(null, "2026-09-19"), "2026-09-19");
 });

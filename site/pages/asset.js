@@ -156,6 +156,10 @@ export function eventsFor(events, economies, today, days = EVENTS_AHEAD_DAYS) {
   });
 }
 
+export function reportDay(history, today) {
+  return history?.points?.at(-1)?.date ?? today;
+}
+
 export function headlineRows(headlines) {
   const strongest = Math.max(0, ...headlines.map((headline) => headline.weight));
   return headlines.map((headline) => ({
@@ -217,7 +221,7 @@ export const AssetPage = {
     const history = ref(null);
     const events = ref([]);
     const economies = ref([]);
-    const report = ref({ html: "", note: "" });
+    const report = ref({ html: "", note: "", day: null });
     const headlines = ref([]);
     const panel = ref(null);
     const error = ref(null);
@@ -242,12 +246,14 @@ export const AssetPage = {
     }
 
     async function loadReport() {
+      const day = reportDay(history.value, today);
       try {
-        const answer = await client.report(props.symbol, { formula: formula.value });
-        report.value = { html: marked.parse(answer.report_md), note: "" };
+        const answer = await client.report(props.symbol, { formula: formula.value, date: day });
+        report.value = { html: marked.parse(answer.report_md), note: "", day };
       } catch (failure) {
-        report.value = { html: "", note: failure.message };
+        report.value = { html: "", note: failure.message, day };
       }
+      headlines.value = await client.headlines(props.symbol, { date: day });
     }
 
     async function load() {
@@ -261,9 +267,7 @@ export const AssetPage = {
         formulas.value = known.known;
         formula.value = formula.value ?? known.default;
         await Promise.all([
-          loadHistory(),
-          loadReport(),
-          client.headlines(props.symbol, {}).then((rows) => (headlines.value = rows)),
+          loadHistory().then(loadReport),
           client.forecasts(props.symbol, {}).then((rows) => (panel.value = rows)),
         ]);
       } catch (failure) {
@@ -280,10 +284,7 @@ export const AssetPage = {
     watch(() => props.symbol, load);
     watch(days, loadHistory);
     watch(formula, (value, previous) => {
-      if (previous !== null) {
-        loadHistory();
-        loadReport();
-      }
+      if (previous !== null) loadHistory().then(loadReport);
     });
 
     return {
@@ -340,7 +341,7 @@ export const AssetPage = {
 
       <div class="columns">
         <article class="card report">
-          <h2>Report</h2>
+          <h2>Report <span class="muted" v-if="report.day">· {{ formatDate(report.day) }}</span></h2>
           <p v-if="report.note" class="muted">{{ report.note }}</p>
           <div v-html="report.html"></div>
         </article>
@@ -365,7 +366,7 @@ export const AssetPage = {
           </article>
 
           <article class="card">
-            <h2>Headlines behind the score</h2>
+            <h2>Headlines behind the score <span class="muted" v-if="report.day">· {{ formatDate(report.day) }}</span></h2>
             <p v-if="!headlines.length" class="muted">No directional headline in the window.</p>
             <ul v-else class="headlines scroll">
               <li v-for="row in headlineRows(headlines)" :key="row.url" :class="row.direction > 0 ? 'bull' : 'bear'">
