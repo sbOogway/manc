@@ -8,7 +8,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from manc.formulas.contract import AssetSpec, EventObservation, ScoringInputs, TaggedHeadline
-from manc.formulas.v2 import FormulaV2
+from manc.formulas.v2 import FormulaV2, _bucket
 
 AS_OF = datetime(2026, 9, 15, 8, 0, tzinfo=UTC)
 HOUR = timedelta(hours=1)
@@ -21,15 +21,27 @@ EURUSD = AssetSpec(
         "united_states": {"inflation": -1, "employment": -1, "growth": -1, "rates": -1},
     },
 )
-BASE = {"standardised_surprise": 0, "decayed_surprise": 0, "novelty_weighting": 0}
+BASE = {
+    "standardised_surprise": 0,
+    "decayed_surprise": 0,
+    "novelty_weighting": 0,
+    "coarse_confidence": 0,
+}
 
 
-def _tag(direction: int, confidence: float = 1.0, weight: float = 1.0, age_hours: float = 0.0):
+def _tag(
+    direction: int,
+    confidence: float = 1.0,
+    weight: float = 1.0,
+    age_hours: float = 0.0,
+    title: str = "",
+):
     return TaggedHeadline(
         direction=direction,
         confidence=confidence,
         source_weight=weight,
         published_at=AS_OF - age_hours * HOUR,
+        title=title,
     )
 
 
@@ -120,6 +132,102 @@ def test_dispersion_does_not_move_the_score() -> None:
     assert _score(tags=[_tag(1), _tag(-1)]) == 0.0
 
 
+# --- novelty weighting -----------------------------------------------------
+
+NOVELTY = {"novelty_weighting": 1}
+
+
+def _news(**kwargs) -> float:
+    return _compute(**kwargs).components["N"]
+
+
+def test_copies_of_one_headline_never_outweigh_as_many_distinct_ones() -> None:
+    copies = [
+        _tag(1, title="Fed raises rates by 25bp - Reuters", age_hours=hour) for hour in range(3)
+    ]
+    distinct = [
+        _tag(-1, title="ECB signals a pause in December", age_hours=0),
+        _tag(-1, title="Euro area PMI beats expectations", age_hours=1),
+        _tag(-1, title="German exports rebound in August", age_hours=2),
+    ]
+    assert _news(tags=copies + distinct) == pytest.approx(0.0, abs=1e-9)  # v1: a tie
+    assert _news(tags=copies + distinct, params=NOVELTY) < 0
+    assert _news(tags=copies, params=NOVELTY) == 1.0  # direction unchanged, only the weight
+
+
+def test_a_single_headline_is_unchanged_by_novelty() -> None:
+    assert _score(tags=[_tag(1, confidence=0.8)], params=NOVELTY) == _score(
+        tags=[_tag(1, confidence=0.8)]
+    )
+
+
+def test_the_same_story_from_two_wires_clusters_but_different_stories_do_not() -> None:
+    reuters = _tag(1, title="Fed raises rates by 25bp, signals more - Reuters", age_hours=1)
+    cnbc = _tag(1, title="Fed raises rates by 25bp and signals more hikes - CNBC")
+    other = _tag(-1, title="Oil slips as OPEC output rises")
+    params = {**NOVELTY, "news_half_life_hours": 1e9}  # no recency decay, isolate novelty
+    clustered = _compute(tags=[reuters, cnbc, other], params=params)
+    unclustered = _compute(tags=[reuters, other], params=params)
+    # the second copy adds 0.75, not 1: N = (1 + 0.75 - 1) / (1 + 0.75 + 1)
+    assert clustered.components["N"] == pytest.approx(0.75 / 2.75)
+    assert unclustered.components["N"] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_copies_outside_the_novelty_window_count_in_full() -> None:
+    fresh = _tag(1, title="Fed raises rates by 25bp", age_hours=0)
+    stale = _tag(1, title="Fed raises rates by 25bp", age_hours=30)
+    bear = _tag(-1, title="Something else entirely happened today", age_hours=0)
+    params = {**NOVELTY, "news_half_life_hours": 1e9}  # no recency decay, isolate novelty
+    assert _news(tags=[fresh, stale, bear], params=params) == pytest.approx(1 / 3)
+
+
+def test_copies_cluster_within_one_direction_only() -> None:
+    bull = _tag(1, title="Fed raises rates by 25bp - Reuters")
+    bear = _tag(-1, title="Fed raises rates by 25bp - CNBC")
+    assert _news(tags=[bull, bear], params=NOVELTY) == pytest.approx(0.0)
+
+
+def test_the_strongest_copy_counts_in_full() -> None:
+    weak_first = _tag(1, confidence=0.2, title="Fed raises rates by 25bp", age_hours=2)
+    strong_later = _tag(1, confidence=1.0, title="Fed raises rates by 25bp", age_hours=0)
+    bear = _tag(-1, title="Euro area PMI beats expectations")
+    params = {**NOVELTY, "news_half_life_hours": 1e9}
+    # weights 1.0 (lead) and 0.2·0.75 (copy) against 1.0
+    expected = (1.0 + 0.15 - 1.0) / (1.0 + 0.15 + 1.0)
+    assert _news(tags=[weak_first, strong_later, bear], params=params) == pytest.approx(expected)
+
+
+def test_headlines_without_a_title_never_cluster() -> None:
+    tags = [_tag(1), _tag(1), _tag(-1)]
+    assert _news(tags=tags, params=NOVELTY) == pytest.approx(_news(tags=tags))
+
+
+# --- coarse confidence -----------------------------------------------------
+
+COARSE = {"coarse_confidence": 1, "confidence_levels": 3}
+
+
+def test_bucketing_is_monotone_idempotent_and_keeps_the_ends() -> None:
+    levels = [_bucket(confidence / 100) for confidence in range(101)]
+    assert levels == sorted(levels)
+    assert {_bucket(value) for value in levels} == set(levels)
+    assert all(_bucket(value) == value for value in levels)
+    assert (_bucket(0.0), _bucket(1.0), _bucket(0.01), _bucket(0.34), _bucket(0.67)) == (
+        0.0,
+        1.0,
+        1 / 3,
+        2 / 3,
+        1.0,
+    )
+
+
+def test_coarse_confidence_weights_the_news_term_by_the_bucket() -> None:
+    bull = _tag(1, confidence=0.9)  # bucket 1.0
+    bear = _tag(-1, confidence=0.5)  # bucket 2/3
+    assert _news(tags=[bull, bear], params=COARSE) == pytest.approx((1 - 2 / 3) / (1 + 2 / 3))
+    assert _news(tags=[bull, bear]) == pytest.approx((0.9 - 0.5) / 1.4)
+
+
 # --- standardised surprise -------------------------------------------------
 
 STANDARDISED = {"standardised_surprise": 1, "surprise_min_history": 4, "surprise_z_cap": 2.0}
@@ -193,6 +301,15 @@ headlines = st.builds(
     published_at=st.datetimes(
         min_value=datetime(2026, 9, 12), max_value=datetime(2026, 9, 15, 8), timezones=st.just(UTC)
     ),
+    title=st.sampled_from(
+        [
+            "",
+            "Fed raises rates by 25bp - Reuters",
+            "Fed raises rates by 25bp, signals more - CNBC",
+            "ECB holds rates steady",
+            "Oil slips as OPEC output rises",
+        ]
+    ),
 )
 released_events = st.builds(
     EventObservation,
@@ -205,7 +322,12 @@ released_events = st.builds(
     actual=st.none() | st.floats(-10, 10),
     past_surprises=st.lists(st.floats(-5, 5), max_size=10).map(tuple),
 )
-ALL_ON = {"standardised_surprise": 1, "decayed_surprise": 1}
+ALL_ON = {
+    "standardised_surprise": 1,
+    "decayed_surprise": 1,
+    "novelty_weighting": 1,
+    "coarse_confidence": 1,
+}
 upcoming_events = st.builds(
     EventObservation,
     date=st.just(AS_OF + 2 * 24 * HOUR),
@@ -231,15 +353,18 @@ def test_bounded_and_neutral_without_information(tags, released, upcoming, switc
 
 
 @settings(max_examples=200)
-@given(tag_lists, released_lists, upcoming_lists, headlines)
+@given(tag_lists, released_lists, upcoming_lists, headlines, st.booleans())
 def test_a_bullish_headline_never_lowers_and_a_bearish_never_raises(
-    tags, released, upcoming, extra
+    tags, released, upcoming, extra, switches
 ) -> None:
-    base = _score(tags=tags, released=released, upcoming=upcoming)
+    params = ALL_ON if switches else {}
+    base = _score(tags=tags, released=released, upcoming=upcoming, params=params)
     bull = replace(extra, direction=1)
     bear = replace(extra, direction=-1)
-    assert _score(tags=[*tags, bull], released=released, upcoming=upcoming) >= base - 1e-9
-    assert _score(tags=[*tags, bear], released=released, upcoming=upcoming) <= base + 1e-9
+    with_bull = _score(tags=[*tags, bull], released=released, upcoming=upcoming, params=params)
+    with_bear = _score(tags=[*tags, bear], released=released, upcoming=upcoming, params=params)
+    assert with_bull >= base - 1e-9
+    assert with_bear <= base + 1e-9
 
 
 @settings(max_examples=200)

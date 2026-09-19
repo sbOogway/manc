@@ -30,6 +30,7 @@ class TaggedHeadline:
     confidence: float  # 0..1
     source_weight: float  # 0..1, from the feeds config
     published_at: datetime
+    title: str = ""  # so a formula can tell copies of one story apart (v2 novelty weighting)
 
 
 @dataclass(frozen=True)

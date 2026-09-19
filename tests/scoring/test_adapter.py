@@ -132,4 +132,5 @@ def test_tags_carry_feed_weights_and_respect_news_window() -> None:
     inputs = build_inputs(store, EURUSD, AS_OF, CONFIG)
     by_weight = sorted(inputs.tags, key=lambda tag: tag.source_weight)
     assert [(tag.direction, tag.source_weight) for tag in by_weight] == [(1, 0.6), (1, 1.0)]
+    assert [tag.title for tag in by_weight] == ["a", "c"]
     assert all(tag.published_at.tzinfo is not None for tag in inputs.tags)
