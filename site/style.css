@@ -406,3 +406,20 @@ tr.median td {
   font-weight: 600;
   border-bottom: 2px solid var(--axis);
 }
+
+/* events page */
+tr.day th {
+  color: var(--ink);
+  font-weight: 600;
+  padding-top: var(--space-3);
+  border-bottom: 1px solid var(--axis);
+}
+.badge.importance-3 {
+  --band-color: var(--critical);
+}
+.badge.importance-2 {
+  --band-color: var(--warning);
+}
+.badge.importance-1 {
+  --band-color: var(--muted);
+}
