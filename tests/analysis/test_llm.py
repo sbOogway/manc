@@ -114,7 +114,7 @@ def test_reply_maps_to_tags_with_the_reported_model_and_prompt_version() -> None
 @pytest.mark.parametrize(
     "bad",
     [
-        _tag(0, "EURGBP", 1),  # asset not tracked
+        _tag(0, "XXXUSD", 1),  # asset not tracked
         _tag(5, "EURUSD", 1),  # index outside the batch
     ],
 )

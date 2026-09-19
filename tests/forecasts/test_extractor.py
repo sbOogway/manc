@@ -138,7 +138,7 @@ def test_economy_metric_subject_becomes_a_forecast_macro() -> None:
 @pytest.mark.parametrize(
     "bad",
     [
-        _found(0, "EURGBP", 0.85),  # asset not tracked
+        _found(0, "XXXUSD", 0.85),  # asset not tracked
         _found(0, "mars:cpi", 2.0),  # unknown economy
         _found(0, "united_states:house_prices", 2.0),  # unknown metric
         _found(0, "XAUUSD", 4000.0, horizon="when the Fed cuts"),  # unparseable horizon

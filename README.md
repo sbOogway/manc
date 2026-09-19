@@ -8,7 +8,8 @@ forecast for each asset, extracted from headlines by an LLM.
 It is **not** a price predictor or a trading signal: it measures the macro narrative and data
 flow, one input among many, and keeps the number explainable.
 
-Tracked by default: EURUSD, GBPUSD, USDJPY, XAUUSD, BRENT, SPX, BTCUSD (`config/assets.yaml`).
+Tracked by default: 62 assets across forex, metals, commodities, equity indices, crypto and
+US Treasury yields (`config/assets.yaml`).
 
 ## How it works
 

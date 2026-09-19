@@ -52,31 +52,47 @@ def test_tags_are_offline_with_a_fixed_confidence() -> None:
 
 
 def test_data_print_follows_the_sign_map() -> None:
-    assert _tags("US CPI runs hot") == {
+    hot_cpi = _tags("US CPI runs hot")
+    assert {
+        symbol: hot_cpi[symbol] for symbol in ("EURUSD", "USDJPY", "XAUUSD", "SPX", "US10Y")
+    } == {
         "EURUSD": -1,
-        "GBPUSD": -1,
         "USDJPY": 1,
         "XAUUSD": -1,
         "SPX": -1,
-        "BTCUSD": -1,
-    }  # BRENT has sign 0 for US inflation, so no tag
-    assert _tags("ECB hikes 50bp") == {"EURUSD": 1}
+        "US10Y": 1,
+    }
+    assert "BRENT" not in hot_cpi  # sign 0 for US inflation, so no tag
+    ecb = _tags("ECB hikes 50bp")
+    assert {symbol: ecb[symbol] for symbol in ("EURUSD", "EURJPY", "STOXX50")} == {
+        "EURUSD": 1,
+        "EURJPY": 1,
+        "STOXX50": -1,
+    }
+    assert "USDJPY" not in ecb
 
 
 def test_first_economy_and_category_mentioned_win() -> None:
     assert _tags("BoJ hikes as US inflation cools")["USDJPY"] == 0  # hike and cool disagree
-    assert _tags("Yen jumps after BoJ rate hike") == {"USDJPY": -1}
+    yen = _tags("Yen jumps after BoJ rate hike")
+    assert {symbol: yen[symbol] for symbol in ("USDJPY", "EURJPY", "NIKKEI")} == {
+        "USDJPY": -1,
+        "EURJPY": -1,
+        "NIKKEI": -1,
+    }
 
 
 def test_asset_mention_carries_its_sign() -> None:
     assert _tags("Gold jumps to a record") == {"XAUUSD": 1}
-    assert _tags("Dollar slides") == {"EURUSD": 1, "GBPUSD": 1, "USDJPY": -1}
-    assert _tags("Crude tumbles 5%") == {"BRENT": -1}
+    dollar = _tags("Dollar slides")
+    assert dollar["EURUSD"] == dollar["AUDUSD"] == 1 and dollar["USDJPY"] == dollar["USDCHF"] == -1
+    assert all(symbol.startswith(("USD", "EUR", "GBP", "AUD", "NZD")) for symbol in dollar)
+    assert _tags("Crude tumbles 5%") == {"BRENT": -1, "WTI": -1}
 
 
 def test_mixed_or_balanced_titles_tag_zero() -> None:
     assert _tags("Gold jumps then slides") == {"XAUUSD": 0}
-    assert _tags("Stocks flat ahead of the Fed") == {"SPX": 0}
+    assert _tags("Stocks flat ahead of the Fed") == {"SPX": 0, "NDX": 0, "DJI": 0}
     assert _tags("US CPI cools but core prices jump")["EURUSD"] == 0
 
 

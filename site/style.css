@@ -254,6 +254,11 @@ th.num {
   background: var(--band-color, var(--muted));
 }
 
+/* overview */
+.kinds {
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
 /* overview tiles */
 .tile {
   display: flex;

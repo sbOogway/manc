@@ -14,16 +14,31 @@ REPO_CONFIG = Path(__file__).resolve().parents[1] / "config"
 
 def test_repo_config_loads() -> None:
     config = load_config(REPO_CONFIG)
-    assert [asset.symbol for asset in config.assets] == [
-        "EURUSD",
-        "GBPUSD",
-        "USDJPY",
-        "XAUUSD",
-        "BRENT",
-        "SPX",
-        "BTCUSD",
-    ]
+    symbols = [asset.symbol for asset in config.assets]
+    assert symbols[:3] == ["EURUSD", "GBPUSD", "USDJPY"]
+    assert len(symbols) == len(set(symbols)) == 62
+    assert {asset.kind for asset in config.assets} == {
+        "forex",
+        "metal",
+        "commodity",
+        "equity_index",
+        "crypto",
+        "bond",
+    }
+    for asset in config.assets:
+        assert asset.economies and asset.spot.get("yahoo"), asset.symbol
+        assert set(asset.signs) == set(asset.economies), asset.symbol
     assert all(0.0 <= feed.weight <= 1.0 for feed in config.feeds)
+
+
+def test_every_currency_pair_is_base_plus_quote_minus() -> None:
+    config = load_config(REPO_CONFIG)
+    for asset in config.assets:
+        if asset.kind != "forex":
+            continue
+        base, quote = asset.economies
+        assert set(asset.signs[base].values()) == {1}, asset.symbol
+        assert set(asset.signs[quote].values()) == {-1}, asset.symbol
     assert get_formula(config.scoring.formula).name == config.scoring.formula == "v2"
     assert set(v2.DEFAULT_PARAMS) <= set(config.scoring.params)  # every v2 key is documented
     assert config.llm.model
@@ -127,7 +142,9 @@ def test_forecasts_config_loads() -> None:
     assert all(0.0 <= institution.weight <= 1.0 for institution in forecasts.institutions)
     assert 0.0 <= forecasts.min_confidence <= 1.0
     assert set(forecasts.metrics) >= {"policy_rate", "cpi", "pce", "gdp", "unemployment"}
-    assert {query.asset for query in forecasts.queries} == {asset.symbol for asset in config.assets}
+    queried = {query.asset for query in forecasts.queries}
+    assert {"EURUSD", "XAUUSD", "BRENT", "SPX", "BTCUSD", "NDX", "ETHUSD"} <= queried
+    assert queried <= {asset.symbol for asset in config.assets}
     assert all(query.feed.url.startswith("https://") for query in forecasts.queries)
     assert forecasts.signals  # at least one compiled regex
 
@@ -172,16 +189,18 @@ def test_missing_forecasts_file_names_it(tmp_path: Path) -> None:
 def test_lexicon_loads_and_compiles_whole_word_patterns() -> None:
     lexicon = load_config(REPO_CONFIG).lexicon
     economies = {economy for _pattern, economy in lexicon.economies}
-    assert economies == {"united_states", "euro_area", "united_kingdom", "japan"}
+    assert {"united_states", "euro_area", "united_kingdom", "japan", "china"} <= economies
+    tracked = {economy for asset in load_config(REPO_CONFIG).assets for economy in asset.economies}
+    assert economies <= tracked
     assert {category for _pattern, category in lexicon.categories} <= {
         "inflation",
         "employment",
         "growth",
         "rates",
     }
-    assert {symbol for _pattern, symbol, _sign in lexicon.assets} == {
-        asset.symbol for asset in load_config(REPO_CONFIG).assets
-    }
+    mentioned = {symbol for _pattern, symbol, _sign in lexicon.assets}
+    assert {"EURUSD", "XAUUSD", "BRENT", "SPX", "BTCUSD", "WTI", "ETHUSD"} <= mentioned
+    assert mentioned <= {asset.symbol for asset in load_config(REPO_CONFIG).assets}
     assert {sign for _pattern, sign in lexicon.polarity} == {-1, 0, 1}
     fed = next(pattern for pattern, _economy in lexicon.economies if pattern.search("Fed holds"))
     assert not fed.search("fed up") and not fed.search("Federal")

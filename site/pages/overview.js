@@ -8,6 +8,33 @@ const RISK_LABELS = [
   [0, "quiet"],
 ];
 
+const KIND_ORDER = ["forex", "metal", "commodity", "equity_index", "crypto", "bond"];
+const KIND_LABELS = {
+  all: "all",
+  forex: "forex",
+  metal: "metals",
+  commodity: "commodities",
+  equity_index: "equity indices",
+  crypto: "crypto",
+  bond: "bonds",
+};
+const KIND_KEY = "manc.kind";
+
+export function kindLabel(kind) {
+  return KIND_LABELS[kind] ?? kind.replaceAll("_", " ");
+}
+
+export function kindsOf(summaries) {
+  const present = new Set(summaries.map((summary) => summary.kind));
+  const known = KIND_ORDER.filter((kind) => present.has(kind));
+  const others = [...present].filter((kind) => !KIND_ORDER.includes(kind)).sort();
+  return [...known, ...others];
+}
+
+export function filterByKind(summaries, kind) {
+  return kind === "all" ? summaries : summaries.filter((summary) => summary.kind === kind);
+}
+
 export function eventRiskLabel(risk) {
   return RISK_LABELS.find(([floor]) => risk >= floor)[1];
 }
@@ -76,10 +103,26 @@ const Tile = {
 export const OverviewPage = {
   components: { Tile },
   setup() {
-    const { inject, onMounted, ref } = Vue;
+    const { computed, inject, onMounted, ref, watch } = Vue;
     const client = inject("client");
     const summaries = ref(null);
     const error = ref(null);
+    let remembered = "all";
+    try {
+      remembered = localStorage.getItem(KIND_KEY) || "all";
+    } catch {
+      // storage unavailable: start on "all"
+    }
+    const kind = ref(remembered);
+    const kinds = computed(() => kindsOf(summaries.value ?? []));
+    const shown = computed(() => filterByKind(summaries.value ?? [], kind.value));
+    watch(kind, (value) => {
+      try {
+        localStorage.setItem(KIND_KEY, value);
+      } catch {
+        // the choice lasts the page
+      }
+    });
 
     async function load() {
       error.value = null;
@@ -91,17 +134,22 @@ export const OverviewPage = {
       }
     }
     onMounted(load);
-    return { summaries, error, load };
+    return { summaries, error, load, kind, kinds, shown, kindLabel };
   },
   template: `
     <section>
+      <div class="selectors kinds" v-if="summaries && summaries.length">
+        <button type="button" :class="{ active: kind === 'all' }" @click="kind = 'all'">all</button>
+        <button v-for="name in kinds" :key="name" type="button" :class="{ active: kind === name }" @click="kind = name">{{ kindLabel(name) }}</button>
+      </div>
       <p v-if="error" class="error">{{ error }} <button type="button" @click="load">Retry</button></p>
       <div v-if="summaries === null" class="grid">
-        <div v-for="index in 7" :key="index" class="skeleton"></div>
+        <div v-for="index in 12" :key="index" class="skeleton"></div>
       </div>
       <p v-else-if="!summaries.length && !error" class="muted">No score yet. Run <code>manc run</code> first.</p>
+      <p v-else-if="!shown.length" class="muted">No {{ kindLabel(kind) }} scored yet.</p>
       <div v-else class="grid">
-        <Tile v-for="summary in summaries" :key="summary.symbol" :summary="summary" />
+        <Tile v-for="summary in shown" :key="summary.symbol" :summary="summary" />
       </div>
     </section>
   `,

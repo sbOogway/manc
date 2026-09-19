@@ -17,17 +17,14 @@ recently, and what is scheduled next, does the macro backdrop lean for or agains
 The answer is a single number from 0 (strong headwind) to 100 (strong tailwind), plus a short
 written report explaining it.
 
-Initial asset list (all configurable in `config/assets.yaml`):
-
-| Symbol | Kind         | Economies that move it                    |
-|--------|--------------|-------------------------------------------|
-| EURUSD | forex        | Euro area, United States                  |
-| GBPUSD | forex        | United Kingdom, United States             |
-| USDJPY | forex        | United States, Japan                      |
-| XAUUSD | metal        | United States (rates, dollar)             |
-| BRENT  | commodity    | United States, OPEC headlines             |
-| SPX    | equity index | United States                             |
-| BTCUSD | crypto       | United States (liquidity, risk appetite)  |
+The tracked assets live in `config/assets.yaml`, 62 of them since 2026-09-20 in six kinds:
+forex (the majors, the main crosses and the dollar against CNY, MXN, BRL, ZAR, INR and KRW),
+metals (gold, silver, platinum, palladium, copper), commodities (Brent, WTI, natural gas and
+the main agriculturals), equity indices (the US benchmarks and those of Europe, Asia and
+Latin America), crypto (the eight largest coins) and US Treasury yields. Each entry names the
+economies whose calendar moves it and the sign of a hotter-than-expected print per category;
+the file's header states the rules of thumb behind the signs. The dashboard filters the
+overview by kind.
 
 What it is **not**: a price predictor or a trading signal. It measures the macro narrative and
 data flow, which is one input among many. Prices are deliberately not part of the score so it

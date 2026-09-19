@@ -17,6 +17,21 @@ economies:  # keys of assets.yaml
   euro_area: ["ECB", "euro", "eurozone", "euro[- ]area", "Lagarde"]
   united_kingdom: ["UK", "BoE", "Bank of England", "sterling", "pound", "British", "Bailey"]
   japan: ["BoJ", "Bank of Japan", "yen", "Japan", "Japanese", "Ueda"]
+  switzerland: ["SNB", "Swiss", "franc"]
+  canada: ["BoC", "Bank of Canada", "Canada", "Canadian", "loonie"]
+  australia: ["RBA", "Australia", "Australian", "aussie"]
+  new_zealand: ["RBNZ", "New Zealand", "kiwi"]
+  china: ["PBOC", "China", "Chinese", "yuan", "Beijing"]
+  germany: ["Germany", "German", "Bundesbank"]
+  france: ["France", "French"]
+  italy: ["Italy", "Italian"]
+  spain: ["Spain", "Spanish"]
+  mexico: ["Banxico", "Mexico", "Mexican", "peso"]
+  brazil: ["Brazil", "Brazilian", "real"]
+  south_africa: ["SARB", "South Africa", "rand"]
+  india: ["RBI", "India", "Indian", "rupee"]
+  south_korea: ["Bank of Korea", "Korea", "Korean", "won"]
+  hong_kong: ["Hong Kong"]
 
 categories:  # inflation | employment | growth | rates, as in assets.yaml signs
   inflation: ["CPI", "PCE", "PPI", "HICP", "inflation", "prices"]
@@ -28,10 +43,53 @@ assets:  # mention -> sign of a positive phrase for the asset
   EURUSD: {"euro": 1, "EUR/USD": 1, "EURUSD": 1, "dollar": -1}
   GBPUSD: {"sterling": 1, "pound": 1, "cable": 1, "GBP/USD": 1, "dollar": -1}
   USDJPY: {"yen": -1, "USD/JPY": 1, "dollar": 1}
+  USDCHF: {"franc": -1, "USD/CHF": 1, "dollar": 1}
+  USDCAD: {"loonie": -1, "USD/CAD": 1, "dollar": 1}
+  AUDUSD: {"aussie": 1, "AUD/USD": 1, "dollar": -1}
+  NZDUSD: {"kiwi": 1, "NZD/USD": 1, "dollar": -1}
+  USDMXN: {"peso": -1, "USD/MXN": 1}
+  USDBRL: {"USD/BRL": 1}
+  USDZAR: {"rand": -1, "USD/ZAR": 1}
+  USDINR: {"rupee": -1, "USD/INR": 1}
+  USDCNY: {"yuan": -1, "USD/CNY": 1, "USD/CNH": 1}
   XAUUSD: {"gold": 1, "bullion": 1, "XAU": 1}
+  XAGUSD: {"silver": 1, "XAG": 1}
+  XPTUSD: {"platinum": 1}
+  XPDUSD: {"palladium": 1}
+  COPPER: {"copper": 1}
   BRENT: {"Brent": 1, "crude": 1, "oil": 1, "OPEC\\+?": 1, "barrels?": 1}
-  SPX: {"S&P": 1, "stocks": 1, "equities": 1, "shares": 1, "Wall Street": 1, "Nasdaq": 1, "Dow": 1}
+  WTI: {"WTI": 1, "crude": 1, "oil": 1, "OPEC\\+?": 1, "barrels?": 1}
+  NATGAS: {"natural gas": 1, "LNG": 1, "gas prices": 1}
+  WHEAT: {"wheat": 1, "grains?": 1}
+  CORN: {"corn": 1, "grains?": 1}
+  SOYBEANS: {"soybeans?": 1, "soy": 1}
+  COFFEE: {"coffee": 1, "arabica": 1}
+  SUGAR: {"sugar": 1}
+  COCOA: {"cocoa": 1}
+  SPX: {"S&P": 1, "stocks": 1, "equities": 1, "shares": 1, "Wall Street": 1}
+  NDX: {"Nasdaq": 1, "tech stocks": 1, "stocks": 1}
+  DJI: {"Dow": 1, "stocks": 1}
+  RUT: {"Russell": 1, "small[- ]caps?": 1}
+  DAX: {"DAX": 1, "German stocks": 1}
+  CAC40: {"CAC": 1, "French stocks": 1}
+  FTSE100: {"FTSE": 1, "UK stocks": 1}
+  STOXX50: {"Stoxx": 1, "European stocks": 1, "European shares": 1}
+  NIKKEI: {"Nikkei": 1, "Japanese stocks": 1}
+  HSI: {"Hang Seng": 1, "Hong Kong stocks": 1}
+  SHANGHAI: {"Shanghai Composite": 1, "Chinese stocks": 1, "China stocks": 1}
+  KOSPI: {"Kospi": 1}
+  ASX200: {"ASX": 1}
+  NIFTY50: {"Nifty": 1, "Sensex": 1}
+  BOVESPA: {"Bovespa": 1, "Ibovespa": 1}
   BTCUSD: {"bitcoin": 1, "BTC": 1, "crypto": 1}
+  ETHUSD: {"ether(eum)?": 1, "ETH": 1, "crypto": 1}
+  SOLUSD: {"solana": 1, "SOL": 1}
+  XRPUSD: {"XRP": 1, "Ripple": 1}
+  BNBUSD: {"BNB": 1, "Binance": 1}
+  ADAUSD: {"cardano": 1, "ADA": 1}
+  DOGEUSD: {"dogecoin": 1, "DOGE": 1}
+  LTCUSD: {"litecoin": 1, "LTC": 1}
+  US10Y: {"yields?": 1, "Treasuries": 1, "10-year": 1}
 
 polarity:
   # specific phrases first, they consume the generic words inside them
