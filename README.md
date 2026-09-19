@@ -14,8 +14,8 @@ Tracked by default: EURUSD, GBPUSD, USDJPY, XAUUSD, BRENT, SPX, BTCUSD (`config/
 
 ```
 calendar (Nasdaq) ─┐
-news (RSS feeds)  ─┼─► tag headlines (LLM) ─► formula v1 ─► SQLite ◄── FastAPI ◄── Dash UI
-forecasts (LLM)   ─┘                                                  manc api      manc ui
+news (RSS feeds)  ─┼─► tag headlines (LLM) ─► formula v1 ─► SQLite ◄── FastAPI ◄── static site
+forecasts (LLM)   ─┘                                                  manc api      GitHub Pages
                        manc run (cron, once a day)
 ```
 

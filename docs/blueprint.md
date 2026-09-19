@@ -6,7 +6,7 @@ This file is the source of truth; update it when a decision changes.
 A small daily pipeline that reads the economic calendar and trusted news feeds, scores each
 tracked asset 0–100, stores the score, and plots it.
 
-Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · FastAPI · Dash · SQLite via SQLAlchemy Core + Alembic · Nasdaq calendar.
+Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · FastAPI · Vue 3 static site on GitHub Pages · SQLite via SQLAlchemy Core + Alembic · Nasdaq calendar.
 
 ---
 
@@ -53,8 +53,8 @@ API; it never touches the database. Scheduling is a plain cron entry; no queue, 
 orchestrator.
 
 ```
-pipeline (cron) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── Dash UI
-   manc run                    manc api                  manc ui
+pipeline (cron) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── static site (GitHub Pages)
+   manc run                    manc api                  site/
 ```
 
 Because every input to step 04 is
@@ -82,7 +82,7 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 | `report`   | `build_report(store, config, score, complete) -> str`                     | Markdown in fixed sections rendered through `queries`, opening paragraph written by the configured LLM; `complete=None` or an `LlmError` leave the template alone | template sections on `FakeStore`; summary and footer with a fake `complete`; degradation |
 | `queries`  | `overview(store, config, as_of)`, `asset_history(...)`, `headlines_behind(...)`, `upcoming_events(...)` → frozen dataclasses | the read-side logic: bands, deltas, sparklines, event risk, sorting. Plain functions over a `Store` (§7) | unit tests with `FakeStore`; no HTTP involved |
 | `api`      | FastAPI app, `GET /api/v1/...` (§7)                                       | thin routes: parse request → call a query → return a Pydantic model      | `TestClient` against `FakeStore`: status, JSON shape, error cases   |
-| `manc_ui`  | Dash app in its own package; talks to the API over HTTP only              | Dash + Mantine components + Plotly (§7)                                 | callbacks tested against a mocked API (`respx`); render smoke tests; isolation test that it never imports `manc` |
+| `site`     | static dashboard; talks to the API over HTTP only                          | Vue 3 and Vue Router from a CDN, Plotly.js for charts, no build step (§7) | the pure modules (API client, bands, formatting, chart data) with `node --test`; the look is reviewed by the owner in the browser |
 | `pipeline` | `run(date, config) -> list[IndexScore]`                                   | wires the above; exposed as `manc run`                                  | end-to-end with all fakes                                            |
 
 ### Test-driven development
@@ -107,7 +107,7 @@ What "test-first" means per layer:
 | `pipeline`, `cli`   | end-to-end against in-memory fakes of every Protocol; asserts the rows written, the exit code and the log                                   | `FakeCalendar`, `FakeNews`, `FakeAnalyzer`, `FakeStore` in `tests/fakes.py` |
 | `queries`           | unit tests of every read-side function on known rows: band thresholds, deltas, sparkline windows, event-risk badge, ordering              | `FakeStore`                                                                 |
 | `api`               | one test per route: status code, response model, 404 for an unknown asset, validation errors for bad dates                                 | FastAPI `TestClient` with `FakeStore` injected                              |
-| `manc_ui`           | callback functions tested directly against a mocked API plus one smoke test per page that the layout renders; visual quality is reviewed manually by the owner, not by automated screenshots | `respx` mocking `MANC_API_URL`                                    |
+| `site`              | `node --test` over the pure ES modules: URL building in the client, band and colour mapping, number and delta formatting, the traces a chart is built from; visual quality is reviewed manually by the owner, not by automated screenshots | a fake `fetch`                                                    |
 
 Coverage is not a target on its own, but pytest is configured to fail below 85% so untested
 code cannot sneak in. Live-network tests exist for the
@@ -453,13 +453,20 @@ Unknown asset → 404; malformed dates → 422 from validation. The store is inj
 FastAPI dependency so tests run the app against `FakeStore`. `uv run manc api` serves it on
 `localhost:8000`; `/docs` shows the OpenAPI UI.
 
-### Dashboard: `manc ui`
+### Dashboard: `site/`
 
-Dash with Dash Mantine Components for layout and controls, Plotly for charts, `dash.pages` for
-routing. No frontend build step. It lives in its own package, `src/manc_ui/`, which may import
-`dash`, `plotly` and `httpx` but never `manc`; a test enforces that, the same way
-`tests/formulas/test_isolation.py` guards the formulas. The only thing it knows about the
-backend is `MANC_API_URL`. `src/manc_ui/client.py` wraps the routes above in typed functions.
+A static site, so it can be hosted on GitHub Pages: plain HTML, CSS and ES modules, with
+Vue 3 and Vue Router loaded from a CDN (pinned versions) and Plotly.js for charts. No
+bundler, no `node_modules`, no build step: the folder is published as it is. It lives in
+`site/` at the repo root, outside the Python package, so it cannot import the backend; the only
+thing it knows about it is the API URL. `site/client.js` wraps the routes above in one function
+per route over `fetch`.
+
+The API URL is `http://localhost:8000` by default, for the local test against `manc api`. The
+header has a field to point the site at another backend (the Cloudflare tunnel in front of the
+owner's machine); the choice is kept in `localStorage`, so the published site needs no
+per-deployment edit. Routing uses the hash (`/#/asset/EURUSD`), which GitHub Pages serves
+without rewrite rules.
 
 - `/` — overview: one card per asset with today's score as a large number, a coloured band
   label, the delta from yesterday, a 30-day sparkline, and an event-risk badge; sorted by
@@ -475,19 +482,26 @@ backend is `MANC_API_URL`. `src/manc_ui/client.py` wraps the routes above in typ
 
 Looking good, concretely:
 
-- One Mantine theme (font, radius, spacing scale, primary colour) and one Plotly template
-  derived from the same tokens, so charts and UI agree. Light and dark from Mantine's
-  colour-scheme toggle, with the Plotly template switching alongside.
+- One set of design tokens as CSS custom properties (font, radius, spacing scale, primary
+  colour) and one Plotly layout template derived from the same tokens, so charts and UI agree.
+  Light and dark follow `prefers-color-scheme`, with a toggle; the Plotly template switches
+  alongside.
 - Score colour is semantic and consistent everywhere: the bearish→bullish scale from §5 drives
   card accents, badges and the chart's band shading.
 - Charts drawn with intent: area fill under the score, faint gridlines, emphasised last point
   with its value, hover showing the components, no default Plotly chrome (modebar hidden,
   margins tightened).
-- Tabular numbers in every numeric column; skeleton loaders while a callback runs; responsive
-  grid down to phone width.
+- Tabular numbers in every numeric column; skeleton placeholders while a request runs;
+  responsive grid down to phone width.
 
-`uv run manc ui` starts it on `localhost:8050`, pointed at `MANC_API_URL` (default
-`http://localhost:8000`). `uv run manc serve` starts both processes for local convenience.
+Serving and publishing:
+
+- `uv run manc ui` serves `site/` on `localhost:8050` with the standard library's HTTP server,
+  for the local test; `uv run manc serve` starts it together with the API. The API allows
+  cross-origin reads from any origin: it is read-only and public.
+- `scripts/publish-site.sh` pushes `site/` to the `gh-pages` branch with `git subtree`;
+  GitHub Pages serves that branch. No workflow file, in line with §8. Once the API is
+  reachable through the tunnel, the published site is pointed at it from the header field.
 
 ## 8 · Repo and tooling
 
@@ -526,11 +540,9 @@ manc/
 │   ├── api/                # app.py (FastAPI), routes.py, schemas.py (Pydantic), deps.py
 │   ├── pipeline.py
 │   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc ui | manc serve
-├── src/manc_ui/            # Dash app; imports dash/plotly/httpx, never manc (test-enforced)
-│   ├── app.py, theme.py, client.py
-│   ├── pages/
-│   └── components/
-├── tests/                  # one folder per module + fixtures/; isolation tests for formulas and ui
+├── site/                   # static dashboard: index.html, app.js, client.js, pages/, style.css; tests/ for node --test
+├── scripts/publish-site.sh # site/ → gh-pages branch
+├── tests/                  # one folder per module + fixtures/; isolation test for formulas
 └── data/                   # manc.db (gitignored; the folder is kept)
 ```
 
@@ -543,7 +555,7 @@ manc/
 | `sqlalchemy`, `alembic`                           | store: Core tables and versioned migrations                            |
 | `pyyaml`                                          | config files                                                          |
 | `fastapi`, `uvicorn`, `pydantic`                  | REST API                                                              |
-| `dash`, `dash-mantine-components`, `plotly`, `httpx` | dashboard (`manc_ui`)                                              |
+| Vue 3, Vue Router, Plotly.js (CDN, pinned; nothing installed) | dashboard (`site/`); `node` 22+ on the machine for its tests   |
 | `pytest`, `pytest-cov`, `hypothesis`, `respx`, `ruff`, `pre-commit` | dev: tests, property tests, HTTP stubbing, coverage gate, lint and format, git hooks |
 
 Secrets: the API-key env var of whichever provider `llm.model` names (`ANTHROPIC_API_KEY`,
@@ -601,15 +613,16 @@ backfilled the forecasts panel for every asset.
 
 **M4 Report, API and dashboard** — done when: every route in §7 answers from real data and the
 dashboard shows the overview and per-asset history with today's report, in both themes, through
-the API only.
+the API only, first against `manc api` on localhost and then published on GitHub Pages.
 - markdown report builder
 - `queries.py` with unit tests
-- FastAPI app: routes, Pydantic schemas, store dependency, `TestClient` tests, `manc api`
-- `manc_ui` package with the isolation test and the typed API client
-- Dash app shell: Mantine theme, Plotly template, light/dark
+- FastAPI app: routes, Pydantic schemas, store dependency, CORS, `TestClient` tests, `manc api`
+- `site/` shell: Vue app and router, the API client with the configurable URL, design tokens,
+  light/dark, the `node --test` hook
 - overview page with asset cards and sparklines
-- asset page with history chart, selectors, report, events, headlines
+- asset page with history chart, selectors, report, events, headlines, forecasts panel
 - events page; `manc ui` and `manc serve`
+- `scripts/publish-site.sh` and the `gh-pages` branch
 
 **M5 Operations** — done when: two weeks of daily scores exist without manual intervention.
 - cron entry and README runbook
@@ -694,8 +707,10 @@ load-bearing enough to block a start.
   the price is a second process.
 - **`queries.py` for read-side logic.** Bands, deltas, sparklines and ordering are computed in
   one place, as plain functions, tested without HTTP; routes and pages stay thin.
-- **Dash with Mantine components.** Real routing and Plotly first-class, no JS build step, and
-  a component library that looks finished out of the box.
+- **Static Vue site on GitHub Pages** (2026-09-19, replacing Dash). The owner wants the
+  dashboard hosted for free on GitHub Pages with the API reached through a Cloudflare tunnel;
+  a Dash server cannot be hosted there. Vue 3 from a CDN keeps the no-build-step property
+  Dash had, Plotly stays for the charts, and publishing is a push of one folder to a branch.
 - **Git hooks instead of hosted CI.** pre-commit runs format, lint and the test suite before
   every commit; nothing leaves the machine unchecked and there is no workflow file to maintain.
 - **Test-driven throughout.** Tests are written before the code they test; the fakes for every
