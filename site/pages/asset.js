@@ -156,6 +156,21 @@ export function eventsFor(events, economies, today, days = EVENTS_AHEAD_DAYS) {
   });
 }
 
+export function reportParts(markdown) {
+  const parts = { title: "", summary: "", model: "", rest: "" };
+  if (!markdown) return parts;
+  const footer = markdown.match(/\n---\n\nSummary by (.+?)\.\n?$/);
+  const body = footer ? markdown.slice(0, footer.index) : markdown;
+  parts.model = footer ? footer[1] : "";
+  const firstSection = body.indexOf("\n## ");
+  const head = firstSection === -1 ? body : body.slice(0, firstSection);
+  parts.rest = firstSection === -1 ? "" : body.slice(firstSection + 1).trim();
+  const [title, ...paragraphs] = head.split("\n\n");
+  parts.title = title.replace(/^#\s*/, "").trim();
+  parts.summary = paragraphs.join("\n\n").trim();
+  return parts;
+}
+
 export function reportDay(history, today) {
   return history?.points?.at(-1)?.date ?? today;
 }
@@ -221,7 +236,7 @@ export const AssetPage = {
     const history = ref(null);
     const events = ref([]);
     const economies = ref([]);
-    const report = ref({ html: "", note: "", day: null });
+    const report = ref({ summary: "", model: "", html: "", note: "", day: null });
     const headlines = ref([]);
     const panel = ref(null);
     const error = ref(null);
@@ -249,9 +264,16 @@ export const AssetPage = {
       const day = reportDay(history.value, today);
       try {
         const answer = await client.report(props.symbol, { formula: formula.value, date: day });
-        report.value = { html: marked.parse(answer.report_md), note: "", day };
+        const parts = reportParts(answer.report_md);
+        report.value = {
+          summary: parts.summary,
+          model: parts.model,
+          html: marked.parse(parts.rest),
+          note: parts.summary ? "" : "No summary for this day.",
+          day,
+        };
       } catch (failure) {
-        report.value = { html: "", note: failure.message, day };
+        report.value = { summary: "", model: "", html: "", note: failure.message, day };
       }
       headlines.value = await client.headlines(props.symbol, { date: day });
     }
@@ -342,8 +364,13 @@ export const AssetPage = {
       <div class="columns">
         <article class="card report">
           <h2>Report <span class="muted" v-if="report.day">· {{ formatDate(report.day) }}</span></h2>
+          <p v-if="report.summary" class="summary">{{ report.summary }}</p>
           <p v-if="report.note" class="muted">{{ report.note }}</p>
-          <div v-html="report.html"></div>
+          <p v-if="report.model" class="muted small">Summary by {{ report.model }}</p>
+          <details v-if="report.html">
+            <summary class="muted">Full report</summary>
+            <div v-html="report.html"></div>
+          </details>
         </article>
 
         <div class="stack">
