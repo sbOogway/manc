@@ -8,6 +8,10 @@ _FORMULAS: dict[str, type] = {
 }
 
 
+def formula_names() -> list[str]:
+    return sorted(_FORMULAS)
+
+
 def get_formula(name: str) -> IndexFormula:
     try:
         return _FORMULAS[name]()

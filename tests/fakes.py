@@ -136,6 +136,9 @@ class FakeScoreRepository:
         ]
         return sorted(matching, key=lambda score: score.date)
 
+    def latest_day(self) -> date | None:
+        return max((score.date for score in self.rows.values()), default=None)
+
 
 class FakeForecastRepository:
     """Vintages by id; a re-report of an id keeps whichever sighting is earlier."""

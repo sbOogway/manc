@@ -141,10 +141,31 @@ def test_unmigrated_database_fails_with_hint(
     assert "alembic upgrade head" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("command", ["api", "ui", "serve"])
+@pytest.mark.parametrize("command", ["ui", "serve"])
 def test_m4_commands_are_stubs(command: str, capsys: pytest.CaptureFixture) -> None:
     assert cli.main([command]) == 2
     assert "not implemented yet" in capsys.readouterr().err
+
+
+def test_api_serves_the_app_with_uvicorn(monkeypatch: pytest.MonkeyPatch) -> None:
+    served: dict[str, object] = {}
+
+    def fake_run(app: object, **kwargs: object) -> None:
+        served["app"] = app
+        served.update(kwargs)
+
+    monkeypatch.setattr(cli.uvicorn, "run", fake_run)
+    assert cli.main(["api"]) == 0
+    assert (served["host"], served["port"]) == ("127.0.0.1", 8000)
+    assert served["app"].title == "manc"  # type: ignore[attr-defined]
+
+
+def test_api_refuses_an_unmigrated_database(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    monkeypatch.setenv("MANC_DB_URL", f"sqlite:///{tmp_path / 'empty.db'}")
+    assert cli.main(["api"]) == 1
+    assert "alembic upgrade head" in capsys.readouterr().err
 
 
 def test_unknown_command_exits_2() -> None:

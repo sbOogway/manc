@@ -177,6 +177,13 @@ def test_scores_series_by_asset_formula_and_window(store: Store) -> None:
     assert store.scores.series("XAUUSD", "v1", day, day) == []
 
 
+def test_scores_latest_day_is_the_newest_stored_day(store: Store) -> None:
+    day = NOW.date()
+    assert store.scores.latest_day() is None
+    store.scores.add(_score(day - 10 * DAY), _score(day + DAY), _score(day, "v2", 40))
+    assert store.scores.latest_day() == day + DAY
+
+
 def test_scores_add_is_an_upsert(store: Store) -> None:
     day = NOW.date()
     store.scores.add(_score(day, value=55.0))

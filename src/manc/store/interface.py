@@ -40,6 +40,7 @@ class EventRepository(Protocol):
 class ScoreRepository(Protocol):
     def add(self, *scores: IndexScore) -> None: ...
     def series(self, asset: str, formula: str, start: date, end: date) -> list[IndexScore]: ...
+    def latest_day(self) -> date | None: ...  # newest scored day under any formula
 
 
 @runtime_checkable

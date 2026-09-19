@@ -6,8 +6,11 @@ import sys
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time
 
+import uvicorn
+
 from manc.analysis.lexicon import LexiconAnalyzer
 from manc.analysis.llm import LlmAnalyzer
+from manc.api.app import create_app
 from manc.calendar.nasdaq import NasdaqCalendar
 from manc.config import Config, load_config
 from manc.forecasts.extractor import LlmExtractor
@@ -23,7 +26,9 @@ from manc.spot.yahoo import YahooSpot
 from manc.store import db
 from manc.store.sql import SqlStore
 
-M4_COMMANDS = ("api", "ui", "serve")
+M4_COMMANDS = ("ui", "serve")
+API_HOST = "127.0.0.1"
+API_PORT = 8000
 LOG_FORMAT = "%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s"
 LOG_DATEFMT = "%H:%M:%S"
 
@@ -44,6 +49,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"manc: {error}", file=sys.stderr)
         return 1
     config = load_config()
+    if args.command == "api":
+        log.info("manc api: serving http://%s:%d, %s", API_HOST, API_PORT, db.database_url())
+        uvicorn.run(create_app(config, store), host=API_HOST, port=API_PORT)
+        return 0
     if args.command == "forecasts":
         return _backfill_forecasts(config, store, args.since)
     if args.command == "run":
@@ -133,6 +142,7 @@ def _parser() -> argparse.ArgumentParser:
         "--since", type=date.fromisoformat, required=True, help="earliest publication day"
     )
 
+    commands.add_parser("api", help=f"serve the REST API on http://{API_HOST}:{API_PORT}")
     for name in M4_COMMANDS:
         commands.add_parser(name, help="milestone M4")
     return parser
