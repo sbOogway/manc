@@ -1,11 +1,13 @@
-"""The daily run (blueprint section 2): fetch, tag, extract forecasts, spot, score, store.
+"""The daily run (blueprint section 2): fetch, tag, extract forecasts, spot, score, report, store.
 
 Every input the formula sees is persisted first, so `rescore` can replay any date range
-under any formula without touching a provider.
+under any formula without touching a provider. `summarize` is the LLM call site the report
+builder uses for its opening paragraph, or None for template-only reports.
 """
 
 import logging
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 
 from manc.analysis.interface import Analyzer
@@ -15,6 +17,7 @@ from manc.forecasts.interface import ForecastProvider
 from manc.formulas.contract import IndexFormula, IndexScore
 from manc.models import ForecastAsset, ForecastMacro, Forecasts
 from manc.news.interface import NewsProvider
+from manc.report.builder import Complete, build_report
 from manc.scoring.adapter import build_inputs
 from manc.spot.interface import SpotProvider
 from manc.store.interface import Store
@@ -33,6 +36,7 @@ def run(
     spot: SpotProvider,
     store: Store,
     formula: IndexFormula,
+    summarize: Complete | None,
 ) -> list[IndexScore]:
     windows = config.scoring.windows
 
@@ -58,7 +62,7 @@ def run(
     store.spot.add(*closes)
     log.info("spot: %d closes for %s", len(closes), as_of.date())
 
-    return _score_all(as_of, config, store, formula)
+    return _score_all(as_of, config, store, formula, summarize)
 
 
 def fetch_forecasts(
@@ -77,7 +81,13 @@ def fetch_forecasts(
 
 
 def rescore(
-    *, config: Config, store: Store, formula: IndexFormula, start: date, end: date
+    *,
+    config: Config,
+    store: Store,
+    formula: IndexFormula,
+    start: date,
+    end: date,
+    summarize: Complete | None,
 ) -> list[IndexScore]:
     """Recompute every day in [start, end] from stored inputs; no provider is called."""
     if start > end:
@@ -86,18 +96,23 @@ def rescore(
     day = start
     while day <= end:
         as_of = datetime.combine(day, time.max, tzinfo=UTC)
-        scores.extend(_score_all(as_of, config, store, formula))
+        scores.extend(_score_all(as_of, config, store, formula, summarize))
         day += timedelta(days=1)
     return scores
 
 
 def _score_all(
-    as_of: datetime, config: Config, store: Store, formula: IndexFormula
+    as_of: datetime,
+    config: Config,
+    store: Store,
+    formula: IndexFormula,
+    summarize: Complete | None,
 ) -> list[IndexScore]:
     scores = []
     for asset in config.assets:
         inputs = build_inputs(store, asset, as_of, config)
-        score = formula.compute(inputs)
+        scored = formula.compute(inputs)
+        score = replace(scored, report_md=build_report(store, config, scored, complete=summarize))
         store.scores.add(score)
         scores.append(score)
         log.info("%s %s %.1f (%s)", score.date, score.asset, score.score, score.formula)

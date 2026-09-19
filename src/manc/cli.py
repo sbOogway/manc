@@ -16,6 +16,7 @@ from manc.forecasts.interface import ForecastProvider
 from manc.forecasts.worldbank import WorldBankOutlook
 from manc.formulas.contract import IndexScore
 from manc.formulas.registry import get_formula
+from manc.llm import complete
 from manc.news.rss import RssNews
 from manc.pipeline import fetch_forecasts, rescore, run
 from manc.spot.yahoo import YahooSpot
@@ -65,6 +66,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             spot=YahooSpot(),
             store=store,
             formula=get_formula(config.scoring.formula),
+            summarize=complete,
         )
     else:
         scores = rescore(
@@ -73,6 +75,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             formula=get_formula(args.formula or config.scoring.formula),
             start=args.start,
             end=args.end or date.today(),
+            summarize=None,  # a replay keeps the template-only report
         )
     for score in scores:
         print(_line(score))
