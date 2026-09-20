@@ -629,6 +629,9 @@ manc/
 ├── site/                   # the dashboard package: package.json, vite.config.ts, openapi.json, src/{api,lib,pages,components,tests}
 ├── scripts/publish-site.sh # site/ → gh-pages branch
 ├── scripts/container-entrypoint.sh  # migrate, then exec the command
+├── scripts/install.sh, install-systemd.sh  # curl | sh setup of a machine; the units
+├── systemd/                # user units: api service, fetch and run timers
+├── .env.example            # the keys and MANC_API_BIND; install.sh copies it to .env
 ├── Containerfile, compose.yaml, .containerignore  # the backend image (§8, Production)
 ├── tests/                  # one folder per module + fixtures/; isolation test for formulas
 └── data/                   # manc.db (gitignored; the folder is kept)
@@ -660,9 +663,12 @@ rejected. Hooks run through `uv run` so they use the project environment, and
 dashboard build goes to `gh-pages`, so the published site follows `main` (the script is a
 no-op on any other branch).
 
-Scheduling is five systemd user units under `systemd/`, linked and enabled by
-`scripts/install-systemd.sh` (which also turns on linger, so they run without an open
-session): `manc-api.service` keeps the API container up; `manc-fetch.timer` runs `manc fetch`
+Installing or updating a machine is one command, `scripts/install.sh` (`curl | sh` from the
+repository): it clones or fast-forwards `~/quant/manc`, syncs the environment, installs the
+hooks, migrates, builds the dashboard and the image, writes `.env` from `.env.example` when
+missing and enables the units below; editing `.env` is the only manual step. Scheduling is
+five systemd user units under `systemd/`, linked and enabled by `scripts/install-systemd.sh`
+(which also turns on linger, so they run without an open session): `manc-api.service` keeps the API container up; `manc-fetch.timer` runs `manc fetch`
 in the container every 15 minutes; `manc-run.timer` runs `manc run` on the host at 06:00 UTC
 every day (crypto trades on weekends) with `Persistent=true`, so a day the machine slept
 through runs at the next wake, and then `scripts/publish-site.sh`, which publishes only from

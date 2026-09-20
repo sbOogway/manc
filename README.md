@@ -55,7 +55,19 @@ the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the 
 
 ## Setup
 
-Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
+One line installs or updates the whole thing on a machine with `git`, `npm`, `podman` and
+[Claude Code](https://claude.com/claude-code) logged in (it fetches `uv` itself):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/sbOogway/manc/main/scripts/install.sh | sh
+```
+
+It clones into `~/quant/manc` (or fast-forwards it), installs the environment, the git hooks,
+the database, the dashboard build and the API container, enables the systemd units (see
+Production) and writes `.env` from `.env.example`. The one manual step is editing `.env`.
+Running it again later pulls `main` and redeploys.
+
+By hand, the same steps are:
 
 ```sh
 uv sync                      # environment
@@ -135,10 +147,10 @@ need `MANC_LLM_MODEL=mistral/ministral-14b-latest` (or any keyed model) in `.env
 image has no Claude CLI; a run on the host uses `config/llm.yaml` as usual and the container
 serves the result immediately.
 
-Scheduling is five systemd user units under `systemd/`:
+Scheduling is five systemd user units under `systemd/` (`scripts/install.sh` enables them):
 
 ```sh
-scripts/install-systemd.sh                     # link, enable and start them; enables linger
+scripts/install-systemd.sh                     # link, enable and start them by hand; enables linger
 systemctl --user status manc-api manc-fetch.timer manc-run.timer
 journalctl --user -u manc-run -f               # the daily run's log
 systemctl --user start manc-run                # a run by hand, same environment
