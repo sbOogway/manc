@@ -1,5 +1,6 @@
 """Typed configuration loaded from the YAML files in config/ (blueprint section 8)."""
 
+import os
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -230,9 +231,10 @@ def _load_scoring(raw: dict[str, Any]) -> ScoringConfig:
 
 
 def _load_llm(raw: dict[str, Any]) -> LlmConfig:
+    """`MANC_LLM_MODEL` wins over the file: a container has no Claude CLI to run headless."""
     fields = raw["llm"]
     return LlmConfig(
-        model=fields["model"],
+        model=os.environ.get("MANC_LLM_MODEL") or fields["model"],
         fallback=fields.get("fallback"),
         temperature=float(fields.get("temperature", 0)),
         batch_size=int(fields.get("batch_size", 40)),

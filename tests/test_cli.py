@@ -198,6 +198,14 @@ def test_api_serves_the_app_with_uvicorn(monkeypatch: pytest.MonkeyPatch) -> Non
     assert served["app"].title == "manc"  # type: ignore[attr-defined]
 
 
+def test_api_binds_the_host_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    served: dict[str, object] = {}
+    monkeypatch.setenv("MANC_API_HOST", "0.0.0.0")
+    monkeypatch.setattr(cli.uvicorn, "run", lambda app, **kwargs: served.update(kwargs))
+    assert cli.main(["api"]) == 0
+    assert (served["host"], served["port"]) == ("0.0.0.0", 8000)
+
+
 def test_api_refuses_an_unmigrated_database(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ) -> None:
