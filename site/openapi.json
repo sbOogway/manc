@@ -1,0 +1,1535 @@
+{
+  "components": {
+    "schemas": {
+      "AssetHistory": {
+        "properties": {
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ScorePoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "scale": {
+            "$ref": "#/components/schemas/Scale"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "formula",
+          "scale",
+          "points"
+        ],
+        "title": "AssetHistory",
+        "type": "object"
+      },
+      "AssetOut": {
+        "properties": {
+          "economies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Economies",
+            "type": "array"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "tradingview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tradingview"
+          }
+        },
+        "required": [
+          "symbol",
+          "kind",
+          "economies",
+          "tradingview"
+        ],
+        "title": "AssetOut",
+        "type": "object"
+      },
+      "AssetSummary": {
+        "description": "One overview card.",
+        "properties": {
+          "band": {
+            "title": "Band",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta"
+          },
+          "event_risk": {
+            "title": "Event Risk",
+            "type": "number"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "sparkline": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Sparkline",
+            "type": "array"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "kind",
+          "formula",
+          "date",
+          "score",
+          "band",
+          "delta",
+          "sparkline",
+          "event_risk"
+        ],
+        "title": "AssetSummary",
+        "type": "object"
+      },
+      "CalendarEvent": {
+        "properties": {
+          "actual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "consensus": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consensus"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "date": {
+            "format": "date-time",
+            "title": "Date",
+            "type": "string"
+          },
+          "event": {
+            "title": "Event",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "importance": {
+            "title": "Importance",
+            "type": "integer"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "country",
+          "event",
+          "category",
+          "importance",
+          "consensus",
+          "previous",
+          "actual"
+        ],
+        "title": "CalendarEvent",
+        "type": "object"
+      },
+      "ChainPoint": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "value"
+        ],
+        "title": "ChainPoint",
+        "type": "object"
+      },
+      "ChainSeries": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ChainPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metric",
+          "label",
+          "source",
+          "points"
+        ],
+        "title": "ChainSeries",
+        "type": "object"
+      },
+      "ForecastMacro": {
+        "description": "Like ForecastAsset, but about an economy: a policy rate, CPI, GDP or unemployment.",
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "economy": {
+            "title": "Economy",
+            "type": "string"
+          },
+          "horizon_date": {
+            "format": "date",
+            "title": "Horizon Date",
+            "type": "string"
+          },
+          "horizon_label": {
+            "title": "Horizon Label",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "institution": {
+            "title": "Institution",
+            "type": "string"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "institution",
+          "economy",
+          "metric",
+          "horizon_date",
+          "horizon_label",
+          "value",
+          "published_at",
+          "source_url",
+          "source_kind",
+          "confidence",
+          "model"
+        ],
+        "title": "ForecastMacro",
+        "type": "object"
+      },
+      "ForecastPanel": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "macro": {
+            "items": {
+              "$ref": "#/components/schemas/MacroForecastRow"
+            },
+            "title": "Macro",
+            "type": "array"
+          },
+          "medians": {
+            "items": {
+              "$ref": "#/components/schemas/MedianRow"
+            },
+            "title": "Medians",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "as_of",
+          "spot",
+          "rows",
+          "medians",
+          "macro"
+        ],
+        "title": "ForecastPanel",
+        "type": "object"
+      },
+      "ForecastRow": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "horizon_date": {
+            "format": "date",
+            "title": "Horizon Date",
+            "type": "string"
+          },
+          "horizon_label": {
+            "title": "Horizon Label",
+            "type": "string"
+          },
+          "institution": {
+            "title": "Institution",
+            "type": "string"
+          },
+          "previous_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Value"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "vs_spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vs Spot"
+          }
+        },
+        "required": [
+          "institution",
+          "horizon_date",
+          "horizon_label",
+          "value",
+          "previous_value",
+          "vs_spot",
+          "published_at",
+          "confidence"
+        ],
+        "title": "ForecastRow",
+        "type": "object"
+      },
+      "FormulasOut": {
+        "properties": {
+          "default": {
+            "title": "Default",
+            "type": "string"
+          },
+          "known": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Known",
+            "type": "array"
+          }
+        },
+        "required": [
+          "default",
+          "known"
+        ],
+        "title": "FormulasOut",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HeadlineView": {
+        "description": "A tagged headline and how much it weighed on the score.",
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "direction": {
+            "title": "Direction",
+            "type": "integer"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_weight": {
+            "title": "Source Weight",
+            "type": "number"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "title",
+          "url",
+          "source",
+          "published_at",
+          "direction",
+          "confidence",
+          "source_weight",
+          "weight"
+        ],
+        "title": "HeadlineView",
+        "type": "object"
+      },
+      "HealthOut": {
+        "properties": {
+          "last_run": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "last_run"
+        ],
+        "title": "HealthOut",
+        "type": "object"
+      },
+      "MacroForecastRow": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "economy": {
+            "title": "Economy",
+            "type": "string"
+          },
+          "horizon_date": {
+            "format": "date",
+            "title": "Horizon Date",
+            "type": "string"
+          },
+          "horizon_label": {
+            "title": "Horizon Label",
+            "type": "string"
+          },
+          "institution": {
+            "title": "Institution",
+            "type": "string"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "previous_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Value"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "institution",
+          "economy",
+          "metric",
+          "horizon_date",
+          "horizon_label",
+          "value",
+          "previous_value",
+          "published_at",
+          "confidence"
+        ],
+        "title": "MacroForecastRow",
+        "type": "object"
+      },
+      "MedianRow": {
+        "properties": {
+          "horizon_date": {
+            "format": "date",
+            "title": "Horizon Date",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "horizon_date",
+          "value"
+        ],
+        "title": "MedianRow",
+        "type": "object"
+      },
+      "ReportOut": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "report_md": {
+            "title": "Report Md",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "date",
+          "formula",
+          "report_md"
+        ],
+        "title": "ReportOut",
+        "type": "object"
+      },
+      "Scale": {
+        "description": "Where a formula's scores live: the ends, the neutral point and the four band edges.",
+        "properties": {
+          "edges": {
+            "maxItems": 4,
+            "minItems": 4,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Edges",
+            "type": "array"
+          },
+          "high": {
+            "title": "High",
+            "type": "number"
+          },
+          "low": {
+            "title": "Low",
+            "type": "number"
+          },
+          "neutral": {
+            "title": "Neutral",
+            "type": "number"
+          }
+        },
+        "required": [
+          "low",
+          "high",
+          "neutral",
+          "edges"
+        ],
+        "title": "Scale",
+        "type": "object"
+      },
+      "ScorePoint": {
+        "properties": {
+          "band": {
+            "title": "Band",
+            "type": "string"
+          },
+          "components": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Components",
+            "type": "object"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "n_events": {
+            "title": "N Events",
+            "type": "integer"
+          },
+          "n_news": {
+            "title": "N News",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "score",
+          "band",
+          "components",
+          "n_news",
+          "n_events"
+        ],
+        "title": "ScorePoint",
+        "type": "object"
+      },
+      "SpotPrice": {
+        "description": "One daily close, for display next to forecasts only; never a formula input.",
+        "properties": {
+          "asset": {
+            "title": "Asset",
+            "type": "string"
+          },
+          "close": {
+            "title": "Close",
+            "type": "number"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset",
+          "date",
+          "close",
+          "source"
+        ],
+        "title": "SpotPrice",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "manc",
+    "version": "1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/assets": {
+      "get": {
+        "operationId": "assets_api_v1_assets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssetOut"
+                  },
+                  "title": "Response Assets Api V1 Assets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Assets"
+      }
+    },
+    "/api/v1/assets/{symbol}/chain": {
+      "get": {
+        "operationId": "chain_api_v1_assets__symbol__chain_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChainSeries"
+                  },
+                  "title": "Response Chain Api V1 Assets  Symbol  Chain Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chain"
+      }
+    },
+    "/api/v1/assets/{symbol}/forecasts": {
+      "get": {
+        "operationId": "forecasts_api_v1_assets__symbol__forecasts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_confidence",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Confidence"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastPanel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Forecasts"
+      }
+    },
+    "/api/v1/assets/{symbol}/headlines": {
+      "get": {
+        "operationId": "headlines_api_v1_assets__symbol__headlines_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HeadlineView"
+                  },
+                  "title": "Response Headlines Api V1 Assets  Symbol  Headlines Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Headlines"
+      }
+    },
+    "/api/v1/assets/{symbol}/report": {
+      "get": {
+        "operationId": "report_api_v1_assets__symbol__report_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "formula",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Formula"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report"
+      }
+    },
+    "/api/v1/assets/{symbol}/scores": {
+      "get": {
+        "operationId": "scores_api_v1_assets__symbol__scores_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "formula",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Formula"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetHistory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scores"
+      }
+    },
+    "/api/v1/assets/{symbol}/spot": {
+      "get": {
+        "operationId": "spot_api_v1_assets__symbol__spot_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SpotPrice"
+                  },
+                  "title": "Response Spot Api V1 Assets  Symbol  Spot Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Spot"
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "events_api_v1_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_importance",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 3,
+              "minimum": 1,
+              "title": "Min Importance",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarEvent"
+                  },
+                  "title": "Response Events Api V1 Events Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Events"
+      }
+    },
+    "/api/v1/formulas": {
+      "get": {
+        "operationId": "formulas_api_v1_formulas_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulasOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Formulas"
+      }
+    },
+    "/api/v1/macro/forecasts": {
+      "get": {
+        "operationId": "macro_forecasts_api_v1_macro_forecasts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "economy",
+            "required": true,
+            "schema": {
+              "title": "Economy",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "metric",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Metric"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ForecastMacro"
+                  },
+                  "title": "Response Macro Forecasts Api V1 Macro Forecasts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Macro Forecasts"
+      }
+    },
+    "/api/v1/overview": {
+      "get": {
+        "operationId": "overview_api_v1_overview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssetSummary"
+                  },
+                  "title": "Response Overview Api V1 Overview Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Overview"
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    }
+  }
+}

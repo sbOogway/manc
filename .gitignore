@@ -11,6 +11,9 @@ data/*
 !data/.gitkeep
 .env
 
+# site package
+site/node_modules/
+
 # test artefacts
 .coverage
 htmlcov/

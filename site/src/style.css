@@ -1,5 +1,7 @@
-/* Design tokens: the dataviz reference palette; charts read the same values (charts.js). */
-:root {
+/* Design tokens: the dataviz reference palette; charts read the same values (lib/charts.ts).
+   The theme store stamps <html data-theme="light|dark">, so only that attribute switches. */
+:root,
+:root[data-theme="light"] {
   color-scheme: light;
   --page: #f9f9f7;
   --surface: #fcfcfb;
@@ -27,25 +29,6 @@
   --space-4: 24px;
   --space-5: 40px;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --border: rgba(255, 255, 255, 0.1);
-    --accent: #3987e5;
-    --good: #0ca30c;
-    --band-headwind: #e66767;
-    --band-lean_against: #a85b5b;
-    --band-lean_for: #4f8c5c;
-    --band-tailwind: #3cb85a;
-    --band-fill-alpha: 0.2;
-  }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -111,6 +94,9 @@ h3 {
 .ink-2 {
   color: var(--ink-2);
 }
+.small {
+  font-size: 0.8rem;
+}
 
 /* shell */
 .shell {
@@ -144,7 +130,7 @@ h3 {
   color: var(--ink);
   border-bottom: 2px solid var(--accent);
 }
-.topbar .spacer {
+.spacer {
   flex: 1;
 }
 .backend {
@@ -154,14 +140,8 @@ h3 {
   font-size: 0.85rem;
 }
 .backend input {
-  font: inherit;
   width: 15rem;
   max-width: 50vw;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--axis);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--ink);
 }
 .status-dot {
   display: inline-block;
@@ -176,18 +156,10 @@ h3 {
 .status-dot.down {
   background: var(--critical);
 }
-button {
-  font: inherit;
-  font-size: 0.85rem;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--axis);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--ink);
-  cursor: pointer;
-}
-button:hover {
-  border-color: var(--muted);
+.credits {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
 }
 
 /* content */
@@ -202,63 +174,30 @@ button:hover {
   gap: var(--space-3);
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
-.error {
-  color: var(--critical);
-}
-.skeleton {
-  background: var(--grid);
-  border-radius: var(--radius);
-  min-height: 6rem;
-  animation: pulse 1.2s ease-in-out infinite;
-}
-@keyframes pulse {
-  50% {
-    opacity: 0.5;
-  }
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-th,
-td {
-  text-align: left;
-  padding: var(--space-1) var(--space-2);
-  border-bottom: 1px solid var(--grid);
-  vertical-align: top;
-}
-th {
-  color: var(--muted);
-  font-weight: 500;
-}
-td.num,
-th.num {
-  text-align: right;
-}
-.badge {
-  display: inline-flex;
+.selectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-2);
-  border-radius: 999px;
-  font-size: 0.8rem;
-  color: var(--ink-2);
+  margin-bottom: var(--space-3);
+}
+.band-tag {
+  --p-tag-primary-background: transparent;
+  --p-tag-primary-color: var(--ink-2);
   border: 1px solid var(--border);
 }
-.badge::before {
+.band-tag::before {
   content: "";
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--band-color, var(--muted));
+  margin-right: var(--space-1);
+}
+.chart {
+  width: 100%;
 }
 
-/* overview */
-.kinds {
-  flex-wrap: wrap;
-  margin-bottom: var(--space-3);
-}
 /* overview tiles */
 .tile {
   display: flex;
@@ -287,6 +226,9 @@ th.num {
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.02em;
+}
+.hero.small {
+  font-size: 2rem;
 }
 .tile-meta {
   display: flex;
@@ -324,47 +266,27 @@ th.num {
 .asset-head h1 {
   margin: 0;
 }
-.asset-head .spacer {
-  flex: 1;
-}
-.hero.small {
-  font-size: 2rem;
-}
-.selectors {
-  display: flex;
-  gap: var(--space-1);
-  align-items: center;
-}
-.selectors button.active {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-select {
-  font: inherit;
-  font-size: 0.85rem;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--axis);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--ink);
-  margin-left: var(--space-2);
+.asset-head .selectors {
+  margin-bottom: 0;
 }
 .charts {
   display: grid;
   gap: var(--space-3);
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
 }
+.columns {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  margin-bottom: var(--space-3);
+}
 @media (max-width: 800px) {
-  .charts {
+  .charts,
+  .columns {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.chart-card {
-  margin-bottom: var(--space-3);
-}
-.chart {
-  width: 100%;
-}
+.chart-card,
 .chain-card {
   margin-bottom: var(--space-3);
 }
@@ -380,7 +302,6 @@ select {
   gap: var(--space-2);
 }
 .chain-latest {
-  font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
 .price {
@@ -393,17 +314,6 @@ select {
   min-height: 420px;
   width: 100%;
 }
-.columns {
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  margin-bottom: var(--space-3);
-}
-@media (max-width: 800px) {
-  .columns {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 .stack {
   display: flex;
   flex-direction: column;
@@ -414,9 +324,6 @@ select {
   line-height: 1.55;
   color: var(--ink);
 }
-.small {
-  font-size: 0.8rem;
-}
 .report details {
   margin-top: var(--space-3);
 }
@@ -424,21 +331,28 @@ select {
   cursor: pointer;
   font-size: 0.85rem;
 }
-.report h1 {
+.markdown h1 {
   font-size: 1.15rem;
 }
-.report h2 {
+.markdown h2 {
   font-size: 1rem;
   margin-top: var(--space-4);
 }
-.report table {
+.markdown table {
   font-size: 0.85rem;
+  border-collapse: collapse;
 }
-.report p,
-.report li {
+.markdown th,
+.markdown td {
+  text-align: left;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--grid);
+}
+.markdown p,
+.markdown li {
   color: var(--ink-2);
 }
-.report hr {
+.markdown hr {
   border: 0;
   border-top: 1px solid var(--grid);
 }
@@ -497,112 +411,52 @@ select {
   font-size: 0.8rem;
   padding-left: calc(1.2em + var(--space-2));
 }
-tr.median td {
+.scroll {
+  max-height: 18rem;
+  overflow: auto;
+}
+.p-datatable .num {
+  text-align: right;
+}
+.p-datatable tr.median td {
   font-weight: 600;
-  border-bottom: 2px solid var(--axis);
+  border-top: 1px solid var(--axis);
 }
 
-/* events page: the month grid */
+/* events calendar: FullCalendar with the importance colours */
 .calendar {
-  padding: var(--space-2);
-  overflow-x: auto;
+  --fc-border-color: var(--grid);
+  --fc-page-bg-color: var(--surface);
+  --fc-neutral-bg-color: var(--page);
+  --fc-today-bg-color: rgba(42, 120, 214, 0.08);
+  --fc-event-bg-color: var(--page);
+  --fc-event-border-color: var(--grid);
+  --fc-event-text-color: var(--ink);
 }
-.calendar-head,
-.calendar-week {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(120px, 1fr));
-  gap: var(--space-1);
-}
-.calendar-head span {
-  font-size: 0.8rem;
-  padding: var(--space-1) var(--space-2);
-}
-.calendar-week {
-  margin-top: var(--space-1);
-}
-.calendar-day {
-  min-height: 7rem;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--grid);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-.calendar-day.out {
-  opacity: 0.45;
-}
-.calendar-day.today {
-  border-color: var(--accent);
-}
-.calendar-date {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  margin-bottom: var(--space-1);
-}
-.calendar-day.today .calendar-date .num {
-  color: var(--accent);
-  font-weight: 700;
-}
-.calendar-events {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.calendar .fc-event {
   font-size: 0.78rem;
-}
-.calendar-events li {
+  padding: 0 var(--space-1);
+  border-left: 3px solid var(--muted);
   display: flex;
-  align-items: baseline;
   gap: var(--space-1);
-  white-space: nowrap;
+  align-items: baseline;
   overflow: hidden;
-  cursor: default;
+  white-space: nowrap;
 }
-.calendar-events .dot {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--muted);
+.calendar .fc-event.importance-3 {
+  border-left-color: var(--band-headwind);
 }
-.calendar-events .importance-3 .dot {
-  background: var(--critical);
+.calendar .fc-event.importance-2 {
+  border-left-color: var(--warning);
 }
-.calendar-events .importance-2 .dot {
-  background: var(--warning);
-}
-.calendar-events .when {
-  flex: none;
+.calendar .fc-when {
   color: var(--muted);
+  flex: none;
 }
-.calendar-events .what {
+.calendar .fc-what {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* asset page: the side panels scroll instead of growing */
-.scroll {
-  max-height: 20rem;
-  overflow-y: auto;
-}
-.scroll table thead th {
-  position: sticky;
-  top: 0;
-  background: var(--surface);
-}
-
-/* importance badges, shared by the Ahead table and the calendar */
-.badge.importance-3 {
-  --band-color: var(--critical);
-  color: var(--critical);
-  border-color: var(--critical);
-}
-.badge.importance-2 {
-  --band-color: var(--warning);
-  border-color: var(--warning);
-}
-.badge.importance-1 {
-  --band-color: var(--muted);
+.calendar .fc-where {
+  flex: none;
 }
