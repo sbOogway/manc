@@ -587,6 +587,8 @@ manc/
 │   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc ui | manc serve
 ├── site/                   # static dashboard: index.html, app.js, client.js, pages/, style.css; tests/ for node --test
 ├── scripts/publish-site.sh # site/ → gh-pages branch
+├── scripts/container-entrypoint.sh  # migrate, then exec the command
+├── Containerfile, compose.yaml, .containerignore  # the backend image (§8, Production)
 ├── tests/                  # one folder per module + fixtures/; isolation test for formulas
 └── data/                   # manc.db (gitignored; the folder is kept)
 ```
@@ -615,6 +617,22 @@ use the project environment, and `SKIP=pytest git commit` remains available for
 work-in-progress commits on a branch.
 
 Scheduling on the host: `0 6 * * 1-5 cd ~/quant/manc && uv run manc run`.
+
+### Production
+
+The backend runs as one container (`Containerfile`: `python:3.12-slim` plus `uv sync
+--frozen --no-dev`; the entrypoint runs `alembic upgrade head` and then the command, `manc api`
+by default). `compose.yaml` starts it with port 8000 on loopback only, `./data` bind-mounted at
+`/data` (so the SQLite file is the same one a host-side run writes) and `.env` for the API
+keys; the optional `tunnel` profile adds `cloudflared` with `TUNNEL_TOKEN`, whose public
+hostname points at `http://api:8000`. Rootless Podman on the owner's machine; Docker reads the
+same files. Two environment variables exist for the container and nothing else: `MANC_API_HOST`
+(the image binds `0.0.0.0`, the CLI keeps loopback) and `MANC_LLM_MODEL`, which overrides
+`llm.model` because the image has no Claude CLI to run headless. The daily run therefore
+happens either on the host (`uv run manc run`, Claude Code, the cron line above) or inside the
+container (`podman compose run --rm api manc run` with a keyed model in `.env`); both write the
+same database and the API serves it live. The dashboard is on GitHub Pages and reads the API
+through the tunnel hostname.
 
 ## 9 · Milestones
 
