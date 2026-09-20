@@ -1,0 +1,9 @@
+[Unit]
+Description=manc fetch every 15 minutes
+
+[Timer]
+OnCalendar=*-*-* *:00/15:00
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

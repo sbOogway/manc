@@ -1,0 +1,16 @@
+# The REST API container, kept up while the user session (or linger) lasts.
+# Install every unit with scripts/install-systemd.sh.
+[Unit]
+Description=manc REST API (podman compose)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=%h/quant/manc
+ExecStart=/usr/bin/podman compose up api
+ExecStop=/usr/bin/podman compose down
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

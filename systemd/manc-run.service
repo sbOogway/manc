@@ -1,0 +1,14 @@
+# The daily run on the host, where Claude Code is logged in; the container serves the result.
+# Afterwards the dashboard build is published, so the site always matches main.
+[Unit]
+Description=manc daily run (host, Claude Code)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/quant/manc
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/.local/bin/uv run manc run
+ExecStartPost=%h/quant/manc/scripts/publish-site.sh
+TimeoutStartSec=2h

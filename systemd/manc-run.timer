@@ -1,0 +1,9 @@
+[Unit]
+Description=manc daily run at 06:00 UTC, caught up after a missed day
+
+[Timer]
+OnCalendar=*-*-* 06:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target
