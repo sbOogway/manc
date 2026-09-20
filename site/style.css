@@ -13,12 +13,12 @@
   --good: #006300;
   --critical: #d03b3b;
   --warning: #fab219;
-  /* the section 5 scale: red pole ↔ gray ↔ blue pole; a label always sits next to the colour */
+  /* the section 5 scale: red pole ↔ gray ↔ green pole; a label always sits next to the colour */
   --band-headwind: #e34948;
   --band-lean_against: #ef8c8b;
   --band-neutral: #898781;
-  --band-lean_for: #86b6ef;
-  --band-tailwind: #2a78d6;
+  --band-lean_for: #7fc48a;
+  --band-tailwind: #1f8a3b;
   --band-fill-alpha: 0.12;
   --radius: 8px;
   --space-1: 4px;
@@ -42,8 +42,8 @@
     --good: #0ca30c;
     --band-headwind: #e66767;
     --band-lean_against: #a85b5b;
-    --band-lean_for: #4f6f9c;
-    --band-tailwind: #3987e5;
+    --band-lean_for: #4f8c5c;
+    --band-tailwind: #3cb85a;
     --band-fill-alpha: 0.2;
   }
 }
@@ -60,8 +60,8 @@
   --good: #0ca30c;
   --band-headwind: #e66767;
   --band-lean_against: #a85b5b;
-  --band-lean_for: #4f6f9c;
-  --band-tailwind: #3987e5;
+  --band-lean_for: #4f8c5c;
+  --band-tailwind: #3cb85a;
   --band-fill-alpha: 0.2;
 }
 
