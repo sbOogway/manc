@@ -32,6 +32,9 @@ def _insert(engine: Engine, table: Table, rows: list[dict[str, Any]]) -> Any:
     return insert(table).values(rows)
 
 
+CHUNK_ROWS = 500  # a backfill can be tens of thousands of rows; SQLite caps the variables
+
+
 def _upsert(
     engine: Engine, table: Table, rows: list[dict[str, Any]], keep: tuple[str, ...] = ()
 ) -> None:
@@ -39,33 +42,35 @@ def _upsert(
     if not rows:
         return
     key_columns = [column.name for column in table.primary_key.columns]
-    statement = _insert(engine, table, rows)
-    statement = statement.on_conflict_do_update(
-        index_elements=key_columns,
-        set_={
-            column.name: getattr(statement.excluded, column.name)
-            for column in table.columns
-            if column.name not in key_columns and column.name not in keep
-        },
-    )
     with engine.begin() as connection:
-        connection.execute(statement)
+        for start in range(0, len(rows), CHUNK_ROWS):
+            statement = _insert(engine, table, rows[start : start + CHUNK_ROWS])
+            statement = statement.on_conflict_do_update(
+                index_elements=key_columns,
+                set_={
+                    column.name: getattr(statement.excluded, column.name)
+                    for column in table.columns
+                    if column.name not in key_columns and column.name not in keep
+                },
+            )
+            connection.execute(statement)
 
 
 def _upsert_keep_earliest(engine: Engine, table: Table, rows: list[dict[str, Any]]) -> None:
     """Forecast vintages: on an existing id, the sighting columns follow the earlier one."""
     if not rows:
         return
-    statement = _insert(engine, table, rows)
-    is_earlier = statement.excluded.published_at < table.c.published_at
-    set_ = {
-        name: case((is_earlier, getattr(statement.excluded, name)), else_=table.c[name])
-        for name in _SIGHTING_COLUMNS
-    }
-    set_["fetched_at"] = statement.excluded.fetched_at
-    statement = statement.on_conflict_do_update(index_elements=["id"], set_=set_)
     with engine.begin() as connection:
-        connection.execute(statement)
+        for start in range(0, len(rows), CHUNK_ROWS):
+            statement = _insert(engine, table, rows[start : start + CHUNK_ROWS])
+            is_earlier = statement.excluded.published_at < table.c.published_at
+            set_ = {
+                name: case((is_earlier, getattr(statement.excluded, name)), else_=table.c[name])
+                for name in _SIGHTING_COLUMNS
+            }
+            set_["fetched_at"] = statement.excluded.fetched_at
+            statement = statement.on_conflict_do_update(index_elements=["id"], set_=set_)
+            connection.execute(statement)
 
 
 class SqlNewsRepository:
