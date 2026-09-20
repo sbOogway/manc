@@ -8,6 +8,7 @@
 # on growth; energy on jobs and growth; a yield likes every hot print.
 # `spot` names the ticker per spot source (display only). Yahoo quotes USD-quoted pairs as
 # "JPY=X", futures as "GC=F", indices as "^GSPC", coins as "BTC-USD", US yields as "^TNX".
+# `tradingview` is the EXCHANGE:TICKER the dashboard embeds next to the score chart.
 # `active_kinds` lists the kinds a daily run scores and the dashboard shows; the other assets
 # stay defined so headlines keep being tagged for them and old scores stay reachable. Leave
 # the list empty to run everything (about 15 minutes a day for all 62 assets).
@@ -16,126 +17,126 @@ active_kinds: [crypto]
 assets:
   # forex
   EURUSD:
-    spot: {yahoo: "EURUSD=X"}
+    spot: {yahoo: "EURUSD=X", tradingview: "FX:EURUSD"}
     kind: forex
     economies: [euro_area, united_states]
     signs:
       euro_area:     {inflation:  1, employment:  1, growth:  1, rates:  1}
       united_states: {inflation: -1, employment: -1, growth: -1, rates: -1}
   GBPUSD:
-    spot: {yahoo: "GBPUSD=X"}
+    spot: {yahoo: "GBPUSD=X", tradingview: "FX:GBPUSD"}
     kind: forex
     economies: [united_kingdom, united_states]
     signs:
       united_kingdom: {inflation:  1, employment:  1, growth:  1, rates:  1}
       united_states:  {inflation: -1, employment: -1, growth: -1, rates: -1}
   USDJPY:
-    spot: {yahoo: "JPY=X"}
+    spot: {yahoo: "JPY=X", tradingview: "FX:USDJPY"}
     kind: forex
     economies: [united_states, japan]
     signs:
       united_states: {inflation:  1, employment:  1, growth:  1, rates:  1}
       japan:         {inflation: -1, employment: -1, growth: -1, rates: -1}
   USDCHF:
-    spot: {yahoo: "CHF=X"}
+    spot: {yahoo: "CHF=X", tradingview: "FX:USDCHF"}
     kind: forex
     economies: [united_states, switzerland]
     signs:
       united_states: {inflation:  1, employment:  1, growth:  1, rates:  1}
       switzerland:   {inflation: -1, employment: -1, growth: -1, rates: -1}
   USDCAD:
-    spot: {yahoo: "CAD=X"}
+    spot: {yahoo: "CAD=X", tradingview: "FX:USDCAD"}
     kind: forex
     economies: [united_states, canada]
     signs:
       united_states: {inflation:  1, employment:  1, growth:  1, rates:  1}
       canada:        {inflation: -1, employment: -1, growth: -1, rates: -1}
   AUDUSD:
-    spot: {yahoo: "AUDUSD=X"}
+    spot: {yahoo: "AUDUSD=X", tradingview: "FX:AUDUSD"}
     kind: forex
     economies: [australia, united_states]
     signs:
       australia:     {inflation:  1, employment:  1, growth:  1, rates:  1}
       united_states: {inflation: -1, employment: -1, growth: -1, rates: -1}
   NZDUSD:
-    spot: {yahoo: "NZDUSD=X"}
+    spot: {yahoo: "NZDUSD=X", tradingview: "FX:NZDUSD"}
     kind: forex
     economies: [new_zealand, united_states]
     signs:
       new_zealand:   {inflation:  1, employment:  1, growth:  1, rates:  1}
       united_states: {inflation: -1, employment: -1, growth: -1, rates: -1}
   EURGBP:
-    spot: {yahoo: "EURGBP=X"}
+    spot: {yahoo: "EURGBP=X", tradingview: "FX:EURGBP"}
     kind: forex
     economies: [euro_area, united_kingdom]
     signs:
       euro_area:      {inflation:  1, employment:  1, growth:  1, rates:  1}
       united_kingdom: {inflation: -1, employment: -1, growth: -1, rates: -1}
   EURJPY:
-    spot: {yahoo: "EURJPY=X"}
+    spot: {yahoo: "EURJPY=X", tradingview: "FX:EURJPY"}
     kind: forex
     economies: [euro_area, japan]
     signs:
       euro_area: {inflation:  1, employment:  1, growth:  1, rates:  1}
       japan:     {inflation: -1, employment: -1, growth: -1, rates: -1}
   GBPJPY:
-    spot: {yahoo: "GBPJPY=X"}
+    spot: {yahoo: "GBPJPY=X", tradingview: "FX:GBPJPY"}
     kind: forex
     economies: [united_kingdom, japan]
     signs:
       united_kingdom: {inflation:  1, employment:  1, growth:  1, rates:  1}
       japan:          {inflation: -1, employment: -1, growth: -1, rates: -1}
   EURCHF:
-    spot: {yahoo: "EURCHF=X"}
+    spot: {yahoo: "EURCHF=X", tradingview: "FX:EURCHF"}
     kind: forex
     economies: [euro_area, switzerland]
     signs:
       euro_area:   {inflation:  1, employment:  1, growth:  1, rates:  1}
       switzerland: {inflation: -1, employment: -1, growth: -1, rates: -1}
   AUDJPY:
-    spot: {yahoo: "AUDJPY=X"}
+    spot: {yahoo: "AUDJPY=X", tradingview: "FX:AUDJPY"}
     kind: forex
     economies: [australia, japan]
     signs:
       australia: {inflation:  1, employment:  1, growth:  1, rates:  1}
       japan:     {inflation: -1, employment: -1, growth: -1, rates: -1}
   USDCNY:
-    spot: {yahoo: "CNY=X"}
+    spot: {yahoo: "CNY=X", tradingview: "FX_IDC:USDCNY"}
     kind: forex
     economies: [united_states, china]
     signs:
       united_states: {inflation:  1, employment:  1, growth:  1, rates:  1}
       china:         {inflation: -1, employment: -1, growth: -1, rates: -1}
   USDMXN:
-    spot: {yahoo: "MXN=X"}
+    spot: {yahoo: "MXN=X", tradingview: "FX:USDMXN"}
     kind: forex
     economies: [united_states, mexico]
     signs:
       united_states: {inflation:  1, employment:  1, growth:  1, rates:  1}
       mexico:        {inflation: -1, employment: -1, growth: -1, rates: -1}
   USDBRL:
-    spot: {yahoo: "BRL=X"}
+    spot: {yahoo: "BRL=X", tradingview: "FX_IDC:USDBRL"}
     kind: forex
     economies: [united_states, brazil]
     signs:
       united_states: {inflation:  1, employment:  1, growth:  1, rates:  1}
       brazil:        {inflation: -1, employment: -1, growth: -1, rates: -1}
   USDZAR:
-    spot: {yahoo: "ZAR=X"}
+    spot: {yahoo: "ZAR=X", tradingview: "FX:USDZAR"}
     kind: forex
     economies: [united_states, south_africa]
     signs:
       united_states: {inflation:  1, employment:  1, growth:  1, rates:  1}
       south_africa:  {inflation: -1, employment: -1, growth: -1, rates: -1}
   USDINR:
-    spot: {yahoo: "INR=X"}
+    spot: {yahoo: "INR=X", tradingview: "FX_IDC:USDINR"}
     kind: forex
     economies: [united_states, india]
     signs:
       united_states: {inflation:  1, employment:  1, growth:  1, rates:  1}
       india:         {inflation: -1, employment: -1, growth: -1, rates: -1}
   USDKRW:
-    spot: {yahoo: "KRW=X"}
+    spot: {yahoo: "KRW=X", tradingview: "FX_IDC:USDKRW"}
     kind: forex
     economies: [united_states, south_korea]
     signs:
@@ -143,31 +144,31 @@ assets:
       south_korea:   {inflation: -1, employment: -1, growth: -1, rates: -1}
   # metals
   XAUUSD:
-    spot: {yahoo: "GC=F"}
+    spot: {yahoo: "GC=F", tradingview: "OANDA:XAUUSD"}
     kind: metal
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment: -1, growth: -1, rates: -1}
   XAGUSD:
-    spot: {yahoo: "SI=F"}
+    spot: {yahoo: "SI=F", tradingview: "OANDA:XAGUSD"}
     kind: metal
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment: -1, growth: -1, rates: -1}
   XPTUSD:
-    spot: {yahoo: "PL=F"}
+    spot: {yahoo: "PL=F", tradingview: "OANDA:XPTUSD"}
     kind: metal
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   XPDUSD:
-    spot: {yahoo: "PA=F"}
+    spot: {yahoo: "PA=F", tradingview: "OANDA:XPDUSD"}
     kind: metal
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   COPPER:
-    spot: {yahoo: "HG=F"}
+    spot: {yahoo: "HG=F", tradingview: "COMEX:HG1!"}
     kind: metal
     economies: [united_states, china]
     signs:
@@ -175,184 +176,184 @@ assets:
       china:         {inflation:  0, employment:  0, growth:  1, rates:  0}
   # commodities
   BRENT:
-    spot: {yahoo: "BZ=F"}
+    spot: {yahoo: "BZ=F", tradingview: "TVC:UKOIL"}
     kind: commodity
     economies: [united_states]
     signs:
       united_states: {inflation:  0, employment:  1, growth:  1, rates: -1}
   WTI:
-    spot: {yahoo: "CL=F"}
+    spot: {yahoo: "CL=F", tradingview: "TVC:USOIL"}
     kind: commodity
     economies: [united_states]
     signs:
       united_states: {inflation:  0, employment:  1, growth:  1, rates: -1}
   NATGAS:
-    spot: {yahoo: "NG=F"}
+    spot: {yahoo: "NG=F", tradingview: "NYMEX:NG1!"}
     kind: commodity
     economies: [united_states]
     signs:
       united_states: {inflation:  0, employment:  1, growth:  1, rates: -1}
   WHEAT:
-    spot: {yahoo: "ZW=F"}
+    spot: {yahoo: "ZW=F", tradingview: "CBOT:ZW1!"}
     kind: commodity
     economies: [united_states]
     signs:
       united_states: {inflation:  0, employment:  0, growth:  1, rates: -1}
   CORN:
-    spot: {yahoo: "ZC=F"}
+    spot: {yahoo: "ZC=F", tradingview: "CBOT:ZC1!"}
     kind: commodity
     economies: [united_states]
     signs:
       united_states: {inflation:  0, employment:  0, growth:  1, rates: -1}
   SOYBEANS:
-    spot: {yahoo: "ZS=F"}
+    spot: {yahoo: "ZS=F", tradingview: "CBOT:ZS1!"}
     kind: commodity
     economies: [united_states]
     signs:
       united_states: {inflation:  0, employment:  0, growth:  1, rates: -1}
   COFFEE:
-    spot: {yahoo: "KC=F"}
+    spot: {yahoo: "KC=F", tradingview: "ICEUS:KC1!"}
     kind: commodity
     economies: [united_states]
     signs:
       united_states: {inflation:  0, employment:  0, growth:  1, rates: -1}
   SUGAR:
-    spot: {yahoo: "SB=F"}
+    spot: {yahoo: "SB=F", tradingview: "ICEUS:SB1!"}
     kind: commodity
     economies: [united_states]
     signs:
       united_states: {inflation:  0, employment:  0, growth:  1, rates: -1}
   COCOA:
-    spot: {yahoo: "CC=F"}
+    spot: {yahoo: "CC=F", tradingview: "ICEUS:CC1!"}
     kind: commodity
     economies: [united_states]
     signs:
       united_states: {inflation:  0, employment:  0, growth:  1, rates: -1}
   # equity indices
   SPX:
-    spot: {yahoo: "^GSPC"}
+    spot: {yahoo: "^GSPC", tradingview: "SP:SPX"}
     kind: equity_index
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  1, growth:  1, rates: -1}
   NDX:
-    spot: {yahoo: "^NDX"}
+    spot: {yahoo: "^NDX", tradingview: "NASDAQ:NDX"}
     kind: equity_index
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  1, growth:  1, rates: -1}
   DJI:
-    spot: {yahoo: "^DJI"}
+    spot: {yahoo: "^DJI", tradingview: "DJ:DJI"}
     kind: equity_index
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  1, growth:  1, rates: -1}
   RUT:
-    spot: {yahoo: "^RUT"}
+    spot: {yahoo: "^RUT", tradingview: "TVC:RUT"}
     kind: equity_index
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  1, growth:  1, rates: -1}
   DAX:
-    spot: {yahoo: "^GDAXI"}
+    spot: {yahoo: "^GDAXI", tradingview: "XETR:DAX"}
     kind: equity_index
     economies: [germany, united_states]
     signs:
       germany:       {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   CAC40:
-    spot: {yahoo: "^FCHI"}
+    spot: {yahoo: "^FCHI", tradingview: "EURONEXT:PX1"}
     kind: equity_index
     economies: [france, united_states]
     signs:
       france:        {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   FTSE100:
-    spot: {yahoo: "^FTSE"}
+    spot: {yahoo: "^FTSE", tradingview: "FTSE:UKX"}
     kind: equity_index
     economies: [united_kingdom, united_states]
     signs:
       united_kingdom: {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states:  {inflation: -1, employment:  0, growth:  1, rates: -1}
   STOXX50:
-    spot: {yahoo: "^STOXX50E"}
+    spot: {yahoo: "^STOXX50E", tradingview: "TVC:SX5E"}
     kind: equity_index
     economies: [euro_area, united_states]
     signs:
       euro_area:     {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   FTSEMIB:
-    spot: {yahoo: "FTSEMIB.MI"}
+    spot: {yahoo: "FTSEMIB.MI", tradingview: "INDEX:FTSEMIB"}
     kind: equity_index
     economies: [italy, united_states]
     signs:
       italy:         {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   IBEX35:
-    spot: {yahoo: "^IBEX"}
+    spot: {yahoo: "^IBEX", tradingview: "BME:IBC"}
     kind: equity_index
     economies: [spain, united_states]
     signs:
       spain:         {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   SMI:
-    spot: {yahoo: "^SSMI"}
+    spot: {yahoo: "^SSMI", tradingview: "SIX:SMI"}
     kind: equity_index
     economies: [switzerland, united_states]
     signs:
       switzerland:   {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   NIKKEI:
-    spot: {yahoo: "^N225"}
+    spot: {yahoo: "^N225", tradingview: "TVC:NI225"}
     kind: equity_index
     economies: [japan, united_states]
     signs:
       japan:         {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   HSI:
-    spot: {yahoo: "^HSI"}
+    spot: {yahoo: "^HSI", tradingview: "HSI:HSI"}
     kind: equity_index
     economies: [hong_kong, united_states]
     signs:
       hong_kong:     {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   SHANGHAI:
-    spot: {yahoo: "000001.SS"}
+    spot: {yahoo: "000001.SS", tradingview: "SSE:000001"}
     kind: equity_index
     economies: [china, united_states]
     signs:
       china:         {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   KOSPI:
-    spot: {yahoo: "^KS11"}
+    spot: {yahoo: "^KS11", tradingview: "KRX:KOSPI"}
     kind: equity_index
     economies: [south_korea, united_states]
     signs:
       south_korea:   {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   ASX200:
-    spot: {yahoo: "^AXJO"}
+    spot: {yahoo: "^AXJO", tradingview: "ASX:XJO"}
     kind: equity_index
     economies: [australia, united_states]
     signs:
       australia:     {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   TSX:
-    spot: {yahoo: "^GSPTSE"}
+    spot: {yahoo: "^GSPTSE", tradingview: "TSX:TSX"}
     kind: equity_index
     economies: [canada, united_states]
     signs:
       canada:        {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   NIFTY50:
-    spot: {yahoo: "^NSEI"}
+    spot: {yahoo: "^NSEI", tradingview: "NSE:NIFTY"}
     kind: equity_index
     economies: [india, united_states]
     signs:
       india:         {inflation: -1, employment:  1, growth:  1, rates: -1}
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   BOVESPA:
-    spot: {yahoo: "^BVSP"}
+    spot: {yahoo: "^BVSP", tradingview: "BMFBOVESPA:IBOV"}
     kind: equity_index
     economies: [brazil, united_states]
     signs:
@@ -360,68 +361,68 @@ assets:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   # crypto
   BTCUSD:
-    spot: {yahoo: "BTC-USD"}
+    spot: {yahoo: "BTC-USD", tradingview: "BITSTAMP:BTCUSD"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   ETHUSD:
-    spot: {yahoo: "ETH-USD"}
+    spot: {yahoo: "ETH-USD", tradingview: "BITSTAMP:ETHUSD"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   SOLUSD:
-    spot: {yahoo: "SOL-USD"}
+    spot: {yahoo: "SOL-USD", tradingview: "COINBASE:SOLUSD"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   XRPUSD:
-    spot: {yahoo: "XRP-USD"}
+    spot: {yahoo: "XRP-USD", tradingview: "BITSTAMP:XRPUSD"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   BNBUSD:
-    spot: {yahoo: "BNB-USD"}
+    spot: {yahoo: "BNB-USD", tradingview: "BINANCE:BNBUSD"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   ADAUSD:
-    spot: {yahoo: "ADA-USD"}
+    spot: {yahoo: "ADA-USD", tradingview: "COINBASE:ADAUSD"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   DOGEUSD:
-    spot: {yahoo: "DOGE-USD"}
+    spot: {yahoo: "DOGE-USD", tradingview: "COINBASE:DOGEUSD"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   LTCUSD:
-    spot: {yahoo: "LTC-USD"}
+    spot: {yahoo: "LTC-USD", tradingview: "COINBASE:LTCUSD"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   # US Treasury yields
   US5Y:
-    spot: {yahoo: "^FVX"}
+    spot: {yahoo: "^FVX", tradingview: "TVC:US05Y"}
     kind: bond
     economies: [united_states]
     signs:
       united_states: {inflation:  1, employment:  1, growth:  1, rates:  1}
   US10Y:
-    spot: {yahoo: "^TNX"}
+    spot: {yahoo: "^TNX", tradingview: "TVC:US10Y"}
     kind: bond
     economies: [united_states]
     signs:
       united_states: {inflation:  1, employment:  1, growth:  1, rates:  1}
   US30Y:
-    spot: {yahoo: "^TYX"}
+    spot: {yahoo: "^TYX", tradingview: "TVC:US30Y"}
     kind: bond
     economies: [united_states]
     signs:
