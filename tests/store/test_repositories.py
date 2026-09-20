@@ -8,7 +8,15 @@ from pathlib import Path
 import pytest
 
 from manc.formulas.contract import IndexScore
-from manc.models import CalendarEvent, ForecastAsset, ForecastMacro, NewsItem, NewsTag, SpotPrice
+from manc.models import (
+    CalendarEvent,
+    ChainMetric,
+    ForecastAsset,
+    ForecastMacro,
+    NewsItem,
+    NewsTag,
+    SpotPrice,
+)
 from manc.store import db
 from manc.store.interface import Store
 from manc.store.sql import SqlStore
@@ -302,3 +310,37 @@ def test_spot_add_overwrites_the_close(store: Store) -> None:
     store.spot.add(_spot(day, 3650.0))
     store.spot.add(_spot(day, 3660.0))
     assert store.spot.between("XAUUSD", day, day) == [_spot(day, 3660.0)]
+
+
+def _chain(
+    day: date, value: float, metric: str = "active_addresses", asset: str = "BTCUSD"
+) -> ChainMetric:
+    return ChainMetric(asset=asset, date=day, metric=metric, value=value, source="coinmetrics")
+
+
+def test_chain_series_by_asset_metric_and_window_and_latest_per_metric(store: Store) -> None:
+    day = NOW.date()
+    store.chain.add(
+        _chain(day - 2 * DAY, 100.0),
+        _chain(day, 120.0),
+        _chain(day - DAY, 110.0),
+        _chain(day - DAY, 1.5, metric="mvrv"),
+        _chain(day, 7.0, asset="ETHUSD"),
+    )
+    assert store.chain.series("BTCUSD", "active_addresses", day - DAY, day) == [
+        _chain(day - DAY, 110.0),
+        _chain(day, 120.0),
+    ]
+    assert store.chain.series("BTCUSD", "fees_usd", date.min, date.max) == []
+    assert store.chain.latest("BTCUSD") == {
+        "active_addresses": _chain(day, 120.0),
+        "mvrv": _chain(day - DAY, 1.5, metric="mvrv"),
+    }
+    assert store.chain.latest("SOLUSD") == {}
+
+
+def test_chain_add_overwrites_the_value(store: Store) -> None:
+    day = NOW.date()
+    store.chain.add(_chain(day, 100.0))
+    store.chain.add(_chain(day, 101.0))
+    assert store.chain.series("BTCUSD", "active_addresses", day, day) == [_chain(day, 101.0)]

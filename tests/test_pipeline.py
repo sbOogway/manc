@@ -10,6 +10,7 @@ from manc.formulas.contract import AssetSpec
 from manc.formulas.registry import get_formula
 from manc.models import (
     CalendarEvent,
+    ChainMetric,
     ForecastAsset,
     ForecastMacro,
     Forecasts,
@@ -17,10 +18,11 @@ from manc.models import (
     NewsTag,
     SpotPrice,
 )
-from manc.pipeline import fetch, rescore, run
+from manc.pipeline import fetch, fetch_chain, rescore, run
 from tests.fakes import (
     FakeAnalyzer,
     FakeCalendar,
+    FakeChain,
     FakeForecasts,
     FakeNews,
     FakeSpot,
@@ -57,6 +59,7 @@ def test_run_stores_inputs_and_one_score_per_asset() -> None:
         analyzer=FakeAnalyzer(),
         forecasts=[FakeForecasts()],
         spot=FakeSpot(),
+        chain=[],
         store=store,
         formula=get_formula("v1"),
         summarize=None,
@@ -83,6 +86,7 @@ def test_run_stores_the_closes_the_spot_provider_returns() -> None:
         analyzer=FakeAnalyzer(),
         forecasts=[],
         spot=FakeSpot([gold, bitcoin, old_bitcoin]),
+        chain=[],
         store=store,
         formula=get_formula("v1"),
         summarize=None,
@@ -90,6 +94,44 @@ def test_run_stores_the_closes_the_spot_provider_returns() -> None:
     assert store.spot.latest("BTCUSD") == bitcoin  # FakeSpot answers only for the run's day
     assert store.spot.between("BTCUSD", date.min, date.max) == [bitcoin]
     assert store.spot.latest("XAUUSD") is None  # metal is not an active kind
+
+
+def test_fetch_chain_stores_the_last_week_from_every_provider() -> None:
+    store = FakeStore()
+    recent = ChainMetric("BTCUSD", AS_OF.date(), "active_addresses", 600000.0, "coinmetrics")
+    old = ChainMetric("BTCUSD", AS_OF.date() - timedelta(days=30), "mvrv", 1.4, "coinmetrics")
+    fees = ChainMetric("SOLUSD", AS_OF.date(), "fees_usd", 14e6, "defillama")
+    stored = fetch_chain(
+        [FakeChain([recent, old]), FakeChain([fees])],
+        CONFIG.active_assets,
+        AS_OF.date() - timedelta(days=7),
+        AS_OF.date(),
+        store,
+    )
+    assert stored == [recent, fees]  # the fake replays its window; `old` is outside it
+    assert store.chain.latest("BTCUSD") == {"active_addresses": recent}
+    assert store.chain.latest("SOLUSD") == {"fees_usd": fees}
+
+
+def test_run_fetches_the_chain_metrics_of_the_last_week() -> None:
+    store = FakeStore()
+    row = ChainMetric("ETHUSD", AS_OF.date(), "mvrv", 1.1, "coinmetrics")
+    chain = FakeChain([row])
+    run(
+        as_of=AS_OF,
+        config=CONFIG,
+        calendar=FakeCalendar(),
+        news=FakeNews(),
+        analyzer=FakeAnalyzer(),
+        forecasts=[],
+        spot=FakeSpot(),
+        chain=[chain],
+        store=store,
+        formula=get_formula("v1"),
+        summarize=None,
+    )
+    assert chain.calls == [(AS_OF.date() - timedelta(days=7), AS_OF.date())]
+    assert store.chain.latest("ETHUSD") == {"mvrv": row}
 
 
 def test_run_stores_the_forecasts_every_provider_returns() -> None:
@@ -120,6 +162,7 @@ def test_run_stores_the_forecasts_every_provider_returns() -> None:
             FakeForecasts(Forecasts(macro=(rate,))),
         ],
         spot=FakeSpot(),
+        chain=[],
         store=store,
         formula=get_formula("v1"),
         summarize=None,
@@ -180,6 +223,7 @@ def test_run_tags_only_what_earlier_fetches_left_unanalyzed() -> None:
         analyzer=RecordingAnalyzer(),
         forecasts=[],
         spot=FakeSpot(),
+        chain=[],
         store=store,
         formula=get_formula("v1"),
         summarize=None,
@@ -246,6 +290,7 @@ def test_run_stores_a_report_with_the_summary_for_every_asset() -> None:
         analyzer=FakeAnalyzer(),
         forecasts=[],
         spot=FakeSpot(),
+        chain=[],
         store=store,
         formula=get_formula("v1"),
         summarize=summarize,

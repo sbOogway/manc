@@ -1,5 +1,6 @@
 """`manc` entry point on a real temp database; every feed, the calendar and the LLM are stubbed."""
 
+import json
 import logging
 import re
 from collections.abc import Iterator
@@ -12,6 +13,7 @@ import pytest
 import respx
 
 from manc import cli, llm
+from manc.chain import coinmetrics, defillama, solana_rpc
 from manc.config import load_config
 from manc.forecasts import fed_sep, worldbank
 from manc.spot import yahoo
@@ -23,6 +25,14 @@ EMPTY_FEED = b'<?xml version="1.0"?><rss version="2.0"><channel><title>x</title>
 NO_RECORD = {"data": None, "status": {"bCodeMessage": [{"errorMessage": "No record found."}]}}
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "forecasts"
+CHAIN = Path(__file__).resolve().parent / "fixtures" / "chain"
+NON_FEED_HOSTS = {  # the calendar and the on-chain sources; anything else a run asks for is a feed
+    "api.nasdaq.com",
+    "community-api.coinmetrics.io",
+    "api.llama.fi",
+    "stablecoins.llama.fi",
+    "api.mainnet-beta.solana.com",
+}
 WORKBOOK_URL = "https://thedocs.worldbank.org/en/doc/x/related/CMO-April-2026-Forecasts.xlsx"
 PUBLISHER_URLS = {
     fed_sep.CALENDAR_URL,
@@ -63,6 +73,22 @@ def offline_sources(monkeypatch: pytest.MonkeyPatch) -> Iterator[respx.MockRoute
                 200, content=(FIXTURES / "CMO-April-2026-Forecasts.xlsx").read_bytes()
             )
         )
+        for url, name in (
+            (coinmetrics.ENDPOINT, "coinmetrics.json"),
+            (defillama.fees_url("solana"), "defillama-fees-solana.json"),
+            (defillama.tvl_url("solana"), "defillama-tvl-solana.json"),
+            (defillama.stablecoins_url("solana"), "defillama-stablecoins-solana.json"),
+        ):
+            router.get(url).mock(
+                return_value=httpx.Response(200, json=json.loads((CHAIN / name).read_text()))
+            )
+        router.get(host="api.llama.fi").mock(return_value=httpx.Response(200, json=[]))
+        router.get(host="stablecoins.llama.fi").mock(return_value=httpx.Response(200, json=[]))
+        router.post(solana_rpc.RPC_URL).mock(
+            return_value=httpx.Response(
+                200, json=json.loads((CHAIN / "solana-performance.json").read_text())
+            )
+        )
         router.route(name="feeds").mock(return_value=httpx.Response(200, content=EMPTY_FEED))
         yield router
 
@@ -99,7 +125,8 @@ def test_run_pulls_every_configured_feed_and_forecast_query(
     requested = {
         str(call.request.url)
         for call in offline_sources.calls
-        if call.request.url.host != "api.nasdaq.com" and str(call.request.url) not in PUBLISHER_URLS
+        if call.request.url.host not in NON_FEED_HOSTS
+        and str(call.request.url) not in PUBLISHER_URLS
     }
     config = load_config()
     query_feeds = {query.feed.url for query in config.forecasts.queries}
@@ -394,6 +421,29 @@ def test_fetch_stores_the_inputs_and_prints_the_counts(
     store = SqlStore(db.make_engine())
     assert store.spot.latest("BTCUSD") is not None
     assert store.scores.latest_day() is None
+
+
+def test_chain_backfill_stores_every_provider_and_prints_the_count(
+    migrated_db: str, capsys: pytest.CaptureFixture
+) -> None:
+    assert cli.main(["chain", "--since", "2026-09-17"]) == 0
+    assert re.fullmatch(
+        r"chain: \d+ rows for \d+ coins since 2026-09-17\n", capsys.readouterr().out
+    )
+    store = SqlStore(db.make_engine())
+    assert set(store.chain.latest("BTCUSD")) >= {"active_addresses", "mvrv", "exchange_inflow_usd"}
+    assert set(store.chain.latest("SOLUSD")) == {
+        "fees_usd",
+        "tvl_usd",
+        "stablecoins_usd",
+        "tx_per_second",
+    }
+    assert store.chain.latest("EURUSD") == {}
+
+
+def test_run_stores_chain_metrics_too(migrated_db: str) -> None:
+    assert cli.main(["run", "--date", "2026-09-19"]) == 0
+    assert "active_addresses" in SqlStore(db.make_engine()).chain.latest("ETHUSD")
 
 
 def test_rescore_never_calls_the_llm(migrated_db: str, monkeypatch: pytest.MonkeyPatch) -> None:

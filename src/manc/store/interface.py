@@ -9,6 +9,7 @@ from typing import Protocol, runtime_checkable
 
 from manc.models import (
     CalendarEvent,
+    ChainMetric,
     ForecastAsset,
     ForecastMacro,
     IndexScore,
@@ -77,6 +78,14 @@ class SpotRepository(Protocol):
 
 
 @runtime_checkable
+@runtime_checkable
+class ChainRepository(Protocol):
+    def add(self, *metrics: ChainMetric) -> None: ...
+    def series(self, asset: str, metric: str, start: date, end: date) -> list[ChainMetric]: ...
+    def latest(self, asset: str) -> dict[str, ChainMetric]: ...  # newest reading per metric
+
+
+@runtime_checkable
 class Store(Protocol):
     news: NewsRepository
     tags: TagRepository
@@ -85,3 +94,4 @@ class Store(Protocol):
     forecasts_asset: ForecastAssetRepository
     forecasts_macro: ForecastMacroRepository
     spot: SpotRepository
+    chain: ChainRepository

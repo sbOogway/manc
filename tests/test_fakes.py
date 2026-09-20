@@ -4,12 +4,14 @@ from datetime import UTC, date, datetime, timedelta
 
 from manc.analysis.interface import Analyzer
 from manc.calendar.interface import CalendarProvider
+from manc.chain.interface import ChainProvider
 from manc.forecasts.interface import ForecastProvider
 from manc.formulas.contract import AssetSpec, IndexScore
 from manc.models import CalendarEvent, ForecastAsset, Forecasts, NewsItem, NewsTag, SpotPrice
 from manc.news.interface import NewsProvider
 from manc.spot.interface import SpotProvider
 from manc.store.interface import (
+    ChainRepository,
     EventRepository,
     ForecastAssetRepository,
     ForecastMacroRepository,
@@ -19,7 +21,15 @@ from manc.store.interface import (
     Store,
     TagRepository,
 )
-from tests.fakes import FakeAnalyzer, FakeCalendar, FakeForecasts, FakeNews, FakeSpot, FakeStore
+from tests.fakes import (
+    FakeAnalyzer,
+    FakeCalendar,
+    FakeChain,
+    FakeForecasts,
+    FakeNews,
+    FakeSpot,
+    FakeStore,
+)
 
 NOW = datetime(2026, 9, 15, 8, 0, tzinfo=UTC)
 ASSET = AssetSpec(symbol="EURUSD", kind="forex", economies=("euro_area", "united_states"))
@@ -31,6 +41,7 @@ def test_fakes_satisfy_protocols() -> None:
     assert isinstance(FakeAnalyzer(), Analyzer)
     assert isinstance(FakeForecasts(), ForecastProvider)
     assert isinstance(FakeSpot(), SpotProvider)
+    assert isinstance(FakeChain(), ChainProvider)
     store = FakeStore()
     assert isinstance(store, Store)
     assert isinstance(store.news, NewsRepository)
@@ -40,6 +51,7 @@ def test_fakes_satisfy_protocols() -> None:
     assert isinstance(store.forecasts_asset, ForecastAssetRepository)
     assert isinstance(store.forecasts_macro, ForecastMacroRepository)
     assert isinstance(store.spot, SpotRepository)
+    assert isinstance(store.chain, ChainRepository)
 
 
 def test_fake_forecasts_and_spot_replay_by_window_and_asset() -> None:

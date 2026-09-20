@@ -7,12 +7,14 @@ standardise (a year at least), and a licence that allows a private dashboard.
 
 ## TL;DR
 
-- **One primary source covers six of the seven coins with one call: the Coin Metrics
-  Community API.** No key, daily, history to 2010, active addresses, transaction counts,
+- **One primary source covers five of the seven coins with one call: the Coin Metrics
+  Community API** (BTC, ETH, XRP, ADA, LTC; its `bnb` is the old ERC-20 token, series ended
+  2019, found out when recording the fixture). No key, daily, history to 2010, active addresses, transaction counts,
   MVRV, hash rate, issuance, exchange in/out flows (BTC, ETH). Licence CC BY-NC 4.0 (a
   credit line on the dashboard). Rate limit 10 requests per 6 s, far above the one call a
   day we need.
-- **Solana is the gap.** Coin Metrics Community has only its price. DefiLlama gives Solana
+- **Solana and BNB are the gaps.** Coin Metrics Community has only Solana's price and no
+  current BNB Chain data; both get fees, TVL and stablecoins from DefiLlama. DefiLlama gives Solana
   daily fees, TVL and stablecoin supply for free; the public RPC gives live throughput; daily
   active addresses need Dune (free tier: 2,500 credits a month, enough for one query a day)
   or a Solscan key.
@@ -27,7 +29,7 @@ standardise (a year at least), and a licence that allows a private dashboard.
 
 | Source | Coins | Daily metrics that matter to us | Key | Limits, licence | History | Verdict |
 |---|---|---|---|---|---|---|
-| **Coin Metrics Community** `community-api.coinmetrics.io/v4` | BTC ETH XRP BNB ADA LTC (SOL: price only) | `AdrActCnt` active addresses, `TxCnt`, `TxTfrCnt` transfers, `CapMVRVCur` MVRV, `AdrBalCnt` addresses with balance, `IssTotUSD` issuance, `BlkCnt`; BTC/ETH/LTC add `HashRate`, `FeeTotNtv`; BTC/ETH add `FlowInExUSD` / `FlowOutExUSD` exchange flows and `SplyExNtv` supply on exchanges | none | 10 req / 6 s per IP; CC BY-NC 4.0, attribution | 2010 for BTC; full for the rest | **primary** |
+| **Coin Metrics Community** `community-api.coinmetrics.io/v4` | BTC ETH XRP ADA LTC (SOL: price only; BNB: the 2017-2019 ERC-20 token only) | `AdrActCnt` active addresses, `TxCnt`, `TxTfrCnt` transfers, `CapMVRVCur` MVRV, `AdrBalCnt` addresses with balance, `IssTotUSD` issuance, `BlkCnt`; BTC/ETH/LTC add `HashRate`, `FeeTotNtv`; BTC/ETH add `FlowInExUSD` / `FlowOutExUSD` exchange flows and `SplyExNtv` supply on exchanges | none | 10 req / 6 s per IP; CC BY-NC 4.0, attribution | 2010 for BTC; full for the rest | **primary** |
 | **DefiLlama** `api.llama.fi`, `stablecoins.llama.fi` | all seven (chains `bitcoin ethereum solana xrpl bsc cardano litecoin`) | daily chain fees USD (`/overview/fees/<chain>`: 1,680 days for Solana, 3,095 for Ethereum, 522 for XRPL), TVL (`/v2/chains`, `/v2/historicalChainTvl/<chain>`), stablecoin supply on the chain (`/stablecoincharts/<chain>`: Solana 15.7 bn USD, 1,594 days) | none | none stated; free for any use | 1.5–8 years | **secondary, and the Solana fees/TVL source** |
 | **Solana public RPC** `api.mainnet-beta.solana.com` | SOL | `getRecentPerformanceSamples`: transactions and non-vote transactions per 60 s sample (≈ 3,900 tx/s, 1,200 non-vote at the time of the call) | none | public endpoint, best effort | live only (we store our own daily average) | **Solana throughput** |
 | **Dune API** | SOL (and any chain, by SQL) | daily active addresses, transactions, fees from `solana.transactions` | key | free plan 2,500 credits/month, API included; accounts created before 2026-07-21 became view-only on 2026-09-10 (a fresh account gets the new free plan) | full | **Solana active addresses, if wanted** |
@@ -52,7 +54,6 @@ Sample from Coin Metrics for 2026-09-19 (the row is complete at about 02:30 UTC 
 | XRP | 36,291 | 2,380,596 | 0.96 | — |
 | LTC | 282,826 | 172,951 | 0.76 | — |
 | ADA | 15,109 | 24,314 | 0.62 | — |
-| BNB | (available) | (available) | (available) | — |
 
 ## 2 · Which metrics, and what they would mean for the index
 
@@ -64,10 +65,10 @@ evidence that they carry information about the next weeks:
 | Metric | Coins | Reading | How it would enter |
 |---|---|---|---|
 | Exchange net flow (`FlowInExUSD − FlowOutExUSD`) | BTC ETH | inflow to exchanges = supply for sale, bearish; outflow = accumulation, bullish | 30-day z-score of the 7-day sum, sign flipped |
-| Active addresses | six | usage; a rising 7-day mean against its 90-day mean is bullish | z-score of the 7-day/90-day ratio |
-| Transactions and transfers | six (+ SOL non-vote tx/s from RPC) | same as above, noisier (inscriptions, spam) | as above, lower weight |
+| Active addresses | five | usage; a rising 7-day mean against its 90-day mean is bullish | z-score of the 7-day/90-day ratio |
+| Transactions and transfers | five (+ SOL non-vote tx/s from RPC) | same as above, noisier (inscriptions, spam) | as above, lower weight |
 | Fees paid USD | all seven (DefiLlama) | demand for block space; the only usage metric we have for all seven the same way | z-score of the 7-day/90-day ratio |
-| MVRV | six | valuation: > 3 historically overheated, < 1 undervalued; slow | mapped to a bounded −1..1 through the historical distribution, small weight |
+| MVRV | five | valuation: > 3 historically overheated, < 1 undervalued; slow | mapped to a bounded −1..1 through the historical distribution, small weight |
 | Stablecoin supply on the chain | ETH SOL BNB (DefiLlama) | dry powder on the chain; growth is bullish | 30-day change, z-scored |
 | Hash rate | BTC LTC | miner commitment; a fall is bearish (capitulation) | 30-day change, z-scored, BTC and LTC only |
 | TVL | ETH SOL BNB | DeFi activity; partly a price echo (TVL is priced in USD) | display only, not in the score |
@@ -81,7 +82,7 @@ one.
 ## 3 · How it fits the code
 
 - `chain/` module, one provider per source behind one `ChainProvider.fetch(assets, day)
-  -> list[ChainMetric]` Protocol: `coinmetrics.py` (six coins, one request), `defillama.py`
+  -> list[ChainMetric]` Protocol: `coinmetrics.py` (five coins, one request), `defillama.py`
   (fees, stablecoins, TVL; one request per chain), `solana_rpc.py` (throughput). Recorded
   fixtures, like the other providers.
 - `chain_metrics` table: `(asset, date, metric)` → `value, source, fetched_at`; an Alembic

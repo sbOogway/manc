@@ -205,6 +205,17 @@ class Forecasts:
 
 
 @dataclass(frozen=True)
+class ChainMetric:
+    """One daily on-chain reading (docs/on-chain-sources.md); no formula reads it yet."""
+
+    asset: str  # "BTCUSD"
+    date: date
+    metric: str  # "active_addresses", "mvrv", "fees_usd", ...
+    value: float
+    source: str  # "coinmetrics", "defillama", "solana_rpc"
+
+
+@dataclass(frozen=True)
 class SpotPrice:
     """One daily close, for display next to forecasts only; never a formula input."""
 

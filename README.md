@@ -72,6 +72,7 @@ in `config/llm.yaml` needs its key: the fallback (Mistral, free tier) reads
 
 ```sh
 uv run manc fetch                              # calendar, news and closes into the store; seconds, no model
+uv run manc chain --since 2024-09-20           # one-off backfill of the on-chain metrics for the coins
 uv run manc run                                # today: fetch, tag what is new, extract forecasts, score, store
 uv run manc run --date 2026-09-15              # a past day
 uv run manc -v run                             # also log every feed and calendar day
