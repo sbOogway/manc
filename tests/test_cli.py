@@ -175,7 +175,7 @@ def test_ui_serves_the_site_folder(site_server: type[FakeSiteServer]) -> None:
 
 
 def test_serve_starts_the_api_in_a_thread_and_the_site(
-    site_server: type[FakeSiteServer], monkeypatch: pytest.MonkeyPatch
+    migrated_db: str, site_server: type[FakeSiteServer], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     served: dict[str, object] = {}
     monkeypatch.setattr(cli.uvicorn, "run", lambda app, **kwargs: served.update(kwargs))
@@ -185,7 +185,7 @@ def test_serve_starts_the_api_in_a_thread_and_the_site(
     assert served["port"] == 8000
 
 
-def test_api_serves_the_app_with_uvicorn(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_api_serves_the_app_with_uvicorn(migrated_db: str, monkeypatch: pytest.MonkeyPatch) -> None:
     served: dict[str, object] = {}
 
     def fake_run(app: object, **kwargs: object) -> None:
@@ -198,7 +198,9 @@ def test_api_serves_the_app_with_uvicorn(monkeypatch: pytest.MonkeyPatch) -> Non
     assert served["app"].title == "manc"  # type: ignore[attr-defined]
 
 
-def test_api_binds_the_host_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_api_binds_the_host_from_the_environment(
+    migrated_db: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     served: dict[str, object] = {}
     monkeypatch.setenv("MANC_API_HOST", "0.0.0.0")
     monkeypatch.setattr(cli.uvicorn, "run", lambda app, **kwargs: served.update(kwargs))
@@ -378,6 +380,20 @@ def test_rescore_with_summaries_asks_the_model(
         "BTCUSD", "v2", date(2026, 9, 15), date(2026, 9, 15)
     )
     assert "\n\nReplayed.\n\n" in score.report_md
+
+
+def test_fetch_stores_the_inputs_and_prints_the_counts(
+    migrated_db: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    def exploding_completion(**kwargs: object) -> object:
+        raise AssertionError("fetch must not call the LLM")
+
+    monkeypatch.setattr(llm.litellm, "completion", exploding_completion)
+    assert cli.main(["fetch"]) == 0
+    assert re.fullmatch(r"events=\d+ news=\d+ closes=\d+\n", capsys.readouterr().out)
+    store = SqlStore(db.make_engine())
+    assert store.spot.latest("BTCUSD") is not None
+    assert store.scores.latest_day() is None
 
 
 def test_rescore_never_calls_the_llm(migrated_db: str, monkeypatch: pytest.MonkeyPatch) -> None:
