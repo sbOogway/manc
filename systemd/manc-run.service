@@ -1,5 +1,6 @@
-# The daily run on the host, where Claude Code is logged in; the container serves the result.
-# Afterwards the dashboard build is published, so the site always matches main.
+# The daily run on the host as the owner (@OWNER@ is rendered by scripts/install.sh), where
+# Claude Code is logged in; group manc and the umask keep the database writable by the
+# container too. A system unit. The site is published by the owner's post-merge hook, not here.
 [Unit]
 Description=manc daily run (host, Claude Code)
 After=network-online.target
@@ -7,8 +8,10 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/quant/manc
-Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=%h/.local/bin/uv run manc run
-ExecStartPost=%h/quant/manc/scripts/publish-site.sh
+User=@OWNER@
+Group=manc
+UMask=0002
+WorkingDirectory=/opt/manc
+Environment=MANC_DB_URL=sqlite:////var/lib/manc/data/manc.db PATH=/home/@OWNER@/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env uv run --no-sync manc run
 TimeoutStartSec=2h

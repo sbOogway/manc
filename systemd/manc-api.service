@@ -1,12 +1,12 @@
-# The REST API container, kept up while the user session (or linger) lasts.
-# Install every unit with scripts/install-systemd.sh.
+# The REST API container, rootless podman as the manc user. A user unit of manc, installed and
+# enabled by scripts/install.sh (linger keeps it up without a session).
 [Unit]
 Description=manc REST API (podman compose)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-WorkingDirectory=%h/quant/manc
+WorkingDirectory=/opt/manc
 ExecStart=/usr/bin/podman compose up api
 ExecStop=/usr/bin/podman compose down
 Restart=on-failure

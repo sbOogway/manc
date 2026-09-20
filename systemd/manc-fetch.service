@@ -1,9 +1,9 @@
-# The inputs only (calendar, news, closes), inside the container: no model needed.
+# The inputs only (calendar, news, closes), inside the container as manc: no model needed.
 [Unit]
 Description=manc fetch (podman compose)
 After=manc-api.service
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/quant/manc
+WorkingDirectory=/opt/manc
 ExecStart=/usr/bin/podman compose run --rm api manc fetch
