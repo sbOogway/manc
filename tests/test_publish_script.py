@@ -87,3 +87,15 @@ def test_skips_quietly_off_main_so_the_daily_run_never_publishes_a_branch(clone:
     assert result.returncode == 0
     assert "not on main" in result.stdout
     assert _git("ls-remote", "--heads", "origin", "gh-pages", cwd=clone) == ""
+
+
+def test_a_post_merge_hook_runs_the_publish_and_nothing_else_moves_off_commit() -> None:
+    import yaml
+
+    config = yaml.safe_load((SCRIPT.parents[1] / ".pre-commit-config.yaml").read_text())
+    hooks = [hook for repo in config["repos"] for hook in repo["hooks"]]
+    publish = next(hook for hook in hooks if hook["id"] == "publish-site")
+    assert publish["stages"] == ["post-merge"]
+    assert publish["entry"] == "scripts/publish-site.sh"
+    assert publish["always_run"] is True and publish["pass_filenames"] is False
+    assert all("stages" not in hook for hook in hooks if hook["id"] != "publish-site")

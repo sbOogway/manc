@@ -650,12 +650,15 @@ Secrets: the API-key env var of whichever provider `llm.model` names (`ANTHROPIC
 `OPENAI_API_KEY`, …); LiteLLM reads the standard one per provider, and a local Ollama model
 needs none.
 
-No hosted CI. `uv run pre-commit install` once after cloning installs the git hooks; from then
-on every commit runs, in order: file hygiene checks (trailing whitespace, end-of-file,
-YAML/TOML syntax, large files), `ruff format`, `ruff check --fix`, and `pytest` with the
-coverage floor. A commit that fails any step is rejected. Hooks run through `uv run` so they
-use the project environment, and `SKIP=pytest git commit` remains available for
-work-in-progress commits on a branch.
+No hosted CI. `uv run pre-commit install --hook-type pre-commit --hook-type post-merge` once
+after cloning installs the git hooks; from then on every commit runs, in order: file hygiene
+checks (trailing whitespace, end-of-file, YAML/TOML syntax, large files), `ruff format`,
+`ruff check --fix`, and `pytest` with the coverage floor. A commit that fails any step is
+rejected. Hooks run through `uv run` so they use the project environment, and
+`SKIP=pytest git commit` remains available for work-in-progress commits on a branch. The
+`post-merge` stage holds one hook, `scripts/publish-site.sh`: after `git pull` on `main` the
+dashboard build goes to `gh-pages`, so the published site follows `main` (the script is a
+no-op on any other branch).
 
 Scheduling is five systemd user units under `systemd/`, linked and enabled by
 `scripts/install-systemd.sh` (which also turns on linger, so they run without an open
