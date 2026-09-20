@@ -17,8 +17,8 @@ US Treasury yields (`config/assets.yaml`).
 calendar (Nasdaq) ─┐
 news (RSS feeds)  ─┼─► tag headlines (LLM) ─► formula ─► SQLite ◄── FastAPI ◄── static site
 forecasts (LLM)   ─┘                                               manc api      GitHub Pages
-  manc fetch (cron, every 15 min): the inputs only
-  manc run   (cron, once a day):   fetch, tag what is new, forecasts, scores, reports
+  manc fetch (timer, every 15 min): the inputs only
+  manc run   (timer, once a day):   fetch, tag what is new, forecasts, scores, reports
 ```
 
 - **Calendar**: Nasdaq's public economic-calendar endpoint; category and importance come
@@ -48,8 +48,10 @@ the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the 
 | M1 Skeleton: models, store, migrations, CLI, fakes, hooks | done |
 | M2 Ingestion: RSS news, Nasdaq calendar, LLM forecast extractor, Yahoo spot closes, Fed SEP and World Bank publishers | done |
 | M3 Analysis and index: LLM tagger, lexicon fallback, formula v1 | done |
-| M4 Report, API and dashboard: markdown report, REST API, static dashboard on GitHub Pages | in progress |
-| M5 Operations, M6 Formula v2 | planned |
+| M4 Report, API and dashboard: markdown report, REST API, static dashboard on GitHub Pages | done |
+| M5 Operations: systemd units, journal log, tuning pass | in progress |
+| M6 Formula v2: standardised surprise, novelty, dispersion, asymmetry | done |
+| M7 Site package: Vue 3 + TypeScript, PrimeVue, Vite | done |
 
 ## Setup
 
@@ -81,12 +83,7 @@ uv run manc forecasts --since 2026-06-01       # one-off forecast backfill from 
 ```
 
 Every run logs its start, each step and each tagging batch to stderr with the time; the
-scores go to stdout, one line per asset. Scheduling is two cron lines:
-
-```
-*/15 * * * * cd ~/quant/manc && uv run manc fetch
-0 6 * * 1-5  cd ~/quant/manc && uv run manc run
-```
+scores go to stdout, one line per asset. Scheduling is systemd user units, see Production.
 
 ### Dashboard
 
@@ -137,13 +134,25 @@ from the Zero Trust dashboard (Networks → Tunnels → Create, connector type c
 the tunnel a public hostname whose service is `http://api:8000`). Runs inside the container
 need `MANC_LLM_MODEL=mistral/ministral-14b-latest` (or any keyed model) in `.env`, because the
 image has no Claude CLI; a run on the host uses `config/llm.yaml` as usual and the container
-serves the result immediately. Either way the cron lines are
+serves the result immediately.
 
+Scheduling is five systemd user units under `systemd/`:
+
+```sh
+scripts/install-systemd.sh                     # link, enable and start them; enables linger
+systemctl --user status manc-api manc-fetch.timer manc-run.timer
+journalctl --user -u manc-run -f               # the daily run's log
+systemctl --user start manc-run                # a run by hand, same environment
 ```
-*/15 * * * * cd ~/quant/manc && podman compose run --rm api manc fetch  # the inputs, no model
-0 6 * * 1-5  cd ~/quant/manc && uv run manc run                          # host, Claude Code
-0 6 * * 1-5  cd ~/quant/manc && podman compose run --rm api manc run     # or: container, keyed model
-```
+
+`manc-api.service` keeps the API container up; `manc-fetch.timer` fetches in the container
+every 15 minutes; `manc-run.timer` runs `manc run` on the host at 06:00 UTC every day
+(`Persistent=true`: a day the machine slept through runs at the next wake) and then
+`scripts/publish-site.sh`, so the published dashboard follows `main`. The publish pushes over
+SSH from a session with no agent, so the key for `origin` must have no passphrase (or use a
+`~/.ssh/config` entry with `IdentityFile`). To run the daily step in the container instead,
+change `ExecStart` in `manc-run.service` to `podman compose run --rm api manc run` and set
+`MANC_LLM_MODEL` in `.env`.
 
 ## Development
 

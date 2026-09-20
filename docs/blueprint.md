@@ -53,12 +53,12 @@ marks them; a refetch never resets it), extracts forecasts, scores and writes th
 
 Reading is separate from writing. The pipeline is the only writer. A REST API (`manc api`)
 serves everything a person might look at, and the dashboard (`manc ui`) is one client of that
-API; it never touches the database. Scheduling is two plain cron entries; no queue, no
-workers, no orchestrator.
+API; it never touches the database. Scheduling is two systemd user timers (`systemd/`); no
+queue, no workers, no orchestrator.
 
 ```
-manc fetch (cron, every 15 min) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── static site (GitHub Pages)
-manc run   (cron, once a day)   ──►            manc api                  site/
+manc fetch (timer, every 15 min) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── static site (GitHub Pages)
+manc run   (timer, once a day)   ──►            manc api                  site/
 ```
 
 Because every input to step 04 is
@@ -657,8 +657,13 @@ coverage floor. A commit that fails any step is rejected. Hooks run through `uv 
 use the project environment, and `SKIP=pytest git commit` remains available for
 work-in-progress commits on a branch.
 
-Scheduling on the host: `*/15 * * * * cd ~/quant/manc && uv run manc fetch` and
-`0 6 * * 1-5 cd ~/quant/manc && uv run manc run`.
+Scheduling is five systemd user units under `systemd/`, linked and enabled by
+`scripts/install-systemd.sh` (which also turns on linger, so they run without an open
+session): `manc-api.service` keeps the API container up; `manc-fetch.timer` runs `manc fetch`
+in the container every 15 minutes; `manc-run.timer` runs `manc run` on the host at 06:00 UTC
+every day (crypto trades on weekends) with `Persistent=true`, so a day the machine slept
+through runs at the next wake, and then `scripts/publish-site.sh`, which publishes only from
+`main` and is a no-op elsewhere. Logs go to the journal (`journalctl --user -u manc-run`).
 
 ### Production
 
@@ -671,7 +676,7 @@ hostname points at `http://api:8000`. Rootless Podman on the owner's machine; Do
 same files. Two environment variables exist for the container and nothing else: `MANC_API_HOST`
 (the image binds `0.0.0.0`, the CLI keeps loopback) and `MANC_LLM_MODEL`, which overrides
 `llm.model` because the image has no Claude CLI to run headless. The daily run therefore
-happens either on the host (`uv run manc run`, Claude Code, the cron line above) or inside the
+happens either on the host (`uv run manc run`, Claude Code, `manc-run.timer` above) or inside the
 container (`podman compose run --rm api manc run` with a keyed model in `.env`); both write the
 same database and the API serves it live. The dashboard is on GitHub Pages and reads the API
 through the tunnel hostname.
@@ -730,7 +735,7 @@ the API only, first against `manc api` on localhost and then published on GitHub
 - `scripts/publish-site.sh` and the `gh-pages` branch
 
 **M5 Operations** — done when: two weeks of daily scores exist without manual intervention.
-- cron entry and README runbook
+- systemd user units and README runbook
 - run log (timestamped stderr lines per step and tagging batch) and failure notification
   (stderr + exit code is enough)
 - first tuning pass on weights using the accumulated scores
@@ -794,7 +799,9 @@ load-bearing enough to block a start.
 
 - **SQLite, not Postgres — but through SQLAlchemy Core and Alembic.** One user, one writer per
   day, one file; the schema is versioned from day one and the engine is a URL change away.
-- **Cron, not a scheduler library.** The run is idempotent, so a missed run is just re-run.
+- **systemd timers, not a scheduler library.** The run is idempotent, so a missed run is just
+  re-run, which `Persistent=true` does by itself; the journal replaces log redirection. Chosen
+  over cron on 2026-09-20 for those two reasons.
 - **An LLM for tagging, not a keyword list.** Tagging quality is the biggest driver of N; the
   cost is cents per day.
 - **LiteLLM, not a hand-rolled provider adapter.** One dependency covers every provider; the
