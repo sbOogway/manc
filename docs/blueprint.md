@@ -506,11 +506,12 @@ bundler, no `node_modules`, no build step: the folder is published as it is. It 
 thing it knows about it is the API URL. `site/client.js` wraps the routes above in one function
 per route over `fetch`.
 
-The API URL is `http://localhost:8000` by default, for the local test against `manc api`. The
-header has a field to point the site at another backend (the Cloudflare tunnel in front of the
-owner's machine); the choice is kept in `localStorage`, so the published site needs no
-per-deployment edit. Routing uses the hash (`/#/asset/EURUSD`), which GitHub Pages serves
-without rewrite rules.
+The API URL follows where the page is served from: `http://localhost:8000` on localhost (the
+local test against `manc api`), the production backend (the Cloudflare tunnel in front of the
+owner's machine, one constant in `client.js`) from GitHub Pages. The header has a field to
+point the site at any other backend; the choice is kept in `localStorage` and wins over both
+defaults. Routing uses the hash (`/#/asset/EURUSD`), which GitHub Pages serves without rewrite
+rules.
 
 - `/` — overview: one card per asset with today's score as a large number, a coloured band
   label, the delta from yesterday, a 30-day sparkline, and an event-risk badge; sorted by

@@ -95,8 +95,8 @@ field in the header points it at another backend, for instance a Cloudflare tunn
 
 Publishing it to GitHub Pages is `scripts/publish-site.sh`: it pushes `site/` to the `gh-pages`
 branch, which Pages serves (enable Pages on that branch once, the command is in the script).
-The published site starts on `localhost:8000` too, so set the tunnel URL in the header after the
-first load.
+The published site reads the production backend (`PRODUCTION_API_URL` in `site/client.js`, the
+tunnel hostname); the header field still overrides it.
 
 ### Production
 
