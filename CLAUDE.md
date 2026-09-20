@@ -50,7 +50,7 @@ the index formula, storage, dashboard and milestones. Keep it updated when a dec
 
 ```sh
 uv sync                              # environment
-uv run pre-commit install            # git hooks, once per clone
+uv run pre-commit install --hook-type pre-commit --hook-type post-merge   # git hooks, once per clone
 uv run pytest                        # tests with coverage
 uv run pre-commit run --all-files    # every hook on every tracked file
 cd site && npm ci && npm run build   # the dashboard package, once per clone; then `npm run check`

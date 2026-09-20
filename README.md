@@ -59,7 +59,7 @@ Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
 ```sh
 uv sync                      # environment
-uv run pre-commit install    # git hooks, once per clone
+uv run pre-commit install --hook-type pre-commit --hook-type post-merge   # git hooks, once per clone
 uv run alembic upgrade head  # create or migrate data/manc.db (MANC_DB_URL for another database)
 uv run pytest                # tests, no network
 ```
@@ -147,7 +147,8 @@ systemctl --user start manc-run                # a run by hand, same environment
 `manc-api.service` keeps the API container up; `manc-fetch.timer` fetches in the container
 every 15 minutes; `manc-run.timer` runs `manc run` on the host at 06:00 UTC every day
 (`Persistent=true`: a day the machine slept through runs at the next wake) and then
-`scripts/publish-site.sh`, so the published dashboard follows `main`. The publish pushes over
+`scripts/publish-site.sh`, so the published dashboard follows `main` even on a day nothing was
+pulled (the `post-merge` hook publishes right after a pull). The publish pushes over
 SSH from a session with no agent, so the key for `origin` must have no passphrase (or use a
 `~/.ssh/config` entry with `IdentityFile`). To run the daily step in the container instead,
 change `ExecStart` in `manc-run.service` to `podman compose run --rm api manc run` and set
