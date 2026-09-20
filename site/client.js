@@ -1,8 +1,12 @@
 // One function per API route over fetch. The base URL is the only thing the site knows
-// about the backend: localhost by default, overridable from the header and kept in storage.
+// about the backend: localhost when the page is served locally, the production backend
+// (the Cloudflare tunnel in front of `manc api`) when it is served from GitHub Pages, and
+// whatever the header field set, kept in storage, over both.
 
 export const DEFAULT_API_URL = "http://localhost:8000";
+export const PRODUCTION_API_URL = ""; // the tunnel hostname; empty keeps localhost everywhere
 const STORAGE_KEY = "manc.apiUrl";
+const LOCAL_HOSTS = new Set(["", "localhost", "127.0.0.1", "[::1]"]);
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -20,9 +24,16 @@ function storageOrNull() {
   }
 }
 
-export function apiUrl(storage = storageOrNull()) {
+export function defaultApiUrl(hostname) {
+  if (LOCAL_HOSTS.has(hostname) || !PRODUCTION_API_URL) {
+    return DEFAULT_API_URL;
+  }
+  return PRODUCTION_API_URL;
+}
+
+export function apiUrl(storage = storageOrNull(), hostname = globalThis.location?.hostname ?? "") {
   const stored = storage?.getItem(STORAGE_KEY);
-  return stored || DEFAULT_API_URL;
+  return stored || defaultApiUrl(hostname);
 }
 
 export function setApiUrl(url, storage = storageOrNull()) {

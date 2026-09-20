@@ -4,7 +4,9 @@ import assert from "node:assert/strict";
 import {
   ApiError,
   DEFAULT_API_URL,
+  PRODUCTION_API_URL,
   apiUrl,
+  defaultApiUrl,
   buildUrl,
   createClient,
   setApiUrl,
@@ -40,13 +42,22 @@ function fakeFetch(responses) {
   return fetchFake;
 }
 
+test("the default backend follows where the page is served from", () => {
+  assert.equal(defaultApiUrl("localhost"), DEFAULT_API_URL);
+  assert.equal(defaultApiUrl("127.0.0.1"), DEFAULT_API_URL);
+  assert.equal(defaultApiUrl(""), DEFAULT_API_URL); // file:// or a test runner
+  assert.equal(defaultApiUrl("sboogway.github.io"), PRODUCTION_API_URL || DEFAULT_API_URL);
+  assert.equal(defaultApiUrl("manc.example.org"), PRODUCTION_API_URL || DEFAULT_API_URL);
+});
+
 test("the API URL defaults to localhost and the override survives in storage", () => {
   const storage = new FakeStorage();
-  assert.equal(apiUrl(storage), DEFAULT_API_URL);
+  assert.equal(apiUrl(storage, "localhost"), DEFAULT_API_URL);
   setApiUrl("https://manc.example.org/", storage);
   assert.equal(apiUrl(storage), "https://manc.example.org"); // trailing slash dropped
+  assert.equal(apiUrl(storage, "sboogway.github.io"), "https://manc.example.org"); // storage wins
   setApiUrl("   ", storage);
-  assert.equal(apiUrl(storage), DEFAULT_API_URL); // blank resets
+  assert.equal(apiUrl(storage, "localhost"), DEFAULT_API_URL); // blank resets
 });
 
 test("buildUrl encodes the params and drops the empty ones", () => {
