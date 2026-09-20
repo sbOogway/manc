@@ -296,6 +296,8 @@ export interface components {
         };
         /** ChainSeries */
         ChainSeries: {
+            /** Group */
+            group: string;
             /** Label */
             label: string;
             /** Metric */

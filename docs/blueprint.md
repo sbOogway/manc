@@ -302,8 +302,11 @@ For the coins only, display first (`docs/on-chain-sources.md` is the survey and 
 request, no key, CC BY-NC 4.0 so the site credits it; a day's row is complete about 02:30 UTC
 the next day), `defillama.py` (daily fees, TVL and stablecoin supply per chain, all seven
 coins, no key) and `solana_rpc.py` (mean non-vote transactions per second from the node's
-recent performance samples; today only, no history). The ids per source sit in
-`config/assets.yaml` (`chain: {coinmetrics: btc, defillama: bitcoin}`). `manc chain --since`
+recent performance samples; today only, no history), and two keyless sentiment sources next
+to them: `fear_greed.py` (CoinMarketCap's Fear & Greed index, market-wide, paged history,
+stored under every coin) and `coingecko.py` (community votes up and watchlist users per coin,
+a snapshot a day, one coin at a time under the keyless rate limit). The ids per source sit in
+`config/assets.yaml` (`chain: {coinmetrics: btc, defillama: bitcoin, coingecko: bitcoin}`). `manc chain --since`
 backfills; the daily run re-reads the last week. A source that fails is a warning. No formula
 reads these yet: a v3 with a chain component is the next decision, after the series have been
 looked at.
@@ -550,9 +553,9 @@ rules.
   components as faint lines, markers on high-impact event days) with TradingView's daily price
   chart embedded next to it (the `tradingview` ticker in `config/assets.yaml`, through
   `/api/v1/assets`; the site keeps no price history and never mixes the two scales),
-  date-range and formula selectors, an "On-chain" card of small multiples for the coins (one
-  thin line per stored series over the same range, the latest value as its headline, the
-  sources credited), today's
+  date-range and formula selectors, "On-chain" and "Sentiment" cards of small multiples for
+  the coins (one thin line per stored series over the same range, the latest value as its
+  headline, the sources credited; the series' `group` picks the card), today's
   report, upcoming high-impact events table, the headlines that moved the score with their
   direction and source, and a forecasts panel: one row per institution and horizon with the
   target, its distance from spot, a revision arrow, and a median row; the macro forecasts for

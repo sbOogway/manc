@@ -23,15 +23,19 @@ SPARKLINE_DAYS = 30
 UNKNOWN_SOURCE_WEIGHT = 1.0
 UNKNOWN_INSTITUTION_WEIGHT = 0.0
 EVENT_RISK_COMPONENT = "R"
-# on-chain series in display order; the net flow is derived from the two flow readings
-CHAIN_METRICS: dict[str, str] = {
-    "active_addresses": "Active addresses",
-    "exchange_netflow_usd": "Exchange net flow (USD)",
-    "fees_usd": "Fees paid (USD)",
-    "mvrv": "MVRV",
-    "stablecoins_usd": "Stablecoins on chain (USD)",
-    "tvl_usd": "TVL (USD)",
-    "tx_per_second": "Transactions per second",
+# on-chain and sentiment series in display order: metric -> (label, group); the net flow is
+# derived from the two flow readings
+CHAIN_METRICS: dict[str, tuple[str, str]] = {
+    "active_addresses": ("Active addresses", "chain"),
+    "exchange_netflow_usd": ("Exchange net flow (USD)", "chain"),
+    "fees_usd": ("Fees paid (USD)", "chain"),
+    "mvrv": ("MVRV", "chain"),
+    "stablecoins_usd": ("Stablecoins on chain (USD)", "chain"),
+    "tvl_usd": ("TVL (USD)", "chain"),
+    "tx_per_second": ("Transactions per second", "chain"),
+    "fear_greed": ("Fear & Greed (market)", "sentiment"),
+    "sentiment_votes_up_pct": ("CoinGecko votes up (%)", "sentiment"),
+    "watchlist_users": ("CoinGecko watchlists", "sentiment"),
 }
 
 
@@ -123,6 +127,7 @@ class ChainPoint:
 class ChainSeries:
     metric: str
     label: str
+    group: str  # "chain" | "sentiment": which card of the asset page shows it
     source: str
     points: tuple[ChainPoint, ...]  # oldest first
 
@@ -319,7 +324,7 @@ def chain_series(
         stored["exchange_inflow_usd"], stored["exchange_outflow_usd"]
     )
     series = []
-    for metric, label in CHAIN_METRICS.items():
+    for metric, (label, group) in CHAIN_METRICS.items():
         rows = stored[metric]
         if not rows:
             continue
@@ -327,6 +332,7 @@ def chain_series(
             ChainSeries(
                 metric=metric,
                 label=label,
+                group=group,
                 source=rows[-1].source,
                 points=tuple(ChainPoint(date=row.date, value=row.value) for row in rows),
             )

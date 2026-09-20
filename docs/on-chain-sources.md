@@ -111,3 +111,17 @@ PR), then v3 after two weeks of looking at the panel, as the blueprint did for v
    have been seen.
 3. Coin Metrics Community is non-commercial (CC BY-NC). Fine for the private dashboard; if
    manc ever becomes a paid product, it is the one source in the list to replace.
+
+## 5 · Sentiment, keyless (added 2026-09-20)
+
+The owner wants no API keys, so the CoinMarketCap community endpoints (posts per coin: a free
+key, and the bullish/bearish tag users pick is not in the API anyway) and the CMC AI
+endpoints (Enterprise only at launch) are out. Two keyless sources give sentiment:
+
+| Source | Metric | Coverage | History | Limits |
+|---|---|---|---|---|
+| CoinMarketCap `/public-api/v3/fear-and-greed/historical` | `fear_greed`, the Crypto Fear & Greed index 0..100, market-wide, stored under every coin | all | paged, years | shared IP pool, one call a day here |
+| CoinGecko `/api/v3/coins/{id}` | `sentiment_votes_up_pct` (community votes up, %), `watchlist_users` | all seven (`coingecko` id in `config/assets.yaml`) | snapshot only: accrues from the day it ships | tight per-IP limit on the keyless tier: one coin at a time, a pause between coins, one retry after a 429 |
+
+Both are `ChainProvider`s writing `chain_metrics`; `chain_series` tags each series with a
+`group`, and the asset page shows the `sentiment` group in its own card next to "On-chain".

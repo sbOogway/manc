@@ -512,12 +512,18 @@ def test_chain_series_in_a_fixed_order_with_the_net_flow_derived() -> None:
         _chain(TODAY - DAY, "exchange_inflow_usd", 900.0),  # no outflow that day: no net flow
         _chain(TODAY, "fees_usd", 10000.0, source="defillama"),
     )
+    store.chain.add(
+        _chain(TODAY, "fear_greed", 73.0, source="coinmarketcap"),
+        _chain(TODAY, "sentiment_votes_up_pct", 78.6, source="coingecko"),
+    )
     series = chain_series(store, CONFIG, "BTCUSD", TODAY - 7 * DAY, TODAY)
-    assert [(one.metric, one.source) for one in series] == [
-        ("active_addresses", "coinmetrics"),
-        ("exchange_netflow_usd", "coinmetrics"),
-        ("fees_usd", "defillama"),
-        ("mvrv", "coinmetrics"),
+    assert [(one.metric, one.source, one.group) for one in series] == [
+        ("active_addresses", "coinmetrics", "chain"),
+        ("exchange_netflow_usd", "coinmetrics", "chain"),
+        ("fees_usd", "defillama", "chain"),
+        ("mvrv", "coinmetrics", "chain"),
+        ("fear_greed", "coinmarketcap", "sentiment"),
+        ("sentiment_votes_up_pct", "coingecko", "sentiment"),
     ]
     by_metric = {one.metric: one for one in series}
     assert [(point.date, point.value) for point in by_metric["mvrv"].points] == [
