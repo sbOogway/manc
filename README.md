@@ -117,46 +117,44 @@ in the script). The published site reads the production backend (`PRODUCTION_API
 
 ### Production
 
-One line installs the whole thing on a machine with `git`, `podman`, `setfacl` (`acl`) and
-[Claude Code](https://claude.com/claude-code) logged in under your account, and brings an
-existing install up to date (pull `main`, redeploy):
+Two commands install the whole thing on a machine with `uv`, `setfacl` (`acl`) and
+[Claude Code](https://claude.com/claude-code) logged in under your account; the same two bring
+an existing install up to date:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/sbOogway/manc/main/scripts/install.sh | sudo sh
+sudo env UV_TOOL_DIR=/opt/manc UV_TOOL_BIN_DIR=/usr/local/bin uv tool install --python 3.12 git+https://github.com/sbOogway/manc
+sudo manc install --owner $USER
 ```
 
-The install is system-wide under a dedicated user, apart from any development checkout:
+The first is a self-contained `manc` (its own Python and locked dependencies) under
+`/opt/manc`, on everyone's `PATH` as `/usr/local/bin/manc`; `uv tool upgrade manc` with the
+same two variables updates it, `@v1.2.3` after the URL pins a tag. The second lays the
+machine out, idempotently:
 
-- `manc`, a system user with no login shell, its own subordinate id range and linger on, owns
-  the code in `/opt/manc` and runs the API container with rootless podman as its own user
-  units, `manc-api.service` (up all the time) and `manc-fetch.timer` (`manc fetch` in the
-  container every 15 minutes, no model needed);
-- the database is `/var/lib/manc/data/manc.db`, group `manc` with a default ACL so both the
-  container and the daily run write it;
-- the daily run stays on the host with your Claude Code login: `manc-run.timer` is a system
-  unit running `manc run` as you at 06:00 UTC every day (`Persistent=true`: a day the machine
-  slept through runs at the next wake). The site is not published from the server; the
-  `post-merge` hook in your development checkout does that;
-- `/etc/manc/env` (`root:manc 0640`, symlinked as `/opt/manc/.env`) holds the provider keys,
-  `MANC_API_BIND` (the address the API listens on: loopback, or the LAN address that the
-  machine running the public tunnel reaches; that tunnel's hostname is `PRODUCTION_API_URL`)
-  and `MANC_DATA_DIR`. Editing it is the one manual step; then restart the API.
+- `manc`, a system user with no login shell, runs the API and the fetch as system units
+  confined to `/var/lib/manc`: `manc-api.service` (up all the time, restarts on failure) and
+  `manc-fetch.timer` (`manc fetch` every 15 minutes, no model needed);
+- the database is `/var/lib/manc/manc.db`, group `manc` with a default ACL so both `manc` and
+  you write it (you are added to the group);
+- the daily run stays with your Claude Code login: `manc-run@<you>.timer` runs `manc run` as
+  you at 06:00 UTC every day (`Persistent=true`: a day the machine slept through runs at the
+  next wake). The site is not published from the server; the `post-merge` hook in your
+  development checkout does that;
+- `/etc/manc/env` (`root:manc 0640`, written once from the packaged example, never
+  overwritten) holds the provider keys, `MANC_DB_URL` and `MANC_API_HOST` (the address the API
+  listens on: loopback, or the LAN address that the machine running the public tunnel
+  reaches; that tunnel's hostname is `PRODUCTION_API_URL`). Editing it is the one manual step.
 
 ```sh
-sudo -u manc XDG_RUNTIME_DIR=/run/user/$(id -u manc) systemctl --user status manc-api manc-fetch.timer
-sudo -u manc XDG_RUNTIME_DIR=/run/user/$(id -u manc) systemctl --user restart manc-api
-sudo -u manc XDG_RUNTIME_DIR=/run/user/$(id -u manc) journalctl --user -u manc-api -f
-sudo systemctl status manc-run.timer
-sudo systemctl start manc-run                  # a daily run by hand, same environment
-sudo journalctl -u manc-run -f                 # its log
+sudo systemctl status manc-api manc-fetch.timer manc-run@$USER.timer
+sudo systemctl restart manc-api                # after editing /etc/manc/env
+sudo journalctl -u manc-api -f                 # uvicorn log
+sudo systemctl start manc-run@$USER            # a daily run by hand, same environment
+sudo journalctl -u manc-run@$USER -f           # its log
 ```
 
-The image itself: `Containerfile` and `compose.yaml` work with Podman (rootless) and Docker
-alike; `podman compose up -d --build` in a development checkout serves the API on
-http://127.0.0.1:8000 from `./data`, migrating on start. To run the daily step inside the
-container instead of on the host, set `MANC_LLM_MODEL=mistral/ministral-14b-latest` (or any
-keyed model) in the env file, because the image has no Claude CLI, and change `ExecStart` in
-`manc-run.service` to `podman compose run --rm api manc run`.
+A machine without a Claude Code login can run the daily step with a keyed model instead:
+`MANC_LLM_MODEL=mistral/ministral-14b-latest` in the env file.
 
 ## Development
 

@@ -35,6 +35,7 @@ def test_wheel_carries_the_config_files_and_the_migrations(wheel: Path) -> None:
     versions = [name for name in names if name.startswith("manc/migrations/versions/")]
     assert versions and any(name.endswith("_initial.py") for name in versions)
     assert not any(name.startswith("manc/config.py") for name in names)  # the module is the package
+    assert "manc/systemd/manc-api.service" in names and "manc/systemd/env.example" in names
 
 
 def test_config_and_migrations_live_inside_the_package() -> None:

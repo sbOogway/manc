@@ -1,4 +1,4 @@
-"""`manc` command line: fetch | chain | run | rescore | forecasts | migrate | api | ui | serve."""
+"""`manc` command line: fetch, chain, run, rescore, forecasts, install, migrate, api, ui, serve."""
 
 import argparse
 import logging
@@ -13,6 +13,7 @@ from pathlib import Path
 
 import uvicorn
 
+from manc import install as installer
 from manc.analysis.lexicon import LexiconAnalyzer
 from manc.analysis.llm import LlmAnalyzer
 from manc.api.app import create_app
@@ -37,7 +38,7 @@ from manc.spot.yahoo import YahooSpot
 from manc.store import db
 from manc.store.sql import SqlStore
 
-API_HOST = "127.0.0.1"  # MANC_API_HOST overrides it; the container image binds 0.0.0.0
+API_HOST = "127.0.0.1"  # MANC_API_HOST overrides it (the env file, for the tunnel machine)
 API_PORT = 8000
 SITE_PORT = 8050
 SITE_DIR = Path(__file__).resolve().parents[2] / "site" / "dist"  # what `npm run build` writes
@@ -56,6 +57,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not _site_built():
             return 1
         _serve_site()
+        return 0
+    if args.command == "install":
+        try:
+            installer.install(args.owner)
+        except PermissionError as error:
+            print(f"manc: {error}", file=sys.stderr)
+            return 1
+        print(
+            f"install: manc-api.service, manc-fetch.timer and manc-run@{args.owner}.timer are up; "
+            "edit /etc/manc/env, then `systemctl restart manc-api`"
+        )
         return 0
     if args.command == "migrate":
         db.upgrade()
@@ -218,6 +230,12 @@ def _parser() -> argparse.ArgumentParser:
         "--since", type=date.fromisoformat, required=True, help="earliest publication day"
     )
 
+    install_cmd = commands.add_parser(
+        "install", help="as root: the manc user, /var/lib/manc, /etc/manc/env and the systemd units"
+    )
+    install_cmd.add_argument(
+        "--owner", required=True, help="the user whose Claude Code login runs the daily run"
+    )
     commands.add_parser(
         "migrate", help="create or migrate the database (MANC_DB_URL) to the current schema"
     )
