@@ -344,3 +344,10 @@ def test_chain_add_overwrites_the_value(store: Store) -> None:
     store.chain.add(_chain(day, 100.0))
     store.chain.add(_chain(day, 101.0))
     assert store.chain.series("BTCUSD", "active_addresses", day, day) == [_chain(day, 101.0)]
+
+
+def test_a_large_add_fits_sqlite_variable_limits(store: Store) -> None:
+    day = NOW.date()
+    rows = [_chain(day - offset * DAY, float(offset)) for offset in range(3000)]
+    store.chain.add(*rows)
+    assert len(store.chain.series("BTCUSD", "active_addresses", date.min, date.max)) == 3000
