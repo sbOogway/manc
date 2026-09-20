@@ -8,7 +8,15 @@ from sqlalchemy import Engine, Table, case, func, select, update
 from sqlalchemy.dialects import postgresql, sqlite
 
 from manc.formulas.contract import IndexScore
-from manc.models import CalendarEvent, ForecastAsset, ForecastMacro, NewsItem, NewsTag, SpotPrice
+from manc.models import (
+    CalendarEvent,
+    ChainMetric,
+    ForecastAsset,
+    ForecastMacro,
+    NewsItem,
+    NewsTag,
+    SpotPrice,
+)
 from manc.store import db, schema
 
 _SIGHTING_COLUMNS = ("published_at", "source_url", "confidence", "model")
@@ -294,6 +302,50 @@ class SqlForecastRepository:
             return [self._row_factory(row) for row in connection.execute(statement).mappings()]
 
 
+class SqlChainRepository:
+    def __init__(self, engine: Engine) -> None:
+        self._engine = engine
+
+    def add(self, *metrics: ChainMetric) -> None:
+        now = datetime.now(UTC)
+        _upsert(
+            self._engine,
+            schema.chain_metrics,
+            [
+                {
+                    "asset": metric.asset,
+                    "date": metric.date,
+                    "metric": metric.metric,
+                    "value": metric.value,
+                    "source": metric.source,
+                    "fetched_at": now,
+                }
+                for metric in metrics
+            ],
+        )
+
+    def series(self, asset: str, metric: str, start: date, end: date) -> list[ChainMetric]:
+        statement = (
+            select(schema.chain_metrics)
+            .where(schema.chain_metrics.c.asset == asset)
+            .where(schema.chain_metrics.c.metric == metric)
+            .where(schema.chain_metrics.c.date.between(start, end))
+            .order_by(schema.chain_metrics.c.date)
+        )
+        with self._engine.connect() as connection:
+            return [_chain_metric(row) for row in connection.execute(statement).mappings()]
+
+    def latest(self, asset: str) -> dict[str, ChainMetric]:
+        statement = (
+            select(schema.chain_metrics)
+            .where(schema.chain_metrics.c.asset == asset)
+            .order_by(schema.chain_metrics.c.date)
+        )
+        with self._engine.connect() as connection:
+            rows = [_chain_metric(row) for row in connection.execute(statement).mappings()]
+        return {row.metric: row for row in rows}  # ascending dates: the last one wins
+
+
 class SqlSpotRepository:
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
@@ -365,6 +417,7 @@ class SqlStore:
             _forecast_macro,
         )
         self.spot = SqlSpotRepository(engine)
+        self.chain = SqlChainRepository(engine)
 
 
 def _news_item(row: Any) -> NewsItem:
@@ -437,6 +490,16 @@ def _forecast_asset(row: Any) -> ForecastAsset:
 
 def _forecast_macro(row: Any) -> ForecastMacro:
     return ForecastMacro(economy=row["economy"], metric=row["metric"], **_forecast_fields(row))
+
+
+def _chain_metric(row: Any) -> ChainMetric:
+    return ChainMetric(
+        asset=row["asset"],
+        date=row["date"],
+        metric=row["metric"],
+        value=row["value"],
+        source=row["source"],
+    )
 
 
 def _spot_price(row: Any) -> SpotPrice:

@@ -8,7 +8,7 @@ from typing import Any
 import pandas
 
 from manc.formulas.contract import AssetSpec, IndexScore
-from manc.models import CalendarEvent, Forecasts, NewsItem, NewsTag, SpotPrice
+from manc.models import CalendarEvent, ChainMetric, Forecasts, NewsItem, NewsTag, SpotPrice
 
 SPOT_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "spot"
 
@@ -68,6 +68,23 @@ class FakeSpot:
     def fetch(self, assets: Sequence[AssetSpec], day: date) -> list[SpotPrice]:
         symbols = {asset.symbol for asset in assets}
         return [price for price in self.prices if price.asset in symbols and price.date == day]
+
+
+class FakeChain:
+    """Replays canned readings inside the window, for the assets asked; records the calls."""
+
+    def __init__(self, metrics: Iterable[ChainMetric] = ()) -> None:
+        self.metrics = list(metrics)
+        self.calls: list[tuple[date, date]] = []
+
+    def fetch(self, assets: Sequence[AssetSpec], start: date, end: date) -> list[ChainMetric]:
+        self.calls.append((start, end))
+        symbols = {asset.symbol for asset in assets}
+        return [
+            metric
+            for metric in self.metrics
+            if metric.asset in symbols and start <= metric.date <= end
+        ]
 
 
 def recorded_history(ticker: str, start: date, end: date) -> pandas.DataFrame:
@@ -213,6 +230,30 @@ class FakeSpotRepository:
         return sorted(matching, key=lambda price: price.date)
 
 
+class FakeChainRepository:
+    def __init__(self) -> None:
+        self.rows: dict[tuple[str, date, str], ChainMetric] = {}
+
+    def add(self, *metrics: ChainMetric) -> None:
+        for metric in metrics:
+            self.rows[(metric.asset, metric.date, metric.metric)] = metric
+
+    def series(self, asset: str, metric: str, start: date, end: date) -> list[ChainMetric]:
+        matching = [
+            row
+            for (row_asset, row_date, row_metric), row in self.rows.items()
+            if row_asset == asset and row_metric == metric and start <= row_date <= end
+        ]
+        return sorted(matching, key=lambda row: row.date)
+
+    def latest(self, asset: str) -> dict[str, ChainMetric]:
+        newest: dict[str, ChainMetric] = {}
+        for row in sorted(self.rows.values(), key=lambda row: row.date):
+            if row.asset == asset:
+                newest[row.metric] = row
+        return newest
+
+
 class FakeStore:
     """Composes one fake repository per record type."""
 
@@ -228,3 +269,4 @@ class FakeStore:
             "economy", ("institution", "economy", "metric", "horizon_date")
         )
         self.spot = FakeSpotRepository()
+        self.chain = FakeChainRepository()

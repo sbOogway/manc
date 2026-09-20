@@ -17,6 +17,7 @@ EXPECTED_TABLES = {
     "forecasts_asset",
     "forecasts_macro",
     "spot_prices",
+    "chain_metrics",
 }
 
 

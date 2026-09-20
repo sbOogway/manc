@@ -110,6 +110,17 @@ forecasts_macro = Table(
     *_forecast_columns(),
 )
 
+chain_metrics = Table(
+    "chain_metrics",
+    metadata,
+    Column("asset", String(16), primary_key=True),
+    Column("date", Date, primary_key=True),
+    Column("metric", String(32), primary_key=True),
+    Column("value", Float, nullable=False),
+    Column("source", String(32), nullable=False),
+    Column("fetched_at", DateTime(timezone=True), nullable=False),
+)
+
 spot_prices = Table(
     "spot_prices",
     metadata,

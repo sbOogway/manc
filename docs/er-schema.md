@@ -26,6 +26,15 @@ erDiagram
     DATETIME fetched_at
   }
 
+  chain_metrics {
+    VARCHAR(16) asset PK
+    DATE date PK
+    VARCHAR(32) metric PK
+    FLOAT value
+    VARCHAR(32) source
+    DATETIME fetched_at
+  }
+
   forecasts_asset {
     VARCHAR(40) id PK
     VARCHAR(64) institution
