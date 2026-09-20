@@ -17,6 +17,10 @@ from manc.analysis.lexicon import LexiconAnalyzer
 from manc.analysis.llm import LlmAnalyzer
 from manc.api.app import create_app
 from manc.calendar.nasdaq import NasdaqCalendar
+from manc.chain.coinmetrics import CoinMetrics
+from manc.chain.defillama import DefiLlama
+from manc.chain.interface import ChainProvider
+from manc.chain.solana_rpc import SolanaRpc
 from manc.config import Config, load_config
 from manc.forecasts.extractor import LlmExtractor
 from manc.forecasts.fed_sep import FedSep
@@ -26,7 +30,7 @@ from manc.formulas.contract import IndexScore
 from manc.formulas.registry import get_formula
 from manc.llm import complete
 from manc.news.rss import RssNews
-from manc.pipeline import fetch, fetch_forecasts, rescore, run
+from manc.pipeline import fetch, fetch_chain, fetch_forecasts, rescore, run
 from manc.spot.yahoo import YahooSpot
 from manc.store import db
 from manc.store.sql import SqlStore
@@ -67,6 +71,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "forecasts":
         return _backfill_forecasts(config, store, args.since)
+    if args.command == "chain":
+        coins = [asset for asset in config.active_assets if asset.chain]
+        rows = fetch_chain(_chain_providers(), coins, args.since, date.today(), store)
+        print(f"chain: {len(rows)} rows for {len(coins)} coins since {args.since}")
+        return 0
     if args.command == "fetch":
         fetched = fetch(
             as_of=datetime.now(UTC),
@@ -98,6 +107,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             analyzer=LlmAnalyzer(config, fallback=LexiconAnalyzer(config.lexicon)),
             forecasts=_forecast_providers(config, store),
             spot=YahooSpot(),
+            chain=_chain_providers(),
             store=store,
             formula=get_formula(config.scoring.formula),
             summarize=complete,
@@ -124,6 +134,10 @@ def _backfill_forecasts(config: Config, store: SqlStore, since_day: date) -> int
     found = fetch_forecasts(_forecast_providers(config, store), since, store)
     print(f"news={len(items)} forecasts: asset={len(found.asset)} macro={len(found.macro)}")
     return 0
+
+
+def _chain_providers() -> list[ChainProvider]:
+    return [CoinMetrics(), DefiLlama(), SolanaRpc()]
 
 
 def _forecast_providers(config: Config, store: SqlStore) -> list[ForecastProvider]:
@@ -160,6 +174,8 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
 
     commands.add_parser("fetch", help="calendar, news and spot closes into the store; no model")
+    chain_cmd = commands.add_parser("chain", help="backfill on-chain metrics for the coins")
+    chain_cmd.add_argument("--since", type=date.fromisoformat, required=True, help="first day")
     run_cmd = commands.add_parser("run", help="fetch, tag, score and store every asset")
     run_cmd.add_argument("--date", type=date.fromisoformat, help="score as of this day (UTC)")
 

@@ -15,10 +15,19 @@ from datetime import UTC, date, datetime, time, timedelta
 
 from manc.analysis.interface import Analyzer
 from manc.calendar.interface import CalendarProvider
+from manc.chain.interface import ChainProvider
 from manc.config import Config
 from manc.forecasts.interface import ForecastProvider
-from manc.formulas.contract import IndexFormula, IndexScore
-from manc.models import CalendarEvent, ForecastAsset, ForecastMacro, Forecasts, NewsItem, SpotPrice
+from manc.formulas.contract import AssetSpec, IndexFormula, IndexScore
+from manc.models import (
+    CalendarEvent,
+    ChainMetric,
+    ForecastAsset,
+    ForecastMacro,
+    Forecasts,
+    NewsItem,
+    SpotPrice,
+)
 from manc.news.interface import NewsProvider
 from manc.report.builder import Complete, build_report
 from manc.scoring.adapter import build_inputs
@@ -26,6 +35,7 @@ from manc.spot.interface import SpotProvider
 from manc.store.interface import Store
 
 log = logging.getLogger(__name__)
+CHAIN_LOOKBACK_DAYS = 7  # a daily run re-reads the last week: late rows and revisions
 
 
 @dataclass(frozen=True)
@@ -76,12 +86,15 @@ def run(
     analyzer: Analyzer,
     forecasts: Sequence[ForecastProvider],
     spot: SpotProvider,
+    chain: Sequence[ChainProvider],
     store: Store,
     formula: IndexFormula,
     summarize: Complete | None,
 ) -> list[IndexScore]:
     """The daily step: fetch, then tag what the fetches left unanalysed, forecasts, scores."""
     fetch(as_of=as_of, config=config, calendar=calendar, news=news, spot=spot, store=store)
+    day = as_of.date()
+    fetch_chain(chain, config.active_assets, day - timedelta(days=CHAIN_LOOKBACK_DAYS), day, store)
     news_since = as_of - timedelta(hours=config.scoring.windows["news_hours"])
 
     pending = store.news.unanalyzed(news_since)
@@ -94,6 +107,26 @@ def run(
     log.info("forecasts: %d asset, %d macro", len(found.asset), len(found.macro))
 
     return _score_all(as_of, config, store, formula, summarize)
+
+
+def fetch_chain(
+    providers: Sequence[ChainProvider],
+    assets: Sequence[AssetSpec],
+    start: date,
+    end: date,
+    store: Store,
+) -> list[ChainMetric]:
+    """Every on-chain source over [start, end] for the coins among `assets`; stored, returned."""
+    coins = [asset for asset in assets if asset.chain]
+    stored: list[ChainMetric] = []
+    for provider in providers:
+        metrics = provider.fetch(coins, start, end)
+        store.chain.add(*metrics)
+        stored.extend(metrics)
+    log.info(
+        "chain: %d readings for %d coins between %s and %s", len(stored), len(coins), start, end
+    )
+    return stored
 
 
 def fetch_forecasts(
