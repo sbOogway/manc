@@ -77,3 +77,13 @@ def test_refuses_uncommitted_site_changes(clone: Path) -> None:
     )
     assert result.returncode == 1
     assert "uncommitted" in result.stderr
+
+
+def test_skips_quietly_off_main_so_the_daily_run_never_publishes_a_branch(clone: Path) -> None:
+    _git("checkout", "-q", "-b", "feat/draft", cwd=clone)
+    result = subprocess.run(
+        ["sh", "scripts/publish-site.sh"], cwd=clone, capture_output=True, text=True
+    )
+    assert result.returncode == 0
+    assert "not on main" in result.stdout
+    assert _git("ls-remote", "--heads", "origin", "gh-pages", cwd=clone) == ""

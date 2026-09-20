@@ -1,11 +1,17 @@
 #!/usr/bin/env sh
 # Build site/ and publish the result to the gh-pages branch of origin; GitHub Pages serves that
 # branch at its root. The branch holds each build as its own commit chain (git commit-tree over
-# a temporary index, no subtree needed). One-off, to enable Pages on the repository:
+# a temporary index, no subtree needed). Only main is published, any other branch is a no-op,
+# so the daily systemd unit can call it blindly. One-off, to enable Pages on the repository:
 #   gh api -X POST repos/sbOogway/manc/pages -f 'source[branch]=gh-pages' -f 'source[path]=/'
 set -eu
 cd "$(dirname "$0")/.."
 
+branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$branch" != main ]; then
+  echo "publish-site: not on main ($branch), nothing published"
+  exit 0
+fi
 if [ -n "$(git status --porcelain -- site)" ]; then
   echo "publish-site: uncommitted changes under site/; commit them first" >&2
   exit 1
