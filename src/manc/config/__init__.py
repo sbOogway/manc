@@ -13,7 +13,7 @@ import yaml
 from manc.formulas.contract import AssetSpec
 from manc.formulas.registry import get_formula
 
-DEFAULT_CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
+DEFAULT_CONFIG_DIR = Path(__file__).resolve().parent  # the YAML files ship inside the package
 _VALID_SIGNS = {-1, 0, 1}
 _VALID_CATEGORIES = {"inflation", "employment", "growth", "rates"}
 _VALID_IMPORTANCE = {1, 2, 3}
@@ -66,7 +66,7 @@ class CalendarConfig:
 
 @dataclass(frozen=True)
 class LexiconConfig:
-    """Whole-word regexes for the offline analyzer (config/lexicon.yaml explains the rules)."""
+    """Whole-word regexes for the offline analyzer (lexicon.yaml here explains the rules)."""
 
     economies: tuple[tuple[re.Pattern[str], str], ...]  # (term, economy key)
     categories: tuple[tuple[re.Pattern[str], str], ...]  # (term, event category)

@@ -1,4 +1,4 @@
-"""`manc` command line: run | rescore | forecasts | api | ui | serve."""
+"""`manc` command line: fetch | chain | run | rescore | forecasts | migrate | api | ui | serve."""
 
 import argparse
 import logging
@@ -56,6 +56,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not _site_built():
             return 1
         _serve_site()
+        return 0
+    if args.command == "migrate":
+        db.upgrade()
+        print(f"migrate: {db.database_url()} at {db.head_revision()}")
         return 0
     try:
         store = SqlStore(db.make_engine())
@@ -196,7 +200,9 @@ def _parser() -> argparse.ArgumentParser:
     run_cmd.add_argument("--date", type=date.fromisoformat, help="score as of this day (UTC)")
 
     rescore_cmd = commands.add_parser("rescore", help="recompute stored days under a formula")
-    rescore_cmd.add_argument("--formula", help="formula name; defaults to config/scoring.yaml")
+    rescore_cmd.add_argument(
+        "--formula", help="formula name; defaults to src/manc/config/scoring.yaml"
+    )
     rescore_cmd.add_argument("--from", dest="start", type=date.fromisoformat, required=True)
     rescore_cmd.add_argument("--to", dest="end", type=date.fromisoformat, help="default: today")
     rescore_cmd.add_argument(
@@ -212,6 +218,9 @@ def _parser() -> argparse.ArgumentParser:
         "--since", type=date.fromisoformat, required=True, help="earliest publication day"
     )
 
+    commands.add_parser(
+        "migrate", help="create or migrate the database (MANC_DB_URL) to the current schema"
+    )
     commands.add_parser("api", help=f"serve the REST API on http://{API_HOST}:{API_PORT}")
     commands.add_parser("ui", help=f"serve the dashboard on http://{API_HOST}:{SITE_PORT}")
     commands.add_parser("serve", help="the API and the dashboard together")

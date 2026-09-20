@@ -17,7 +17,7 @@ recently, and what is scheduled next, does the macro backdrop lean for or agains
 The answer is a single number from 0 (strong headwind) to 100 (strong tailwind), plus a short
 written report explaining it.
 
-The tracked assets live in `config/assets.yaml`, 61 of them since 2026-09-20 in six kinds:
+The tracked assets live in `src/manc/config/assets.yaml`, 61 of them since 2026-09-20 in six kinds:
 forex (the majors, the main crosses and the dollar against CNY, MXN, BRL, ZAR, INR and KRW),
 metals (gold, silver, platinum, palladium, copper), commodities (Brent, WTI, natural gas and
 the main agriculturals), equity indices (the US benchmarks and those of Europe, Asia and
@@ -77,10 +77,10 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 | Module     | Interface                                                                 | Default implementation                                                  | Tests cover                                                          |
 |------------|---------------------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------|
 | `calendar` | `CalendarProvider.fetch(start, end) -> list[CalendarEvent]`               | Nasdaq's public calendar endpoint over httpx (free, no key)             | parsing, category/importance/country maps, date offset, day windows  |
-| `news`     | `NewsProvider.fetch(since) -> list[NewsItem]`                             | feedparser over `config/feeds.yaml`                                     | parsing, dedupe, per-feed failure isolation                          |
+| `news`     | `NewsProvider.fetch(since) -> list[NewsItem]`                             | feedparser over `src/manc/config/feeds.yaml`                                     | parsing, dedupe, per-feed failure isolation                          |
 | `forecasts`| `ForecastProvider.fetch(since) -> Forecasts` (asset and macro lists)        | `extractor.py`: LiteLLM over stored news rows that pass a regex prefilter; `fed_sep.py`, `worldbank.py` for publishers with structured data (§4) | extractor: prefilter, batching, schema validation, horizon normalisation, dedupe; publishers: recorded fixtures |
-| `spot`     | `SpotProvider.fetch(assets, date) -> list[SpotPrice]`                      | `yahoo.py` through `yfinance`, one history call per asset; the ticker per source sits in `config/assets.yaml`, so another source is a new adapter plus a config edit | recorded frames, missing ticker, one asset failing does not stop the rest; isolation test that no formula input carries a price |
-| `chain`    | `ChainProvider.fetch(assets, start, end) -> list[ChainMetric]`             | `coinmetrics.py`, `defillama.py`, `solana_rpc.py`; the id per source sits in `config/assets.yaml` | recorded responses, a failing source is a warning, coins without an id are skipped |
+| `spot`     | `SpotProvider.fetch(assets, date) -> list[SpotPrice]`                      | `yahoo.py` through `yfinance`, one history call per asset; the ticker per source sits in `src/manc/config/assets.yaml`, so another source is a new adapter plus a config edit | recorded frames, missing ticker, one asset failing does not stop the rest; isolation test that no formula input carries a price |
+| `chain`    | `ChainProvider.fetch(assets, start, end) -> list[ChainMetric]`             | `coinmetrics.py`, `defillama.py`, `solana_rpc.py`; the id per source sits in `src/manc/config/assets.yaml` | recorded responses, a failing source is a warning, coins without an id are skipped |
 | `analysis` | `Analyzer.tag(items, assets) -> list[NewsTag]`                            | LiteLLM `completion()` with a Pydantic response schema, model from config | fake analyzer; batching; schema validation                           |
 | `formulas` | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | plain Python classes, one per version, standard library only (§5) | property tests on every formula; an isolation test that the package imports nothing else from `manc` |
 | `scoring`  | `build_inputs(store, asset, as_of, params) -> ScoringInputs` | thin adapter from the store to the formula contract | adapter builds inputs correctly |
@@ -148,7 +148,7 @@ provider does with its feeds). Quirks verified on 2026-09-16 and pinned by tests
 - values are strings (`"1,774K"`, `"5.4%"`, `"310.70B"`); K/M/B/T scale the number, `%` is
   dropped, blanks (`"&nbsp;"`, `" "`) become `None`;
 - there is **no importance and no category**. Both come from case-insensitive regex maps on
-  the event name in `config/calendar.yaml`, first match wins: `categories` (→ inflation |
+  the event name in `src/manc/config/calendar.yaml`, first match wins: `categories` (→ inflation |
   employment | growth | rates, else `other`), `importance` (3 for rate decisions, CPI,
   payrolls, GDP; 2 for PMIs, retail sales, claims, PPI; else 1) and `countries` (Nasdaq names
   that differ from our economy keys, e.g. `Euro Zone → euro_area`; others are snake_cased);
@@ -198,7 +198,7 @@ direction and confidence. At ~300 headlines a day this is a handful of calls.
 
 All model calls go through LiteLLM's `completion()`, behind `manc.llm.complete()` (the
 extractor and the tagger share it), so the model is a single
-provider-prefixed string in `config/llm.yaml` (`anthropic/...`, `openai/...`, `ollama/...`,
+provider-prefixed string in `src/manc/config/llm.yaml` (`anthropic/...`, `openai/...`, `ollama/...`,
 `openrouter/<vendor>/<model>`) and switching providers is a config edit plus the provider's
 API-key env var.
 
@@ -225,7 +225,7 @@ each provider's native structured-output mechanism (Anthropic, OpenAI, Ollama, G
 Bedrock all support it) and `litellm.enable_json_schema_validation = True` validates
 client-side for the ones that don't. Provider-specific parameters never appear in our code.
 
-A lexicon `Analyzer` (`config/lexicon.yaml`, title only) is the offline fallback: a batch
+A lexicon `Analyzer` (`src/manc/config/lexicon.yaml`, title only) is the offline fallback: a batch
 every configured model fails on is tagged by it instead of dropped, with `model` empty so the
 tags can be told apart. It scores a title's polarity from an ordered phrase list, turns the
 first economy and category mentioned into a direction through the asset sign map, and lets a
@@ -254,7 +254,7 @@ extraction from the news already ingested, and structured publishers are supplem
 
 The extractor runs after step 02 over the news rows stored that run: a case-insensitive regex
 prefilter (an institution alias next to one of the `signals` regexes, both lists in
-`config/forecasts.yaml`; `manc.forecasts.prefilter`) keeps the handful of candidate items, which go to one LiteLLM call per
+`src/manc/config/forecasts.yaml`; `manc.forecasts.prefilter`) keeps the handful of candidate items, which go to one LiteLLM call per
 batch with a Pydantic schema: per item, zero or more forecasts with subject (asset symbol or
 economy+metric), value, horizon as stated, institution and a confidence. Rules pinned by tests:
 
@@ -266,9 +266,9 @@ economy+metric), value, horizon as stated, institution and a confidence. Rules p
   and its URL; a changed value is a new row, which is how revisions ("raised from 3,700 to
   4,000") stay visible;
 - **nothing is dropped on confidence**: every extraction is stored with its confidence, and
-  the read side filters with `min_confidence` (default in `config/forecasts.yaml`), so the
+  the read side filters with `min_confidence` (default in `src/manc/config/forecasts.yaml`), so the
   prompt can be tuned against what was actually extracted;
-- **institutions are canonical**: `config/forecasts.yaml` lists each institution with its
+- **institutions are canonical**: `src/manc/config/forecasts.yaml` lists each institution with its
   aliases (`Goldman`, `GS`, `Goldman Sachs`), a kind (`bank | official | survey | specialist`)
   and a weight used only for ordering in the dashboard. Initial list: Goldman Sachs, JPMorgan,
   Morgan Stanley, Citi, Bank of America, UBS, HSBC, Deutsche Bank, Barclays, ING, MUFG,
@@ -290,7 +290,7 @@ first adapter is Yahoo Finance through the `yfinance` package (`spot/yahoo.py`):
 close on or before the run's day, one history call per asset. Stooq's daily CSV was the plan
 (no key, one GET per symbol) but since 2026-09 its endpoint answers a JavaScript challenge
 instead of the CSV, and Yahoo's chart endpoint refuses requests without the cookie-and-crumb
-session that `yfinance` maintains. The per-source ticker lives in `config/assets.yaml`
+session that `yfinance` maintains. The per-source ticker lives in `src/manc/config/assets.yaml`
 (`spot: {yahoo: EURUSD=X}`), so switching to Alpha Vantage or Twelve Data is a new adapter
 and a config edit. A ticker that fails is a warning, not a failed run.
 
@@ -306,7 +306,7 @@ recent performance samples; today only, no history), and two keyless sentiment s
 to them: `fear_greed.py` (CoinMarketCap's Fear & Greed index, market-wide, paged history,
 stored under every coin) and `coingecko.py` (community votes up and watchlist users per coin,
 a snapshot a day, one coin at a time under the keyless rate limit). The ids per source sit in
-`config/assets.yaml` (`chain: {coinmetrics: btc, defillama: bitcoin, coingecko: bitcoin}`). `manc chain --since`
+`src/manc/config/assets.yaml` (`chain: {coinmetrics: btc, defillama: bitcoin, coingecko: bitcoin}`). `manc chain --since`
 backfills; the daily run re-reads the last week. A source that fails is a warning. No formula
 reads these yet: a v3 with a chain component is the next decision, after the series have been
 looked at.
@@ -321,7 +321,7 @@ owns the contract (what a formula receives and returns). The app only ever calls
 
 The contract is `src/manc/formulas/contract.py`: `ScoringInputs` (the asset spec, the
 as-of time, weighted headline tags, released and upcoming event observations, and the
-`params` from `config/scoring.yaml`), `IndexScore`, `Scale` and the `IndexFormula` Protocol
+`params` from `src/manc/config/scoring.yaml`), `IndexScore`, `Scale` and the `IndexFormula` Protocol
 (`name`, `scale`, `compute(inputs) -> IndexScore`). `registry.py` maps a name to a formula
 class (`"v1"` → `FormulaV1` in `v1.py`, `"v2"` → `FormulaV2` in `v2.py`).
 
@@ -381,7 +381,7 @@ raw = 0.6·0.3 + 0.4·(−0.5) = −0.02  →  score = 50 + 50·(−0.02)·0.75 
 
 Why this shape: it is bounded by construction, it sits at 50 with no information, every term is
 inspectable in the report, and the weights (0.6/0.4, half-life, shrink factor) are `params`
-from `config/scoring.yaml` so they can be tuned without a new version. A structural change,
+from `src/manc/config/scoring.yaml` so they can be tuned without a new version. A structural change,
 such as moving the surprise normaliser to a per-event z-score once history accumulates, is a
 `v2`.
 
@@ -418,7 +418,7 @@ index
 
 Bands: −100..−40 headwind · −40..−10 lean against · −10..10 neutral · 10..40 lean for ·
 40..100 tailwind, the same proportions as v1. The v1 worked example gives −1.5. Every number
-above is a key in `config/scoring.yaml`; the novelty clusters form within one direction,
+above is a key in `src/manc/config/scoring.yaml`; the novelty clusters form within one direction,
 strongest copy first, so adding a headline never lowers the weight its own side already had
 (a property test guards it). The formula declares a 90-day released window through
 `IndexFormula.windows`; v1 keeps its seven days.
@@ -436,7 +436,7 @@ paracelsus and kept current by a pre-commit hook.
 schema change is an Alembic revision generated from it:
 
 ```sh
-uv run alembic upgrade head                       # bring the database to the current schema
+uv run manc migrate                               # bring the database to the current schema
 uv run alembic revision --autogenerate -m "..."   # after editing schema.py; review the file
 uv run alembic downgrade -1                       # step back one revision
 ```
@@ -551,7 +551,7 @@ rules.
   absolute distance from 50
 - `/asset/<symbol>` — score history chart (shaded bands, neutral reference line, formula
   components as faint lines, markers on high-impact event days) with TradingView's daily price
-  chart embedded next to it (the `tradingview` ticker in `config/assets.yaml`, through
+  chart embedded next to it (the `tradingview` ticker in `src/manc/config/assets.yaml`, through
   `/api/v1/assets`; the site keeps no price history and never mixes the two scales),
   date-range and formula selectors, "On-chain" and "Sentiment" cards of small multiples for
   the coins (one thin line per stored series over the same range, the latest value as its
@@ -594,20 +594,19 @@ Serving and publishing:
 manc/
 ├── pyproject.toml          # uv project; ruff + pytest config
 ├── .pre-commit-config.yaml # hygiene, ruff format, ruff check, pytest
-├── alembic.ini
-├── migrations/             # Alembic env.py + versions/
-├── config/
-│   ├── assets.yaml         # symbols, economies, sign map
-│   ├── feeds.yaml          # RSS urls + weights
-│   ├── scoring.yaml        # formula: v1, params (weights, half-life, windows)
-│   ├── llm.yaml            # model string, fallback, temperature
-│   ├── calendar.yaml       # event-name regexes → category and importance; country aliases
-│   ├── lexicon.yaml        # offline analyzer: economy, category, asset and polarity terms
-│   └── forecasts.yaml      # institutions with aliases, kind and weight; per-asset RSS queries; min_confidence
+├── alembic.ini             # for `alembic revision` only; the code finds the migrations in the package
 ├── docs/blueprint.md       # this file
-├── src/manc/
+├── src/manc/               # everything a `uv tool install` needs ships in here
 │   ├── models.py           # frozen dataclasses (§3)
-│   ├── config.py
+│   ├── config/             # __init__.py loads the YAML files next to it
+│   │   ├── assets.yaml     # symbols, economies, sign map
+│   │   ├── feeds.yaml      # RSS urls + weights
+│   │   ├── scoring.yaml    # formula: v1, params (weights, half-life, windows)
+│   │   ├── llm.yaml        # model string, fallback, temperature
+│   │   ├── calendar.yaml   # event-name regexes → category and importance; country aliases
+│   │   ├── lexicon.yaml    # offline analyzer: economy, category, asset and polarity terms
+│   │   └── forecasts.yaml  # institutions with aliases, kind and weight; per-asset RSS queries; min_confidence
+│   ├── migrations/         # Alembic env.py + versions/
 │   ├── formulas/           # stdlib only, never imports the rest of manc
 │   │   ├── contract.py     # ScoringInputs, IndexScore, IndexFormula
 │   │   ├── registry.py     # get_formula("v1")
@@ -721,9 +720,9 @@ backfilled the forecasts panel for every asset.
 - Nasdaq calendar provider with category, importance and country maps
 - recorded fixtures for both
 - forecast and spot models, Protocols, tables and fakes
-- `config/forecasts.yaml` and the regex prefilter
+- `src/manc/config/forecasts.yaml` and the regex prefilter
 - LLM forecast extractor through LiteLLM (the first LiteLLM call; brings `litellm` and
-  `config/llm.yaml` wiring forward from M3), `manc forecasts --since` backfill
+  `src/manc/config/llm.yaml` wiring forward from M3), `manc forecasts --since` backfill
 - `SpotProvider` with the Yahoo adapter and the no-price-in-formula isolation test
 - Fed SEP and World Bank publishers with recorded fixtures; the pipeline runs every
   forecast provider

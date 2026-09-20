@@ -22,7 +22,7 @@ the index formula, storage, dashboard and milestones. Keep it updated when a dec
   standard library and each other, never the rest of `manc` (enforced by
   `tests/formulas/test_isolation.py`). A formula change is a new versioned module (`v2.py`),
   never an edit to an old one.
-- **All LLM calls go through LiteLLM**; the model is a string in `config/llm.yaml`.
+- **All LLM calls go through LiteLLM**; the model is a string in `src/manc/config/llm.yaml`.
 - **UI talks to the backend over the REST API only.** The dashboard is an npm package in
   `site/` (Vue 3 + TypeScript, PrimeVue, FullCalendar, Plotly; built with Vite, published to
   GitHub Pages from the `gh-pages` branch by `scripts/publish-site.sh`; nothing from a CDN); it
@@ -54,5 +54,5 @@ uv run pre-commit install --hook-type pre-commit --hook-type post-merge   # git 
 uv run pytest                        # tests with coverage
 uv run pre-commit run --all-files    # every hook on every tracked file
 cd site && npm ci && npm run build   # the dashboard package, once per clone; then `npm run check`
-uv run alembic upgrade head          # migrate the database (MANC_DB_URL, default data/manc.db)
+uv run manc migrate                  # migrate the database (MANC_DB_URL, default data/manc.db)
 ```

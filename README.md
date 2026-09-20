@@ -9,7 +9,7 @@ It is **not** a price predictor or a trading signal: it measures the macro narra
 flow, one input among many, and keeps the number explainable.
 
 Tracked by default: 61 assets across forex, metals, commodities, equity indices, crypto and
-US Treasury yields (`config/assets.yaml`).
+US Treasury yields (`src/manc/config/assets.yaml`).
 
 ## How it works
 
@@ -22,8 +22,8 @@ forecasts (LLM)   ─┘                                               manc api 
 ```
 
 - **Calendar**: Nasdaq's public economic-calendar endpoint; category and importance come
-  from regex maps in `config/calendar.yaml`.
-- **News**: every RSS feed in `config/feeds.yaml` (wires, central banks, newsletters), deduped
+  from regex maps in `src/manc/config/calendar.yaml`.
+- **News**: every RSS feed in `src/manc/config/feeds.yaml` (wires, central banks, newsletters), deduped
   by URL, each with a trust weight.
 - **Forecasts**: headlines that name an institution and sound like a forecast go to an LLM
   with a structured schema; the result is stored per vintage, so revisions stay visible.
@@ -33,9 +33,9 @@ forecasts (LLM)   ─┘                                               manc api 
   news sentiment, data surprise versus consensus, and event risk ahead. Every input is
   stored, so any date range can be replayed under a new formula.
 - **LLM**: every call goes through [LiteLLM](https://github.com/BerriAI/litellm); the model
-  is one string in `config/llm.yaml`, Claude Code headless on your own login by default, a
+  is one string in `src/manc/config/llm.yaml`, Claude Code headless on your own login by default, a
   free-tier model as fallback. Headlines no model tags fall back to a lexicon in
-  `config/lexicon.yaml`.
+  `src/manc/config/lexicon.yaml`.
 
 The design, data sources, formula and milestones are in [docs/blueprint.md](docs/blueprint.md);
 the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the formula in
@@ -60,13 +60,13 @@ For a development checkout:
 ```sh
 uv sync                      # environment
 uv run pre-commit install --hook-type pre-commit --hook-type post-merge   # git hooks, once per clone
-uv run alembic upgrade head  # create or migrate data/manc.db (MANC_DB_URL for another database)
+uv run manc migrate          # create or migrate data/manc.db (MANC_DB_URL for another database)
 uv run pytest                # tests, no network
 ```
 
 The default model, `claude_code/opus`, runs Claude Code headless (`claude -p`) on your own
 Claude login, so `claude` must be installed and logged in; no API key. Any other provider
-in `config/llm.yaml` needs its key: the fallback (Mistral, free tier) reads
+in `src/manc/config/llm.yaml` needs its key: the fallback (Mistral, free tier) reads
 `MISTRAL_API_KEY=...` from a `.env` file at the repo root (gitignored) or the environment. Live tests that hit real sources are marked `live` and skipped by default:
 `uv run pytest -m live`.
 
@@ -172,8 +172,8 @@ Layout:
 - `src/manc/formulas/` — index formulas as plain classes, standard library only, versioned
 - `src/manc/api/` — the FastAPI routes; `src/manc/queries.py` the read-side logic behind them
 - `site/` — the dashboard package; `npm run check` type-checks it and runs its vitest suite
-- `src/manc/store/schema.py` — declared tables; every change is an Alembic revision in `migrations/`
-- `config/` — assets, feeds, calendar maps, scoring params, LLM model, forecast institutions
+- `src/manc/store/schema.py` — declared tables; every change is an Alembic revision in `src/manc/migrations/`
+- `src/manc/config/` — assets, feeds, calendar maps, scoring params, LLM model, forecast institutions
 - `tests/` — one folder per module, recorded fixtures under `tests/fixtures/`
 
 ## License

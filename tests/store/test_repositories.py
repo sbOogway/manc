@@ -217,7 +217,7 @@ def test_scores_add_is_an_upsert(store: Store) -> None:
 
 def test_sql_store_refuses_unmigrated_database(tmp_path: Path) -> None:
     engine = db.make_engine(f"sqlite:///{tmp_path / 'empty.db'}")
-    with pytest.raises(RuntimeError, match="alembic upgrade head"):
+    with pytest.raises(RuntimeError, match="manc migrate"):
         SqlStore(engine)
 
 

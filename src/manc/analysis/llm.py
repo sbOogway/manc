@@ -58,7 +58,7 @@ Complete = Callable[..., tuple[Any, str]]
 
 
 class LlmAnalyzer:
-    """Analyzer over LiteLLM; the model string and batch size come from `config/llm.yaml`.
+    """Analyzer over LiteLLM; the model string and batch size come from `src/manc/config/llm.yaml`.
 
     A batch every configured model fails on goes to `fallback` (the lexicon analyzer in
     `manc run`), or is skipped when there is none.

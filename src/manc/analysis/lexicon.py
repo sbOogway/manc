@@ -1,4 +1,4 @@
-"""Offline headline tagger over config/lexicon.yaml; the fallback when the LLM fails (§4)."""
+"""Offline headline tagger over config/lexicon.yaml (in the package); the LLM fallback (§4)."""
 
 import re
 from collections import defaultdict
@@ -11,7 +11,7 @@ CONFIDENCE = 0.5  # every lexicon tag; the LLM's own confidence usually outranks
 
 
 class LexiconAnalyzer:
-    """Reads the title only. The rules are documented at the top of config/lexicon.yaml."""
+    """Reads the title only. The rules are documented at the top of src/manc/config/lexicon.yaml."""
 
     def __init__(self, lexicon: LexiconConfig) -> None:
         self.lexicon = lexicon

@@ -9,7 +9,7 @@ from manc.config import FORECASTER_KINDS, load_config
 from manc.formulas import v2
 from manc.formulas.registry import get_formula
 
-REPO_CONFIG = Path(__file__).resolve().parents[1] / "config"
+REPO_CONFIG = Path(__file__).resolve().parents[1] / "src" / "manc" / "config"
 
 
 def test_repo_config_loads() -> None:

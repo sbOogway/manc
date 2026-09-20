@@ -100,7 +100,7 @@ class ForecastAsset:
     """An institution's price target for one asset, as first sighted (blueprint section 4)."""
 
     id: str  # sha1(institution | asset | horizon_date | value)
-    institution: str  # canonical name from config/forecasts.yaml, e.g. "goldman_sachs"
+    institution: str  # canonical name from src/manc/config/forecasts.yaml, e.g. "goldman_sachs"
     asset: str  # "EURUSD"
     horizon_date: date  # end of the stated period, normalised from published_at
     horizon_label: str  # as stated: "12 months", "year-end", "Q4 2026"
