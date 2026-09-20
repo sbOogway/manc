@@ -55,19 +55,7 @@ the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the 
 
 ## Setup
 
-One line installs or updates the whole thing on a machine with `git`, `npm`, `podman` and
-[Claude Code](https://claude.com/claude-code) logged in (it fetches `uv` itself):
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/sbOogway/manc/main/scripts/install.sh | sh
-```
-
-It clones into `~/quant/manc` (or fast-forwards it), installs the environment, the git hooks,
-the database, the dashboard build and the API container, enables the systemd units (see
-Production) and writes `.env` from `.env.example`. The one manual step is editing `.env`.
-Running it again later pulls `main` and redeploys.
-
-By hand, the same steps are:
+For a development checkout:
 
 ```sh
 uv sync                      # environment
@@ -129,42 +117,46 @@ in the script). The published site reads the production backend (`PRODUCTION_API
 
 ### Production
 
-The backend is one container; `Containerfile` and `compose.yaml` work with Podman (rootless)
-and Docker alike. The SQLite database stays in `./data`, bind-mounted, so the daily run can
-happen on the host with Claude Code or inside the container with a keyed model.
+One line installs the whole thing on a machine with `git`, `podman`, `setfacl` (`acl`) and
+[Claude Code](https://claude.com/claude-code) logged in under your account, and brings an
+existing install up to date (pull `main`, redeploy):
 
 ```sh
-podman compose up -d --build                   # API on http://127.0.0.1:8000, migrates on start
-podman compose logs -f api                     # uvicorn log
-podman compose run --rm api manc run           # a daily run inside the container (see below)
-podman compose down                            # stop everything; the data folder stays
+curl -fsSL https://raw.githubusercontent.com/sbOogway/manc/main/scripts/install.sh | sudo sh
 ```
 
-`.env` holds the provider keys (`MISTRAL_API_KEY`, ...) and `MANC_API_BIND`, the address the
-API listens on (default `127.0.0.1`; the LAN address that the machine running the public
-tunnel reaches, and that tunnel's hostname is `PRODUCTION_API_URL`). Runs inside the container
-need `MANC_LLM_MODEL=mistral/ministral-14b-latest` (or any keyed model) in `.env`, because the
-image has no Claude CLI; a run on the host uses `config/llm.yaml` as usual and the container
-serves the result immediately.
+The install is system-wide under a dedicated user, apart from any development checkout:
 
-Scheduling is five systemd user units under `systemd/` (`scripts/install.sh` enables them):
+- `manc`, a system user with no login shell, its own subordinate id range and linger on, owns
+  the code in `/opt/manc` and runs the API container with rootless podman as its own user
+  units, `manc-api.service` (up all the time) and `manc-fetch.timer` (`manc fetch` in the
+  container every 15 minutes, no model needed);
+- the database is `/var/lib/manc/data/manc.db`, group `manc` with a default ACL so both the
+  container and the daily run write it;
+- the daily run stays on the host with your Claude Code login: `manc-run.timer` is a system
+  unit running `manc run` as you at 06:00 UTC every day (`Persistent=true`: a day the machine
+  slept through runs at the next wake). The site is not published from the server; the
+  `post-merge` hook in your development checkout does that;
+- `/etc/manc/env` (`root:manc 0640`, symlinked as `/opt/manc/.env`) holds the provider keys,
+  `MANC_API_BIND` (the address the API listens on: loopback, or the LAN address that the
+  machine running the public tunnel reaches; that tunnel's hostname is `PRODUCTION_API_URL`)
+  and `MANC_DATA_DIR`. Editing it is the one manual step; then restart the API.
 
 ```sh
-scripts/install-systemd.sh                     # link, enable and start them by hand; enables linger
-systemctl --user status manc-api manc-fetch.timer manc-run.timer
-journalctl --user -u manc-run -f               # the daily run's log
-systemctl --user start manc-run                # a run by hand, same environment
+sudo -u manc XDG_RUNTIME_DIR=/run/user/$(id -u manc) systemctl --user status manc-api manc-fetch.timer
+sudo -u manc XDG_RUNTIME_DIR=/run/user/$(id -u manc) systemctl --user restart manc-api
+sudo -u manc XDG_RUNTIME_DIR=/run/user/$(id -u manc) journalctl --user -u manc-api -f
+sudo systemctl status manc-run.timer
+sudo systemctl start manc-run                  # a daily run by hand, same environment
+sudo journalctl -u manc-run -f                 # its log
 ```
 
-`manc-api.service` keeps the API container up; `manc-fetch.timer` fetches in the container
-every 15 minutes; `manc-run.timer` runs `manc run` on the host at 06:00 UTC every day
-(`Persistent=true`: a day the machine slept through runs at the next wake) and then
-`scripts/publish-site.sh`, so the published dashboard follows `main` even on a day nothing was
-pulled (the `post-merge` hook publishes right after a pull). The publish pushes over
-SSH from a session with no agent, so the key for `origin` must have no passphrase (or use a
-`~/.ssh/config` entry with `IdentityFile`). To run the daily step in the container instead,
-change `ExecStart` in `manc-run.service` to `podman compose run --rm api manc run` and set
-`MANC_LLM_MODEL` in `.env`.
+The image itself: `Containerfile` and `compose.yaml` work with Podman (rootless) and Docker
+alike; `podman compose up -d --build` in a development checkout serves the API on
+http://127.0.0.1:8000 from `./data`, migrating on start. To run the daily step inside the
+container instead of on the host, set `MANC_LLM_MODEL=mistral/ministral-14b-latest` (or any
+keyed model) in the env file, because the image has no Claude CLI, and change `ExecStart` in
+`manc-run.service` to `podman compose run --rm api manc run`.
 
 ## Development
 

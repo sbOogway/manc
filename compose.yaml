@@ -1,6 +1,7 @@
 # `podman compose up -d --build` serves the API on http://127.0.0.1:8000 with the database in
-# ./data. MANC_API_BIND in .env binds another address instead, e.g. the LAN address the owner's
-# tunnel machine reaches. A daily run inside the container: `podman compose run --rm api manc
+# ./data (MANC_DATA_DIR in .env for another folder; the install puts it in /var/lib/manc/data).
+# MANC_API_BIND in .env binds another address instead, e.g. the LAN address the owner's tunnel
+# machine reaches. A daily run inside the container: `podman compose run --rm api manc
 # run`; it tags with MANC_LLM_MODEL from .env because the image has no Claude CLI.
 services:
   api:
@@ -9,7 +10,7 @@ services:
     ports:
       - "${MANC_API_BIND:-127.0.0.1}:8000:8000"
     volumes:
-      - ./data:/data:Z
+      - ${MANC_DATA_DIR:-./data}:/data:Z
     env_file:
       - .env
     restart: unless-stopped

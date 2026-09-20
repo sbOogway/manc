@@ -35,7 +35,7 @@ def test_containerfile_serves_the_api_on_every_interface() -> None:
 
 def test_compose_mounts_the_data_folder_and_the_env_file() -> None:
     compose = (ROOT / "compose.yaml").read_text()
-    assert "./data:/data" in compose
+    assert "${MANC_DATA_DIR:-./data}:/data" in compose  # the install points it at /var/lib
     assert "env_file" in compose and ".env" in compose
     # loopback unless .env sets MANC_API_BIND, e.g. a LAN address for the tunnel machine
     assert "${MANC_API_BIND:-127.0.0.1}:8000:8000" in compose

@@ -629,9 +629,9 @@ manc/
 ├── site/                   # the dashboard package: package.json, vite.config.ts, openapi.json, src/{api,lib,pages,components,tests}
 ├── scripts/publish-site.sh # site/ → gh-pages branch
 ├── scripts/container-entrypoint.sh  # migrate, then exec the command
-├── scripts/install.sh, install-systemd.sh  # curl | sh setup of a machine; the units
-├── systemd/                # user units: api service, fetch and run timers
-├── .env.example            # the keys and MANC_API_BIND; install.sh copies it to .env
+├── scripts/install.sh      # curl | sudo sh: system install under the manc user (§8, Production)
+├── systemd/                # manc's user units (api, fetch) and the system units for the daily run
+├── .env.example            # the keys, MANC_API_BIND, MANC_DATA_DIR; the install writes /etc/manc/env
 ├── Containerfile, compose.yaml, .containerignore  # the backend image (§8, Production)
 ├── tests/                  # one folder per module + fixtures/; isolation test for formulas
 └── data/                   # manc.db (gitignored; the folder is kept)
@@ -663,16 +663,12 @@ rejected. Hooks run through `uv run` so they use the project environment, and
 dashboard build goes to `gh-pages`, so the published site follows `main` (the script is a
 no-op on any other branch).
 
-Installing or updating a machine is one command, `scripts/install.sh` (`curl | sh` from the
-repository): it clones or fast-forwards `~/quant/manc`, syncs the environment, installs the
-hooks, migrates, builds the dashboard and the image, writes `.env` from `.env.example` when
-missing and enables the units below; editing `.env` is the only manual step. Scheduling is
-five systemd user units under `systemd/`, linked and enabled by `scripts/install-systemd.sh`
-(which also turns on linger, so they run without an open session): `manc-api.service` keeps the API container up; `manc-fetch.timer` runs `manc fetch`
-in the container every 15 minutes; `manc-run.timer` runs `manc run` on the host at 06:00 UTC
-every day (crypto trades on weekends) with `Persistent=true`, so a day the machine slept
-through runs at the next wake, and then `scripts/publish-site.sh`, which publishes only from
-`main` and is a no-op elsewhere. Logs go to the journal (`journalctl --user -u manc-run`).
+Installing or updating a machine is one command, `scripts/install.sh` (`curl | sudo sh` from
+the repository); the layout it produces is under Production below, and editing `/etc/manc/env`
+is the only manual step. Scheduling is systemd timers from `systemd/`: `manc-fetch.timer` runs
+`manc fetch` in the container every 15 minutes; `manc-run.timer` runs `manc run` on the host at
+06:00 UTC every day (crypto trades on weekends) with `Persistent=true`, so a day the machine
+slept through runs at the next wake. Logs go to the journal.
 
 ### Production
 
@@ -680,16 +676,25 @@ The backend runs as one container (`Containerfile`: `python:3.12-slim` plus `uv 
 --frozen --no-dev`; the entrypoint runs `alembic upgrade head` and then the command, `manc api`
 by default). `compose.yaml` starts it with port 8000 on loopback, or on `MANC_API_BIND` from
 `.env` (the LAN address reached by the owner's tunnel, which runs on another machine and is
-not part of this stack), `./data` bind-mounted at `/data` (so the SQLite file is the same one a
-host-side run writes) and `.env` for the API keys. Rootless Podman on the owner's machine;
-Docker reads the same files. Two environment variables exist for the container and nothing
-else: `MANC_API_HOST` (the image binds `0.0.0.0`, the CLI keeps loopback) and
-`MANC_LLM_MODEL`, which overrides `llm.model` because the image has no Claude CLI to run
-headless. The daily run therefore
-happens either on the host (`uv run manc run`, Claude Code, `manc-run.timer` above) or inside the
-container (`podman compose run --rm api manc run` with a keyed model in `.env`); both write the
-same database and the API serves it live. The dashboard is on GitHub Pages and reads the API
-through the tunnel hostname.
+not part of this stack), `MANC_DATA_DIR` (default `./data`) bind-mounted at `/data` so the
+SQLite file is the same one a host-side run writes, and `.env` for the API keys. Docker reads
+the same files. Two environment variables exist for the container and nothing else:
+`MANC_API_HOST` (the image binds `0.0.0.0`, the CLI keeps loopback) and `MANC_LLM_MODEL`, which
+overrides `llm.model` because the image has no Claude CLI to run headless.
+
+The install is system-wide under a dedicated user, apart from the development checkout and the
+owner's account (decided 2026-09-20): a `manc` system user (home `/var/lib/manc`, no login
+shell, its own subordinate id range, linger on) owns the code in `/opt/manc` and runs the
+container with rootless podman as its own user units, `manc-api.service` and
+`manc-fetch.service`/`.timer`. The database is `/var/lib/manc/data/manc.db`, group `manc` with
+a setgid bit and a default ACL, because the daily run stays on the host with the owner's Claude
+Code login: `manc-run.service`/`.timer` are system units running as the owner (`User=` rendered
+from `@OWNER@` at install), group `manc`, umask `0002`, `MANC_DB_URL` on that file. The env
+file is `/etc/manc/env` (`root:manc 0640`), symlinked as `/opt/manc/.env` for compose. The
+server never builds or publishes the site: the dashboard is on GitHub Pages, published by the
+owner's `post-merge` hook, and reads the API through the tunnel hostname. A run inside the
+container instead (`podman compose run --rm api manc run` with a keyed model) writes the same
+database.
 
 ## 9 · Milestones
 
