@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  themeName,
+  tradingViewUrl,
   COMPONENT_COLORS,
   componentsFigure,
   eventsFor,
@@ -219,4 +221,24 @@ test("reportParts on a template-only report has no summary and no model", () => 
   assert.equal(parts.model, "");
   assert.ok(parts.rest.startsWith("## Components"));
   assert.deepEqual(reportParts(""), { title: "", summary: "", model: "", rest: "" });
+});
+
+test("the TradingView embed follows the symbol, the theme and shows a bare daily chart", () => {
+  const url = new URL(tradingViewUrl("BITSTAMP:BTCUSD", "dark"));
+  assert.equal(url.origin, "https://s.tradingview.com");
+  assert.equal(url.pathname, "/widgetembed/");
+  assert.equal(url.searchParams.get("symbol"), "BITSTAMP:BTCUSD");
+  assert.equal(url.searchParams.get("interval"), "D");
+  assert.equal(url.searchParams.get("theme"), "dark");
+  assert.equal(url.searchParams.get("hide_top_toolbar"), "1");
+  assert.equal(url.searchParams.get("symboledit"), "0");
+  assert.equal(new URL(tradingViewUrl("FX:EURUSD", "light")).searchParams.get("theme"), "light");
+  assert.equal(tradingViewUrl(null, "light"), null); // no ticker, no frame
+});
+
+test("the theme name is the explicit choice, else the system preference", () => {
+  assert.equal(themeName("dark", false), "dark");
+  assert.equal(themeName("light", true), "light");
+  assert.equal(themeName(undefined, true), "dark");
+  assert.equal(themeName(undefined, false), "light");
 });

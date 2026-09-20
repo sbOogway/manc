@@ -349,10 +349,30 @@ select {
   color: var(--ink);
   margin-left: var(--space-2);
 }
+.charts {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+@media (max-width: 800px) {
+  .charts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .chart-card {
   margin-bottom: var(--space-3);
 }
 .chart {
+  width: 100%;
+}
+.price {
+  display: flex;
+  flex-direction: column;
+}
+.price iframe {
+  border: 0;
+  flex: 1;
+  min-height: 420px;
   width: 100%;
 }
 .columns {

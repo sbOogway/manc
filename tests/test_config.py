@@ -83,11 +83,13 @@ def test_signs_are_nested_country_then_category() -> None:
     assert eurusd.signs["united_states"]["inflation"] == -1
 
 
-def test_every_asset_has_a_yahoo_spot_symbol() -> None:
+def test_every_asset_has_a_yahoo_and_a_tradingview_symbol() -> None:
     config = load_config(REPO_CONFIG)
     assert all(asset.spot["yahoo"] for asset in config.assets)
+    assert all(":" in asset.spot["tradingview"] for asset in config.assets)  # EXCHANGE:TICKER
     assert next(asset.spot for asset in config.assets if asset.symbol == "EURUSD") == {
-        "yahoo": "EURUSD=X"
+        "yahoo": "EURUSD=X",
+        "tradingview": "FX:EURUSD",
     }
 
 

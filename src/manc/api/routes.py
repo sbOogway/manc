@@ -39,7 +39,12 @@ def _unknown_asset(symbol: str) -> HTTPException:
 @router.get("/api/v1/assets", response_model=list[AssetOut])
 def assets(config: ConfigDep) -> list[AssetOut]:
     return [
-        AssetOut(symbol=asset.symbol, kind=asset.kind, economies=list(asset.economies))
+        AssetOut(
+            symbol=asset.symbol,
+            kind=asset.kind,
+            economies=list(asset.economies),
+            tradingview=asset.spot.get("tradingview"),
+        )
         for asset in config.active_assets
     ]
 

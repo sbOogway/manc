@@ -106,6 +106,7 @@ def test_assets(client: TestClient) -> None:
         "symbol": "EURUSD",
         "kind": "forex",
         "economies": ["euro_area", "united_states"],
+        "tradingview": "FX:EURUSD",
     }
     assert len(response.json()) == len(CONFIG.assets)
 
