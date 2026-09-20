@@ -177,7 +177,7 @@ def test_unmigrated_database_fails_with_hint(
 ) -> None:
     monkeypatch.setenv("MANC_DB_URL", f"sqlite:///{tmp_path / 'empty.db'}")
     assert cli.main(["run"]) == 1
-    assert "alembic upgrade head" in capsys.readouterr().err
+    assert "manc migrate" in capsys.readouterr().err
 
 
 class FakeSiteServer:
@@ -270,7 +270,7 @@ def test_api_refuses_an_unmigrated_database(
 ) -> None:
     monkeypatch.setenv("MANC_DB_URL", f"sqlite:///{tmp_path / 'empty.db'}")
     assert cli.main(["api"]) == 1
-    assert "alembic upgrade head" in capsys.readouterr().err
+    assert "manc migrate" in capsys.readouterr().err
 
 
 def test_unknown_command_exits_2() -> None:
@@ -507,3 +507,14 @@ def test_run_tags_with_the_lexicon_when_the_llm_fails(
     [(item, tag)] = store.news.tagged("XAUUSD", datetime(2026, 5, 1, tzinfo=UTC))
     assert item.url == "https://x/gold"
     assert (tag.direction, tag.model, tag.prompt_version) == (1, "", "")
+
+
+def test_migrate_brings_an_empty_database_to_head(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    url = f"sqlite:///{tmp_path / 'fresh.db'}"
+    monkeypatch.setenv("MANC_DB_URL", url)
+    assert cli.main(["migrate"]) == 0
+    assert db.is_at_head(db.make_engine(url))
+    assert db.head_revision() in capsys.readouterr().out
+    assert cli.main(["migrate"]) == 0  # idempotent

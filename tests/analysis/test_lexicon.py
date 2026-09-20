@@ -1,4 +1,4 @@
-"""The lexicon analyzer tags titles offline from config/lexicon.yaml and the asset signs."""
+"""The lexicon analyzer tags titles offline from the packaged lexicon.yaml and the asset signs."""
 
 import re
 

@@ -12,7 +12,7 @@ expects per asset (`tests/analysis/headlines.py` reads them):
 One model call per fixture file, skipped by default. Run with
 `uv run pytest tests/analysis/test_live_tagger.py -m live -s -vv --no-cov`: `-s` prints every
 tag the model produced, `-vv` every wrong one. `MANC_LIVE_MODEL=openrouter/<vendor>/<model>`
-benchmarks another model without touching config/llm.yaml (no fallback, so its own failures
+benchmarks another model without touching src/manc/config/llm.yaml (no fallback, so its own failures
 show), `MANC_LIVE_BATCH=<n>` overrides `llm.batch_size`, and an Ollama server works too:
 `OLLAMA_API_BASE=https://host MANC_LIVE_MODEL=ollama_chat/gemma4:12b`.
 

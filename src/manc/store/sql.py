@@ -401,7 +401,7 @@ class SqlStore:
         if not db.is_at_head(engine):
             raise RuntimeError(
                 f"database at {engine.url} is at revision {db.current_revision(engine)}, "
-                f"head is {db.head_revision()}: run `uv run alembic upgrade head`"
+                f"head is {db.head_revision()}: run `manc migrate`"
             )
         self.news = SqlNewsRepository(engine)
         self.tags = SqlTagRepository(engine)

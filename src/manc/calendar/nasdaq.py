@@ -3,7 +3,7 @@
 Quirks of the endpoint, verified 2026-09-16: `date=D` returns the events of the previous day,
 the `gmt` column is in fact US Eastern time, blanks come as "&nbsp;" or " ", and values are
 strings such as "1,774K", "5.4%" or "310.70B". There is no importance field, so category and
-importance come from the regex maps in config/calendar.yaml.
+importance come from the regex maps in src/manc/config/calendar.yaml.
 """
 
 import logging

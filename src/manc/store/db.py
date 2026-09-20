@@ -10,7 +10,7 @@ from alembic.script import ScriptDirectory
 from sqlalchemy import Engine, create_engine
 
 DEFAULT_URL = "sqlite:///data/manc.db"
-_ROOT = Path(__file__).resolve().parents[3]
+MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"  # inside the package, no checkout
 
 
 def database_url() -> str:
@@ -22,8 +22,8 @@ def make_engine(url: str | None = None) -> Engine:
 
 
 def _config(url: str) -> Config:
-    cfg = Config(str(_ROOT / "alembic.ini"))
-    cfg.set_main_option("script_location", str(_ROOT / "migrations"))
+    cfg = Config()  # no ini file: the CLI's alembic.ini only serves `alembic revision`
+    cfg.set_main_option("script_location", str(MIGRATIONS))
     cfg.attributes["url"] = url
     return cfg
 

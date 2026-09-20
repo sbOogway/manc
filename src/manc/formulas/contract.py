@@ -59,7 +59,7 @@ class ScoringInputs:
     tags: tuple[TaggedHeadline, ...]
     released: tuple[EventObservation, ...]  # events with actual, within the lookback
     upcoming: tuple[EventObservation, ...]  # events in the look-ahead window
-    params: Mapping[str, float]  # from config/scoring.yaml
+    params: Mapping[str, float]  # from src/manc/config/scoring.yaml
 
 
 BANDS = ("headwind", "lean_against", "neutral", "lean_for", "tailwind")
@@ -101,6 +101,8 @@ class IndexScore:
 class IndexFormula(Protocol):
     name: str
     scale: Scale
-    windows: Mapping[str, int]  # overrides of config/scoring.yaml windows this version needs
+    windows: Mapping[
+        str, int
+    ]  # overrides of src/manc/config/scoring.yaml windows this version needs
 
     def compute(self, inputs: ScoringInputs) -> IndexScore: ...
