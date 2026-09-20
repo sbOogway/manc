@@ -521,9 +521,10 @@ FastAPI dependency so tests run the app against `FakeStore`. `uv run manc api` s
 ### Dashboard: `site/`
 
 An npm package in `site/`, built with Vite into static files that GitHub Pages can serve:
-Vue 3 single-file components in TypeScript, Vue Router in hash mode, PrimeVue for the
-controls and tables (Aura preset on the site's blue accent, dark mode off the `data-theme`
-attribute), FullCalendar for the events page, Plotly (the basic bundle: every chart here is a
+Vue 3 single-file components in TypeScript, Vue Router in hash mode, PrimeVue 4 for the
+controls and tables (the MIT line: PrimeVue 5 and `@primeuix/themes` 3 moved to the PrimeUI
+licence, which wants a key; Aura preset on the site's blue accent, dark mode off the
+`data-theme` attribute), FullCalendar for the events page, Plotly (the basic bundle: every chart here is a
 scatter) for the charts, marked for the report. Nothing loads from a CDN. It lives outside
 the Python package, so it cannot import the backend; the only thing it knows about it is the
 API URL. `src/api/client.ts` wraps the routes above in one typed function per route over
