@@ -35,7 +35,11 @@ stays interpretable.
 
 ## 2 · Daily pipeline
 
-One command, seven steps, each behind an interface so it can be swapped or faked in tests.
+Two commands over seven steps, each step behind an interface so it can be swapped or faked in
+tests. `manc fetch` is steps 01, 02 and 02c: no model call, seconds, every 15 minutes, so the
+store always holds the latest headlines and closes. `manc run` is the daily step: it fetches
+too, then tags every headline in the news window that no earlier run analysed (`news.analyzed_at`
+marks them; a refetch never resets it), extracts forecasts, scores and writes the reports.
 
 | Step | Name           | What                                                        | Module          |
 |------|----------------|-------------------------------------------------------------|-----------------|
@@ -49,12 +53,12 @@ One command, seven steps, each behind an interface so it can be swapped or faked
 
 Reading is separate from writing. The pipeline is the only writer. A REST API (`manc api`)
 serves everything a person might look at, and the dashboard (`manc ui`) is one client of that
-API; it never touches the database. Scheduling is a plain cron entry; no queue, no workers, no
-orchestrator.
+API; it never touches the database. Scheduling is two plain cron entries; no queue, no
+workers, no orchestrator.
 
 ```
-pipeline (cron) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── static site (GitHub Pages)
-   manc run                    manc api                  site/
+manc fetch (cron, every 15 min) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── static site (GitHub Pages)
+manc run   (cron, once a day)   ──►            manc api                  site/
 ```
 
 Because every input to step 04 is
@@ -617,7 +621,8 @@ coverage floor. A commit that fails any step is rejected. Hooks run through `uv 
 use the project environment, and `SKIP=pytest git commit` remains available for
 work-in-progress commits on a branch.
 
-Scheduling on the host: `0 6 * * 1-5 cd ~/quant/manc && uv run manc run`.
+Scheduling on the host: `*/15 * * * * cd ~/quant/manc && uv run manc fetch` and
+`0 6 * * 1-5 cd ~/quant/manc && uv run manc run`.
 
 ### Production
 

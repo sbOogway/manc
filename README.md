@@ -15,9 +15,10 @@ US Treasury yields (`config/assets.yaml`).
 
 ```
 calendar (Nasdaq) ─┐
-news (RSS feeds)  ─┼─► tag headlines (LLM) ─► formula v1 ─► SQLite ◄── FastAPI ◄── static site
-forecasts (LLM)   ─┘                                                  manc api      GitHub Pages
-                       manc run (cron, once a day)
+news (RSS feeds)  ─┼─► tag headlines (LLM) ─► formula ─► SQLite ◄── FastAPI ◄── static site
+forecasts (LLM)   ─┘                                               manc api      GitHub Pages
+  manc fetch (cron, every 15 min): the inputs only
+  manc run   (cron, once a day):   fetch, tag what is new, forecasts, scores, reports
 ```
 
 - **Calendar**: Nasdaq's public economic-calendar endpoint; category and importance come
@@ -70,7 +71,8 @@ in `config/llm.yaml` needs its key: the fallback (Mistral, free tier) reads
 ## Running
 
 ```sh
-uv run manc run                                # today: fetch, tag, extract forecasts, score, store
+uv run manc fetch                              # calendar, news and closes into the store; seconds, no model
+uv run manc run                                # today: fetch, tag what is new, extract forecasts, score, store
 uv run manc run --date 2026-09-15              # a past day
 uv run manc -v run                             # also log every feed and calendar day
 uv run manc rescore --formula v1 --from 2026-09-01   # replay stored inputs under a formula
@@ -78,7 +80,12 @@ uv run manc forecasts --since 2026-06-01       # one-off forecast backfill from 
 ```
 
 Every run logs its start, each step and each tagging batch to stderr with the time; the
-scores go to stdout, one line per asset. Scheduling is a cron line: `0 6 * * 1-5 cd ~/quant/manc && uv run manc run`.
+scores go to stdout, one line per asset. Scheduling is two cron lines:
+
+```
+*/15 * * * * cd ~/quant/manc && uv run manc fetch
+0 6 * * 1-5  cd ~/quant/manc && uv run manc run
+```
 
 ### Dashboard
 
@@ -117,11 +124,12 @@ from the Zero Trust dashboard (Networks → Tunnels → Create, connector type c
 the tunnel a public hostname whose service is `http://api:8000`). Runs inside the container
 need `MANC_LLM_MODEL=mistral/ministral-14b-latest` (or any keyed model) in `.env`, because the
 image has no Claude CLI; a run on the host uses `config/llm.yaml` as usual and the container
-serves the result immediately. Either way the cron line is one of
+serves the result immediately. Either way the cron lines are
 
 ```
-0 6 * * 1-5 cd ~/quant/manc && uv run manc run                          # host, Claude Code
-0 6 * * 1-5 cd ~/quant/manc && podman compose run --rm api manc run     # container, keyed model
+*/15 * * * * cd ~/quant/manc && podman compose run --rm api manc fetch  # the inputs, no model
+0 6 * * 1-5  cd ~/quant/manc && uv run manc run                          # host, Claude Code
+0 6 * * 1-5  cd ~/quant/manc && podman compose run --rm api manc run     # or: container, keyed model
 ```
 
 ## Development
