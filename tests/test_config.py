@@ -93,6 +93,21 @@ def test_every_asset_has_a_yahoo_and_a_tradingview_symbol() -> None:
     }
 
 
+def test_every_coin_names_its_chain_data_ids_and_nothing_else_does() -> None:
+    config = load_config(REPO_CONFIG)
+    coins = [asset for asset in config.assets if asset.kind == "crypto"]
+    assert all(asset.chain.get("defillama") for asset in coins)
+    assert [asset.symbol for asset in coins if not asset.chain.get("coinmetrics")] == [
+        "SOLUSD",
+        "BNBUSD",
+    ]
+    assert next(asset.chain for asset in coins if asset.symbol == "BTCUSD") == {
+        "coinmetrics": "btc",
+        "defillama": "bitcoin",
+    }
+    assert all(asset.chain == {} for asset in config.assets if asset.kind != "crypto")
+
+
 def test_asset_without_spot_block_has_no_symbols(tmp_path: Path) -> None:
     assets = yaml.safe_load((REPO_CONFIG / "assets.yaml").read_text())
     del assets["assets"]["EURUSD"]["spot"]

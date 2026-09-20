@@ -20,6 +20,9 @@ class AssetSpec:
     # spot source -> its ticker for this asset ({"yahoo": "EURUSD=X"}); display only, no
     # formula reads it
     spot: Mapping[str, str] = field(default_factory=dict)
+    # on-chain source -> its id for this coin ({"coinmetrics": "btc", "defillama": "bitcoin"});
+    # empty for anything that is not a coin; no formula reads it yet
+    chain: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
