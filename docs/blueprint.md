@@ -80,6 +80,7 @@ boundary, and the pipeline is tested with in-memory fakes of each protocol.
 | `news`     | `NewsProvider.fetch(since) -> list[NewsItem]`                             | feedparser over `config/feeds.yaml`                                     | parsing, dedupe, per-feed failure isolation                          |
 | `forecasts`| `ForecastProvider.fetch(since) -> Forecasts` (asset and macro lists)        | `extractor.py`: LiteLLM over stored news rows that pass a regex prefilter; `fed_sep.py`, `worldbank.py` for publishers with structured data (§4) | extractor: prefilter, batching, schema validation, horizon normalisation, dedupe; publishers: recorded fixtures |
 | `spot`     | `SpotProvider.fetch(assets, date) -> list[SpotPrice]`                      | `yahoo.py` through `yfinance`, one history call per asset; the ticker per source sits in `config/assets.yaml`, so another source is a new adapter plus a config edit | recorded frames, missing ticker, one asset failing does not stop the rest; isolation test that no formula input carries a price |
+| `chain`    | `ChainProvider.fetch(assets, start, end) -> list[ChainMetric]`             | `coinmetrics.py`, `defillama.py`, `solana_rpc.py`; the id per source sits in `config/assets.yaml` | recorded responses, a failing source is a warning, coins without an id are skipped |
 | `analysis` | `Analyzer.tag(items, assets) -> list[NewsTag]`                            | LiteLLM `completion()` with a Pydantic response schema, model from config | fake analyzer; batching; schema validation                           |
 | `formulas` | `get_formula(name) -> IndexFormula`; `IndexFormula.compute(ScoringInputs) -> IndexScore` | plain Python classes, one per version, standard library only (§5) | property tests on every formula; an isolation test that the package imports nothing else from `manc` |
 | `scoring`  | `build_inputs(store, asset, as_of, params) -> ScoringInputs` | thin adapter from the store to the formula contract | adapter builds inputs correctly |
@@ -293,6 +294,20 @@ session that `yfinance` maintains. The per-source ticker lives in `config/assets
 (`spot: {yahoo: EURUSD=X}`), so switching to Alpha Vantage or Twelve Data is a new adapter
 and a config edit. A ticker that fails is a warning, not a failed run.
 
+### On-chain metrics → Coin Metrics Community, DefiLlama, Solana RPC
+
+For the coins only, display first (`docs/on-chain-sources.md` is the survey and the plan).
+`chain/` holds one adapter per source behind `ChainProvider.fetch(assets, start, end)`:
+`coinmetrics.py` (active addresses, MVRV, exchange in/out flows in USD; five coins in one
+request, no key, CC BY-NC 4.0 so the site credits it; a day's row is complete about 02:30 UTC
+the next day), `defillama.py` (daily fees, TVL and stablecoin supply per chain, all seven
+coins, no key) and `solana_rpc.py` (mean non-vote transactions per second from the node's
+recent performance samples; today only, no history). The ids per source sit in
+`config/assets.yaml` (`chain: {coinmetrics: btc, defillama: bitcoin}`). `manc chain --since`
+backfills; the daily run re-reads the last week. A source that fails is a warning. No formula
+reads these yet: a v3 with a chain component is the next decision, after the series have been
+looked at.
+
 ## 5 · Index formula
 
 The formula is expected to change, so it is kept apart from the rest of the application: the
@@ -438,6 +453,7 @@ committed. Backup is still copying one file.
 | `forecasts_asset` | `id`                     | `institution, asset, horizon_date, horizon_label, value, published_at, source_url, source_kind, confidence, model, fetched_at` |
 | `forecasts_macro` | `id`                     | `institution, economy, metric, horizon_date, horizon_label, value, published_at, source_url, source_kind, confidence, model, fetched_at` |
 | `spot_prices`     | `(asset, date)`          | `close, source, fetched_at`                                                      |
+| `chain_metrics`   | `(asset, date, metric)`  | `value, source, fetched_at`                                                      |
 
 Column types: timestamps are timezone-aware `DateTime`, `scores.date` is an ISO date string,
 `components_json` is a JSON column. Re-running `manc run` for the same day overwrites that
@@ -586,6 +602,7 @@ manc/
 │   ├── analysis/           # interface.py, llm.py (tagger), lexicon.py
 │   ├── forecasts/          # interface.py, extractor.py (LiteLLM), fed_sep.py, worldbank.py
 │   ├── spot/               # interface.py, yahoo.py
+│   ├── chain/              # interface.py, coinmetrics.py, defillama.py, solana_rpc.py
 │   ├── scoring/            # adapter.py: store → ScoringInputs → formula
 │   ├── store/              # interface.py, schema.py (tables), db.py (engine, upgrade), sql.py
 │   ├── report/             # builder.py
