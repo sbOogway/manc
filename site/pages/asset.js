@@ -1,6 +1,6 @@
 // One asset: score history, components, report, events ahead, headlines, forecasts.
 import { CHART_CONFIG, bandColor, layoutTemplate, readTokens } from "../charts.js";
-import { BANDS, bandLabel, formatDate, formatNumber, formatPercent, formatScore, importanceLabel } from "../format.js";
+import { BANDS, bandLabel, formatCompact, formatDate, formatNumber, formatPercent, formatScore, importanceLabel } from "../format.js";
 
 export const RANGE_PRESETS = [30, 90, 180, 365];
 export const COMPONENT_COLORS = { N: "#eb6834", S: "#1baf7a", R: "#eda100", D: "#e87ba4" }; // categorical slots 2-5
@@ -178,6 +178,35 @@ export function componentsFigure(history, tokens) {
   return { data, layout, config: CHART_CONFIG };
 }
 
+export function chainFigures(series, tokens) {
+  // Small multiples: one thin line per on-chain series, the latest value as the headline.
+  const template = layoutTemplate(tokens);
+  return series.map((one) => ({
+    metric: one.metric,
+    label: one.label,
+    source: one.source,
+    latest: formatCompact(one.points.at(-1)?.value),
+    data: [
+      {
+        type: "scatter",
+        mode: "lines",
+        x: one.points.map((point) => point.date),
+        y: one.points.map((point) => point.value),
+        line: { color: tokens.accent, width: 2 },
+        hovertemplate: "%{x}<br><b>%{y:,.4~s}</b><extra></extra>",
+      },
+    ],
+    layout: {
+      ...template,
+      height: 140,
+      margin: { l: 48, r: 8, t: 4, b: 24 },
+      xaxis: { ...template.xaxis, showgrid: false },
+      yaxis: { ...template.yaxis, tickformat: "~s", nticks: 3 },
+    },
+    config: CHART_CONFIG,
+  }));
+}
+
 export function eventsFor(events, economies, today, days = EVENTS_AHEAD_DAYS) {
   const end = shiftDays(today, days);
   return events.filter((event) => {
@@ -257,7 +286,7 @@ export function forecastRows(panel) {
 export const AssetPage = {
   props: ["symbol"],
   setup(props) {
-    const { inject, onBeforeUnmount, onMounted, ref, watch } = Vue;
+    const { inject, nextTick, onBeforeUnmount, onMounted, ref, watch } = Vue;
     const client = inject("client");
     const today = isoDay(new Date());
     const days = ref(90);
@@ -274,6 +303,8 @@ export const AssetPage = {
     const componentsPlot = ref(null);
     const tradingview = ref(null);
     const theme = ref(currentTheme());
+    const chain = ref([]);
+    const chainPlots = ref([]);
 
     function draw() {
       theme.value = currentTheme();
@@ -283,11 +314,22 @@ export const AssetPage = {
       Plotly.react(scorePlot.value, score.data, score.layout, score.config);
       const components = componentsFigure(history.value, tokens);
       Plotly.react(componentsPlot.value, components.data, components.layout, components.config);
+      drawChain();
+    }
+
+    function drawChain() {
+      const figures = chainFigures(chain.value, readTokens());
+      figures.forEach((figure, index) => {
+        const element = chainPlots.value[index];
+        if (element) Plotly.react(element, figure.data, figure.layout, figure.config);
+      });
     }
 
     async function loadHistory() {
       const range = rangeFor(days.value, today);
       history.value = await client.scores(props.symbol, { formula: formula.value, ...range });
+      chain.value = await client.chain(props.symbol, range);
+      await nextTick();
       const eventRange = { from: range.from, to: shiftDays(today, EVENTS_AHEAD_DAYS), min_importance: 2 };
       events.value = eventsFor(await client.events(eventRange), economies.value, range.from, 400);
       draw();
@@ -357,6 +399,9 @@ export const AssetPage = {
       componentsPlot,
       RANGE_PRESETS,
       priceUrl: () => tradingViewUrl(tradingview.value, theme.value),
+      chain,
+      chainPlots,
+      chainCards: () => chainFigures(chain.value, readTokens()),
       upcoming: () => eventsFor(events.value, economies.value, today),
       latest: () => history.value?.points.at(-1),
       groups: () => (panel.value ? forecastRows(panel.value) : []),
@@ -400,6 +445,20 @@ export const AssetPage = {
           <h2>Price</h2>
           <iframe :src="priceUrl()" :title="symbol + ' price on TradingView'" loading="lazy" allowfullscreen></iframe>
         </div>
+      </div>
+
+      <div v-if="chain.length" class="card chain-card">
+        <h2>On-chain</h2>
+        <div class="chain-grid">
+          <div v-for="(figure, index) in chainCards()" :key="figure.metric" class="chain-tile">
+            <div class="chain-head">
+              <span class="muted">{{ figure.label }}</span>
+              <span class="chain-latest">{{ figure.latest }}</span>
+            </div>
+            <div :ref="(element) => (chainPlots[index] = element)" class="chart"></div>
+          </div>
+        </div>
+        <p class="muted small">Coin Metrics Community (CC BY-NC 4.0), DefiLlama, Solana RPC. Display only: no formula reads these yet.</p>
       </div>
 
       <div class="columns">

@@ -365,6 +365,24 @@ select {
 .chart {
   width: 100%;
 }
+.chain-card {
+  margin-bottom: var(--space-3);
+}
+.chain-grid {
+  display: grid;
+  gap: var(--space-2) var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.chain-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.chain-latest {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
 .price {
   display: flex;
   flex-direction: column;
@@ -396,7 +414,7 @@ select {
   line-height: 1.55;
   color: var(--ink);
 }
-.report .small {
+.small {
   font-size: 0.8rem;
 }
 .report details {

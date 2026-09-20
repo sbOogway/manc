@@ -87,6 +87,7 @@ export function createClient({ fetch = globalThis.fetch, baseUrl = apiUrl } = {}
     events: (params) => get("/api/v1/events", params),
     forecasts: (symbol, params) => get(`/api/v1/assets/${symbol}/forecasts`, params),
     spot: (symbol, params) => get(`/api/v1/assets/${symbol}/spot`, params),
+    chain: (symbol, params) => get(`/api/v1/assets/${symbol}/chain`, params),
     macroForecasts: (params) => get("/api/v1/macro/forecasts", params),
     formulas: () => get("/api/v1/formulas"),
     health: () => get("/health"),
