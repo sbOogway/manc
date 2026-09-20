@@ -72,6 +72,21 @@ def scores(
         raise _unknown_asset(symbol) from None
 
 
+@router.get("/api/v1/assets/{symbol}/chain", response_model=list[queries.ChainSeries])
+def chain(
+    symbol: str,
+    config: ConfigDep,
+    store: StoreDep,
+    start: Annotated[date | None, Query(alias="from")] = None,
+    end: Annotated[date | None, Query(alias="to")] = None,
+) -> list:
+    start, end = _range(start, end)
+    try:
+        return queries.chain_series(store, config, symbol, start, end)
+    except KeyError:
+        raise _unknown_asset(symbol) from None
+
+
 @router.get("/api/v1/assets/{symbol}/report", response_model=ReportOut)
 def report(
     symbol: str,
