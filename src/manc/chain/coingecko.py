@@ -19,8 +19,10 @@ log = logging.getLogger(__name__)
 
 SOURCE = "coingecko"
 API = "https://api.coingecko.com/api/v3"
-PAUSE_SECONDS = 2.5  # between coins, under the keyless limit
-RETRY_SECONDS = 30.0  # after a 429, once
+PAUSE_SECONDS = (
+    15.0  # between coins: the keyless tier allowed about five calls a minute on 2026-09-20
+)
+RETRY_SECONDS = 60.0  # after a 429, once
 FIELDS = {  # CoinGecko field -> ours
     "sentiment_votes_up_percentage": "sentiment_votes_up_pct",
     "watchlist_portfolio_users": "watchlist_users",
