@@ -1,6 +1,6 @@
 // One function per API route over fetch. The base URL is the only thing the site knows
 // about the backend: localhost when the page is served locally, the production backend
-// (the Cloudflare tunnel in front of `manc api`) when it is served from GitHub Pages, and
+// (the tunnel in front of `manc api`) when it is served from GitHub Pages, and
 // whatever the header field set, kept in storage, over both.
 import type {
   AssetHistory,

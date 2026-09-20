@@ -540,7 +540,7 @@ with vitest, and `vue-tsc` type-checks the whole package; both run from the `sit
 pre-commit hook (`npm run check`).
 
 The API URL follows where the page is served from: `http://localhost:8000` on localhost (the
-local test against `manc api`), the production backend (the Cloudflare tunnel in front of the
+local test against `manc api`), the production backend (the tunnel in front of the
 owner's machine, one constant in `src/api/client.ts`) from GitHub Pages. The header has a field to
 point the site at any other backend; the choice is kept in `localStorage` and wins over both
 defaults. Routing uses the hash (`/#/asset/EURUSD`), which GitHub Pages serves without rewrite
@@ -669,13 +669,14 @@ through runs at the next wake, and then `scripts/publish-site.sh`, which publish
 
 The backend runs as one container (`Containerfile`: `python:3.12-slim` plus `uv sync
 --frozen --no-dev`; the entrypoint runs `alembic upgrade head` and then the command, `manc api`
-by default). `compose.yaml` starts it with port 8000 on loopback only, `./data` bind-mounted at
-`/data` (so the SQLite file is the same one a host-side run writes) and `.env` for the API
-keys; the optional `tunnel` profile adds `cloudflared` with `TUNNEL_TOKEN`, whose public
-hostname points at `http://api:8000`. Rootless Podman on the owner's machine; Docker reads the
-same files. Two environment variables exist for the container and nothing else: `MANC_API_HOST`
-(the image binds `0.0.0.0`, the CLI keeps loopback) and `MANC_LLM_MODEL`, which overrides
-`llm.model` because the image has no Claude CLI to run headless. The daily run therefore
+by default). `compose.yaml` starts it with port 8000 on loopback, or on `MANC_API_BIND` from
+`.env` (the LAN address reached by the owner's tunnel, which runs on another machine and is
+not part of this stack), `./data` bind-mounted at `/data` (so the SQLite file is the same one a
+host-side run writes) and `.env` for the API keys. Rootless Podman on the owner's machine;
+Docker reads the same files. Two environment variables exist for the container and nothing
+else: `MANC_API_HOST` (the image binds `0.0.0.0`, the CLI keeps loopback) and
+`MANC_LLM_MODEL`, which overrides `llm.model` because the image has no Claude CLI to run
+headless. The daily run therefore
 happens either on the host (`uv run manc run`, Claude Code, `manc-run.timer` above) or inside the
 container (`podman compose run --rm api manc run` with a keyed model in `.env`); both write the
 same database and the API serves it live. The dashboard is on GitHub Pages and reads the API
@@ -823,7 +824,7 @@ load-bearing enough to block a start.
 - **`queries.py` for read-side logic.** Bands, deltas, sparklines and ordering are computed in
   one place, as plain functions, tested without HTTP; routes and pages stay thin.
 - **Static Vue site on GitHub Pages** (2026-09-19, replacing Dash). The owner wants the
-  dashboard hosted for free on GitHub Pages with the API reached through a Cloudflare tunnel;
+  dashboard hosted for free on GitHub Pages with the API reached through a tunnel;
   a Dash server cannot be hosted there. Vue 3 from a CDN keeps the no-build-step property
   Dash had, Plotly stays for the charts, and publishing is a push of one folder to a branch.
 - **Git hooks instead of hosted CI.** pre-commit runs format, lint and the test suite before

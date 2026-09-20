@@ -105,7 +105,7 @@ npm run types                                  # regenerate src/api/schema.d.ts 
 ```
 
 Open http://localhost:8050 and it reads `http://localhost:8000`. The field in the header
-points it at another backend, for instance a Cloudflare tunnel in front of `manc api`; the
+points it at another backend, for instance the tunnel in front of `manc api`; the
 choice stays in the browser. When a route or schema changes, `uv run python
 scripts/openapi-schema.py` refreshes `site/openapi.json` (a test fails otherwise) and
 `npm run types` the TypeScript types.
@@ -125,13 +125,12 @@ happen on the host with Claude Code or inside the container with a keyed model.
 podman compose up -d --build                   # API on http://127.0.0.1:8000, migrates on start
 podman compose logs -f api                     # uvicorn log
 podman compose run --rm api manc run           # a daily run inside the container (see below)
-podman compose --profile tunnel up -d          # also cloudflared, with TUNNEL_TOKEN from .env
 podman compose down                            # stop everything; the data folder stays
 ```
 
-`.env` holds the provider keys (`MISTRAL_API_KEY`, ...) and, for the tunnel, `TUNNEL_TOKEN`
-from the Zero Trust dashboard (Networks → Tunnels → Create, connector type cloudflared; give
-the tunnel a public hostname whose service is `http://api:8000`). Runs inside the container
+`.env` holds the provider keys (`MISTRAL_API_KEY`, ...) and `MANC_API_BIND`, the address the
+API listens on (default `127.0.0.1`; the LAN address that the machine running the public
+tunnel reaches, and that tunnel's hostname is `PRODUCTION_API_URL`). Runs inside the container
 need `MANC_LLM_MODEL=mistral/ministral-14b-latest` (or any keyed model) in `.env`, because the
 image has no Claude CLI; a run on the host uses `config/llm.yaml` as usual and the container
 serves the result immediately.
