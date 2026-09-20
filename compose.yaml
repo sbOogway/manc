@@ -1,0 +1,27 @@
+# `podman compose up -d --build` serves the API on http://127.0.0.1:8000 with the database in
+# ./data. Add `--profile tunnel` to publish it through a Cloudflare tunnel (TUNNEL_TOKEN in
+# .env, from the Zero Trust dashboard; point the tunnel's public hostname at http://api:8000).
+# A daily run inside the container: `podman compose run --rm api manc run`; it tags with
+# MANC_LLM_MODEL from .env because the image has no Claude CLI.
+services:
+  api:
+    build: .
+    image: manc
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/data:Z
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  tunnel:
+    image: docker.io/cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    env_file:
+      - .env
+    depends_on:
+      - api
+    restart: unless-stopped
+    profiles:
+      - tunnel
