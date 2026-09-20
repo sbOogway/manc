@@ -71,6 +71,12 @@ class DefiLlama:
                     response = self.client.get(url_of(chain), params=params)
                     response.raise_for_status()
                     points = parse(response.json())
+                except httpx.HTTPStatusError as error:
+                    if error.response.status_code == 404:  # a chain without that series
+                        log.debug("%s %s: no %s series", SOURCE, asset.symbol, metric)
+                    else:
+                        log.warning("%s %s %s: %s", SOURCE, asset.symbol, metric, error)
+                    continue
                 except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError) as error:
                     log.warning("%s %s %s: %s", SOURCE, asset.symbol, metric, error)
                     continue
