@@ -16,7 +16,7 @@ def test_repo_config_loads() -> None:
     config = load_config(REPO_CONFIG)
     symbols = [asset.symbol for asset in config.assets]
     assert symbols[:3] == ["EURUSD", "GBPUSD", "USDJPY"]
-    assert len(symbols) == len(set(symbols)) == 62
+    assert len(symbols) == len(set(symbols)) == 61
     assert {asset.kind for asset in config.assets} == {
         "forex",
         "metal",
