@@ -38,7 +38,7 @@ from manc.store.sql import SqlStore
 API_HOST = "127.0.0.1"  # MANC_API_HOST overrides it; the container image binds 0.0.0.0
 API_PORT = 8000
 SITE_PORT = 8050
-SITE_DIR = Path(__file__).resolve().parents[2] / "site"
+SITE_DIR = Path(__file__).resolve().parents[2] / "site" / "dist"  # what `npm run build` writes
 LOG_FORMAT = "%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s"
 LOG_DATEFMT = "%H:%M:%S"
 
@@ -51,6 +51,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     logging.basicConfig(stream=sys.stderr, format=LOG_FORMAT, datefmt=LOG_DATEFMT)
     logging.getLogger("manc").setLevel(logging.DEBUG if args.verbose else logging.INFO)
     if args.command == "ui":
+        if not _site_built():
+            return 1
         _serve_site()
         return 0
     try:
@@ -59,6 +61,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"manc: {error}", file=sys.stderr)
         return 1
     config = load_config()
+    if args.command == "serve" and not _site_built():
+        return 1
     if args.command in ("api", "serve"):
         host = os.environ.get("MANC_API_HOST") or API_HOST
         log.info("manc api: serving http://%s:%d, %s", host, API_PORT, db.database_url())
@@ -145,8 +149,18 @@ def _forecast_providers(config: Config, store: SqlStore) -> list[ForecastProvide
     return [LlmExtractor(config, store.news), FedSep(), WorldBankOutlook()]
 
 
+def _site_built() -> bool:
+    if (SITE_DIR / "index.html").is_file():
+        return True
+    print(
+        f"manc: no built site at {SITE_DIR}: run `cd site && npm ci && npm run build`",
+        file=sys.stderr,
+    )
+    return False
+
+
 def _serve_site() -> None:
-    """The static site from `site/`, for the local test against the API."""
+    """The built site from `site/dist`, for the local test against the API."""
     handler = partial(SimpleHTTPRequestHandler, directory=str(SITE_DIR))
     log.info("manc ui: serving %s on http://%s:%d", SITE_DIR, API_HOST, SITE_PORT)
     ThreadingHTTPServer((API_HOST, SITE_PORT), handler).serve_forever()

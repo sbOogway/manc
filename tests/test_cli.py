@@ -193,17 +193,38 @@ def site_server(monkeypatch: pytest.MonkeyPatch) -> type[FakeSiteServer]:
     return FakeSiteServer
 
 
-def test_ui_serves_the_site_folder(site_server: type[FakeSiteServer]) -> None:
+def test_ui_serves_the_built_site(
+    site_server: type[FakeSiteServer], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "index.html").write_text("<title>manc</title>")
+    monkeypatch.setattr(cli, "SITE_DIR", tmp_path)
     assert cli.main(["ui"]) == 0
     [server] = site_server.instances
     assert server.address == ("127.0.0.1", 8050)
     assert server.served
-    assert (Path(server.handler.keywords["directory"]) / "index.html").is_file()
+    assert Path(server.handler.keywords["directory"]) == tmp_path
+
+
+def test_ui_refuses_an_unbuilt_site(
+    site_server: type[FakeSiteServer],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    monkeypatch.setattr(cli, "SITE_DIR", tmp_path / "dist")
+    assert cli.main(["ui"]) == 1
+    assert "npm run build" in capsys.readouterr().err
+    assert site_server.instances == []
 
 
 def test_serve_starts_the_api_in_a_thread_and_the_site(
-    migrated_db: str, site_server: type[FakeSiteServer], monkeypatch: pytest.MonkeyPatch
+    migrated_db: str,
+    site_server: type[FakeSiteServer],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    (tmp_path / "index.html").write_text("<title>manc</title>")
+    monkeypatch.setattr(cli, "SITE_DIR", tmp_path)
     served: dict[str, object] = {}
     monkeypatch.setattr(cli.uvicorn, "run", lambda app, **kwargs: served.update(kwargs))
     assert cli.main(["serve"]) == 0
