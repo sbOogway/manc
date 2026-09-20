@@ -96,15 +96,27 @@ uv run manc api                                # the REST API alone (OpenAPI UI 
 uv run manc ui                                 # the static dashboard alone
 ```
 
-The dashboard is a static site (`site/`, Vue 3 and Plotly.js from a CDN, no build step) that
-only talks to the API; open http://localhost:8050 and it reads `http://localhost:8000`. The
-field in the header points it at another backend, for instance a Cloudflare tunnel in front of
-`manc api`; the choice stays in the browser.
+The dashboard is an npm package in `site/` (Vue 3 + TypeScript, PrimeVue, FullCalendar,
+Plotly, built with Vite) that only talks to the API:
 
-Publishing it to GitHub Pages is `scripts/publish-site.sh`: it pushes `site/` to the `gh-pages`
-branch, which Pages serves (enable Pages on that branch once, the command is in the script).
-The published site reads the production backend (`PRODUCTION_API_URL` in `site/client.js`, the
-tunnel hostname); the header field still overrides it.
+```sh
+cd site && npm ci                              # once per clone
+npm run dev                                    # development server with hot reload
+npm run build                                  # site/dist, what `manc ui` and the publish script serve
+npm run check                                  # vue-tsc + vitest (also a pre-commit hook)
+npm run types                                  # regenerate src/api/schema.d.ts from openapi.json
+```
+
+Open http://localhost:8050 and it reads `http://localhost:8000`. The field in the header
+points it at another backend, for instance a Cloudflare tunnel in front of `manc api`; the
+choice stays in the browser. When a route or schema changes, `uv run python
+scripts/openapi-schema.py` refreshes `site/openapi.json` (a test fails otherwise) and
+`npm run types` the TypeScript types.
+
+Publishing it to GitHub Pages is `scripts/publish-site.sh`: it builds and pushes `site/dist`
+to the `gh-pages` branch, which Pages serves (enable Pages on that branch once, the command is
+in the script). The published site reads the production backend (`PRODUCTION_API_URL` in
+`site/src/api/client.ts`, the tunnel hostname); the header field still overrides it.
 
 ### Production
 
@@ -146,7 +158,7 @@ Layout:
   `scoring/`, `store/`, `pipeline.py`, `cli.py`, `llm.py`
 - `src/manc/formulas/` — index formulas as plain classes, standard library only, versioned
 - `src/manc/api/` — the FastAPI routes; `src/manc/queries.py` the read-side logic behind them
-- `site/` — the dashboard; its pure modules are tested with `node --test 'site/tests/*.test.js'`
+- `site/` — the dashboard package; `npm run check` type-checks it and runs its vitest suite
 - `src/manc/store/schema.py` — declared tables; every change is an Alembic revision in `migrations/`
 - `config/` — assets, feeds, calendar maps, scoring params, LLM model, forecast institutions
 - `tests/` — one folder per module, recorded fixtures under `tests/fixtures/`
