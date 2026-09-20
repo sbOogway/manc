@@ -2,6 +2,7 @@
 # or pull instead and publishes the dashboard build when the branch is main.
 # Install once after cloning:
 #   uv run pre-commit install --hook-type pre-commit --hook-type post-merge
+default_stages: [pre-commit]
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0

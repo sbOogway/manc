@@ -99,3 +99,4 @@ def test_a_post_merge_hook_runs_the_publish_and_nothing_else_moves_off_commit() 
     assert publish["entry"] == "scripts/publish-site.sh"
     assert publish["always_run"] is True and publish["pass_filenames"] is False
     assert all("stages" not in hook for hook in hooks if hook["id"] != "publish-site")
+    assert config["default_stages"] == ["pre-commit"]  # else they all run after a merge too
