@@ -135,13 +135,14 @@ test("one small figure per on-chain series, labelled, thin line, values formatte
     {
       metric: "active_addresses",
       label: "Active addresses",
+      group: "chain",
       source: "coinmetrics",
       points: [
         { date: "2026-09-18", value: 681346 },
         { date: "2026-09-19", value: 586590 },
       ],
     },
-    { metric: "mvrv", label: "MVRV", source: "coinmetrics", points: [{ date: "2026-09-19", value: 1.52 }] },
+    { metric: "mvrv", label: "MVRV", group: "chain", source: "coinmetrics", points: [{ date: "2026-09-19", value: 1.52 }] },
   ];
   const [addresses, mvrv] = chainFigures(series, TOKENS);
   expect(addresses?.label).toBe("Active addresses");

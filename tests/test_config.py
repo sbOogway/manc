@@ -101,9 +101,11 @@ def test_every_coin_names_its_chain_data_ids_and_nothing_else_does() -> None:
         "SOLUSD",
         "BNBUSD",
     ]
+    assert all(asset.chain.get("coingecko") for asset in coins)
     assert next(asset.chain for asset in coins if asset.symbol == "BTCUSD") == {
         "coinmetrics": "btc",
         "defillama": "bitcoin",
+        "coingecko": "bitcoin",
     }
     assert all(asset.chain == {} for asset in config.assets if asset.kind != "crypto")
 

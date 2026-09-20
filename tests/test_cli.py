@@ -13,7 +13,7 @@ import pytest
 import respx
 
 from manc import cli, llm
-from manc.chain import coinmetrics, defillama, solana_rpc
+from manc.chain import coingecko, coinmetrics, defillama, fear_greed, solana_rpc
 from manc.config import load_config
 from manc.forecasts import fed_sep, worldbank
 from manc.spot import yahoo
@@ -29,6 +29,8 @@ CHAIN = Path(__file__).resolve().parent / "fixtures" / "chain"
 NON_FEED_HOSTS = {  # the calendar and the on-chain sources; anything else a run asks for is a feed
     "api.nasdaq.com",
     "community-api.coinmetrics.io",
+    "pro-api.coinmarketcap.com",
+    "api.coingecko.com",
     "api.llama.fi",
     "stablecoins.llama.fi",
     "api.mainnet-beta.solana.com",
@@ -55,6 +57,7 @@ def offline_completion(**kwargs: object) -> object:
 def offline_sources(monkeypatch: pytest.MonkeyPatch) -> Iterator[respx.MockRouter]:
     monkeypatch.setattr(yahoo, "yfinance_history", recorded_history)  # yfinance bypasses httpx
     monkeypatch.setattr(llm.litellm, "completion", offline_completion)
+    monkeypatch.setattr(coingecko, "PAUSE_SECONDS", 0)
     with respx.mock(assert_all_called=False) as router:
         router.get(host="api.nasdaq.com").mock(return_value=httpx.Response(200, json=NO_RECORD))
         router.get(fed_sep.CALENDAR_URL).mock(
@@ -75,6 +78,7 @@ def offline_sources(monkeypatch: pytest.MonkeyPatch) -> Iterator[respx.MockRoute
         )
         for url, name in (
             (coinmetrics.ENDPOINT, "coinmetrics.json"),
+            (fear_greed.ENDPOINT, "cmc-fear-greed.json"),
             (defillama.fees_url("solana"), "defillama-fees-solana.json"),
             (defillama.tvl_url("solana"), "defillama-tvl-solana.json"),
             (defillama.stablecoins_url("solana"), "defillama-stablecoins-solana.json"),
@@ -82,6 +86,11 @@ def offline_sources(monkeypatch: pytest.MonkeyPatch) -> Iterator[respx.MockRoute
             router.get(url).mock(
                 return_value=httpx.Response(200, json=json.loads((CHAIN / name).read_text()))
             )
+        router.get(host="api.coingecko.com").mock(
+            return_value=httpx.Response(
+                200, json=json.loads((CHAIN / "coingecko-bitcoin.json").read_text())
+            )
+        )
         router.get(host="api.llama.fi").mock(return_value=httpx.Response(200, json=[]))
         router.get(host="stablecoins.llama.fi").mock(return_value=httpx.Response(200, json=[]))
         router.post(solana_rpc.RPC_URL).mock(
@@ -458,6 +467,9 @@ def test_chain_backfill_stores_every_provider_and_prints_the_count(
         "tvl_usd",
         "stablecoins_usd",
         "tx_per_second",
+        "fear_greed",
+        "sentiment_votes_up_pct",
+        "watchlist_users",
     }
     assert store.chain.latest("EURUSD") == {}
 

@@ -175,9 +175,9 @@ def test_chain_series_for_a_coin_and_nothing_for_the_rest(client: TestClient) ->
     response = client.get("/api/v1/assets/BTCUSD/chain")
     assert response.status_code == 200
     body = response.json()
-    assert [(one["metric"], one["label"], one["source"]) for one in body] == [
-        ("fees_usd", "Fees paid (USD)", "defillama"),
-        ("mvrv", "MVRV", "coinmetrics"),
+    assert [(one["metric"], one["label"], one["source"], one["group"]) for one in body] == [
+        ("fees_usd", "Fees paid (USD)", "defillama", "chain"),
+        ("mvrv", "MVRV", "coinmetrics", "chain"),
     ]
     assert body[1]["points"] == [
         {"date": (TODAY - DAY).isoformat(), "value": 1.4},

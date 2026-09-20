@@ -9,8 +9,9 @@
 # `spot` names the ticker per spot source (display only). Yahoo quotes USD-quoted pairs as
 # "JPY=X", futures as "GC=F", indices as "^GSPC", coins as "BTC-USD", US yields as "^TNX".
 # `tradingview` is the EXCHANGE:TICKER the dashboard embeds next to the score chart.
-# `chain` names the coin at each on-chain source (docs/on-chain-sources.md): Coin Metrics
-# Community covers five coins (not Solana, not today's BNB); DefiLlama covers all seven chains.
+# `chain` names the coin at each on-chain or sentiment source (docs/on-chain-sources.md):
+# Coin Metrics Community covers five coins (not Solana, not today's BNB); DefiLlama and
+# CoinGecko cover all seven.
 # `active_kinds` lists the kinds a daily run scores and the dashboard shows; the other assets
 # stay defined so headlines keep being tagged for them and old scores stay reachable. Leave
 # the list empty to run everything (about 15 minutes a day for all 61 assets).
@@ -364,49 +365,49 @@ assets:
   # crypto
   BTCUSD:
     spot: {yahoo: "BTC-USD", tradingview: "BITSTAMP:BTCUSD"}
-    chain: {coinmetrics: "btc", defillama: "bitcoin"}
+    chain: {coinmetrics: "btc", defillama: "bitcoin", coingecko: "bitcoin"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   ETHUSD:
     spot: {yahoo: "ETH-USD", tradingview: "BITSTAMP:ETHUSD"}
-    chain: {coinmetrics: "eth", defillama: "ethereum"}
+    chain: {coinmetrics: "eth", defillama: "ethereum", coingecko: "ethereum"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   SOLUSD:
     spot: {yahoo: "SOL-USD", tradingview: "COINBASE:SOLUSD"}
-    chain: {defillama: "solana"}
+    chain: {defillama: "solana", coingecko: "solana"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   XRPUSD:
     spot: {yahoo: "XRP-USD", tradingview: "BITSTAMP:XRPUSD"}
-    chain: {coinmetrics: "xrp", defillama: "xrpl"}
+    chain: {coinmetrics: "xrp", defillama: "xrpl", coingecko: "ripple"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   BNBUSD:
     spot: {yahoo: "BNB-USD", tradingview: "BINANCE:BNBUSD"}
-    chain: {defillama: "bsc"}  # Coin Metrics' "bnb" is the old ERC-20 token, series ended 2019
+    chain: {defillama: "bsc", coingecko: "binancecoin"}  # Coin Metrics' "bnb" is the old ERC-20 token, series ended 2019
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   ADAUSD:
     spot: {yahoo: "ADA-USD", tradingview: "COINBASE:ADAUSD"}
-    chain: {coinmetrics: "ada", defillama: "cardano"}
+    chain: {coinmetrics: "ada", defillama: "cardano", coingecko: "cardano"}
     kind: crypto
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   LTCUSD:
     spot: {yahoo: "LTC-USD", tradingview: "COINBASE:LTCUSD"}
-    chain: {coinmetrics: "ltc", defillama: "litecoin"}
+    chain: {coinmetrics: "ltc", defillama: "litecoin", coingecko: "litecoin"}
     kind: crypto
     economies: [united_states]
     signs:

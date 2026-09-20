@@ -122,7 +122,8 @@ watch(formula, (_value, previous) => {
       <PriceChart :symbol="symbol" :ticker="tradingview" />
     </div>
 
-    <ChainPanel :series="chain" />
+    <ChainPanel :series="chain" group="chain" />
+    <ChainPanel :series="chain" group="sentiment" />
 
     <div class="columns">
       <ReportPanel :markdown="report.markdown" :day="report.day" :note="report.note" />

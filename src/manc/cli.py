@@ -17,8 +17,10 @@ from manc.analysis.lexicon import LexiconAnalyzer
 from manc.analysis.llm import LlmAnalyzer
 from manc.api.app import create_app
 from manc.calendar.nasdaq import NasdaqCalendar
+from manc.chain.coingecko import CoinGecko
 from manc.chain.coinmetrics import CoinMetrics
 from manc.chain.defillama import DefiLlama
+from manc.chain.fear_greed import FearGreed
 from manc.chain.interface import ChainProvider
 from manc.chain.solana_rpc import SolanaRpc
 from manc.config import Config, load_config
@@ -141,7 +143,7 @@ def _backfill_forecasts(config: Config, store: SqlStore, since_day: date) -> int
 
 
 def _chain_providers() -> list[ChainProvider]:
-    return [CoinMetrics(), DefiLlama(), SolanaRpc()]
+    return [CoinMetrics(), DefiLlama(), SolanaRpc(), FearGreed(), CoinGecko()]
 
 
 def _forecast_providers(config: Config, store: SqlStore) -> list[ForecastProvider]:

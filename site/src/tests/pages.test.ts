@@ -38,7 +38,10 @@ test("the asset page shows the latest score, the report summary and the panels",
     assets: async () => [{ symbol: "BTCUSD", kind: "crypto", economies: ["united_states"], tradingview: "BITSTAMP:BTCUSD" }],
     formulas: async () => ({ default: "v2", known: ["v1", "v2"] }),
     scores: async () => HISTORY,
-    chain: async () => [],
+    chain: async () => [
+      { metric: "mvrv", label: "MVRV", group: "chain", source: "coinmetrics", points: [{ date: "2026-09-19", value: 1.5 }] },
+      { metric: "fear_greed", label: "Fear & Greed (market)", group: "sentiment", source: "coinmarketcap", points: [{ date: "2026-09-19", value: 73 }] },
+    ],
     events: async () => [EVENT],
     report: async () => ({ symbol: "BTCUSD", date: "2026-09-19", formula: "v2", report_md: "# BTCUSD 2026-09-19: -10 neutral\n\nQuiet day for bitcoin.\n\n## Components\n\n- N: -0.10\n\n---\n\nSummary by test/model.\n" }),
     headlines: async () => [{ title: "Bitcoin steady", url: "u/1", source: "reuters", published_at: "2026-09-19T08:00:00Z", direction: 1, confidence: 0.7, source_weight: 1, weight: 0.7 }],
@@ -54,6 +57,9 @@ test("the asset page shows the latest score, the report summary and the panels",
   expect(text).toContain("CPI"); // ahead
   expect(text).toContain("Bitcoin steady"); // headlines
   expect(text).toContain("No institutional forecast stored");
+  expect(text).toContain("On-chain");
+  expect(text).toContain("Sentiment");
+  expect(text).toContain("Fear & Greed (market)");
   expect(wrapper.find("iframe").attributes("src")).toContain("BITSTAMP%3ABTCUSD");
 });
 
