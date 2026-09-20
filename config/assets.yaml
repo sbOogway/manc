@@ -11,7 +11,7 @@
 # `tradingview` is the EXCHANGE:TICKER the dashboard embeds next to the score chart.
 # `active_kinds` lists the kinds a daily run scores and the dashboard shows; the other assets
 # stay defined so headlines keep being tagged for them and old scores stay reachable. Leave
-# the list empty to run everything (about 15 minutes a day for all 62 assets).
+# the list empty to run everything (about 15 minutes a day for all 61 assets).
 active_kinds: [crypto]
 
 assets:
@@ -392,12 +392,6 @@ assets:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
   ADAUSD:
     spot: {yahoo: "ADA-USD", tradingview: "COINBASE:ADAUSD"}
-    kind: crypto
-    economies: [united_states]
-    signs:
-      united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
-  DOGEUSD:
-    spot: {yahoo: "DOGE-USD", tradingview: "COINBASE:DOGEUSD"}
     kind: crypto
     economies: [united_states]
     signs:
