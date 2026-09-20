@@ -9,6 +9,7 @@ class AssetOut(BaseModel):
     symbol: str
     kind: str
     economies: list[str]
+    tradingview: str | None  # EXCHANGE:TICKER for the embedded price chart
 
 
 class ReportOut(BaseModel):
