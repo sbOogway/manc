@@ -1,0 +1,35 @@
+{
+  "name": "manc-site",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "types": "openapi-typescript openapi.json -o src/api/schema.d.ts",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run test"
+  },
+  "dependencies": {
+    "@fullcalendar/vue3": "^7.1.0",
+    "@primeuix/themes": "^3.0.1",
+    "marked": "^18.0.13",
+    "plotly.js-basic-dist-min": "^4.1.1",
+    "primevue": "^5.0.1",
+    "vue": "^3.5.43",
+    "vue-router": "^5.3.1"
+  },
+  "devDependencies": {
+    "@types/plotly.js": "^3.0.13",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "@vue/test-utils": "^2.5.1",
+    "happy-dom": "^20.14.5",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1",
+    "vue-tsc": "^3.3.11"
+  }
+}

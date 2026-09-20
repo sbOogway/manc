@@ -520,16 +520,24 @@ FastAPI dependency so tests run the app against `FakeStore`. `uv run manc api` s
 
 ### Dashboard: `site/`
 
-A static site, so it can be hosted on GitHub Pages: plain HTML, CSS and ES modules, with
-Vue 3 and Vue Router loaded from a CDN (pinned versions) and Plotly.js for charts. No
-bundler, no `node_modules`, no build step: the folder is published as it is. It lives in
-`site/` at the repo root, outside the Python package, so it cannot import the backend; the only
-thing it knows about it is the API URL. `site/client.js` wraps the routes above in one function
-per route over `fetch`.
+An npm package in `site/`, built with Vite into static files that GitHub Pages can serve:
+Vue 3 single-file components in TypeScript, Vue Router in hash mode, PrimeVue for the
+controls and tables (Aura preset on the site's blue accent, dark mode off the `data-theme`
+attribute), FullCalendar for the events page, Plotly (the basic bundle: every chart here is a
+scatter) for the charts, marked for the report. Nothing loads from a CDN. It lives outside
+the Python package, so it cannot import the backend; the only thing it knows about it is the
+API URL. `src/api/client.ts` wraps the routes above in one typed function per route over
+`fetch`; the types come from `site/openapi.json`, a snapshot of the app's OpenAPI document
+that `scripts/openapi-schema.py` writes, `npm run types` turns into `src/api/schema.d.ts`,
+and a Python test keeps equal to the app, so the site and the API cannot drift apart
+silently. Rendering lives in `src/pages/*.vue` and `src/components/*.vue`; everything
+computable (figures, table rows, URLs, filters) is a pure function in `src/lib/*.ts`, tested
+with vitest, and `vue-tsc` type-checks the whole package; both run from the `site-tests`
+pre-commit hook (`npm run check`).
 
 The API URL follows where the page is served from: `http://localhost:8000` on localhost (the
 local test against `manc api`), the production backend (the Cloudflare tunnel in front of the
-owner's machine, one constant in `client.js`) from GitHub Pages. The header has a field to
+owner's machine, one constant in `src/api/client.ts`) from GitHub Pages. The header has a field to
 point the site at any other backend; the choice is kept in `localStorage` and wins over both
 defaults. Routing uses the hash (`/#/asset/EURUSD`), which GitHub Pages serves without rewrite
 rules.
@@ -567,13 +575,14 @@ Looking good, concretely:
 
 Serving and publishing:
 
-- `uv run manc ui` serves `site/` on `localhost:8050` with the standard library's HTTP server,
-  for the local test; `uv run manc serve` starts it together with the API. The API allows
-  cross-origin reads from any origin: it is read-only and public.
-- `scripts/publish-site.sh` pushes the `site/` tree of `HEAD` to the `gh-pages` branch as its
-  own commit chain (`git commit-tree`, no subtree); GitHub Pages serves that branch. No
-  workflow file, in line with §8. Once the API is reachable through the tunnel, the published
-  site is pointed at it from the header field.
+- `npm run dev` in `site/` is the development server with hot reload; `npm run build` writes
+  `site/dist/` (relative asset paths, so the same build serves from `/manc/` on Pages and
+  from `/` locally). `uv run manc ui` serves that build on `localhost:8050` with the standard
+  library's HTTP server and refuses to start without it; `uv run manc serve` starts it together
+  with the API. The API allows cross-origin reads from any origin: it is read-only and public.
+- `scripts/publish-site.sh` builds and pushes `site/dist/` to the `gh-pages` branch as its
+  own commit chain (`git commit-tree` over a temporary index, no subtree); GitHub Pages serves
+  that branch. No workflow file, in line with §8.
 
 ## 8 · Repo and tooling
 
@@ -613,7 +622,7 @@ manc/
 │   ├── api/                # app.py (FastAPI), routes.py, schemas.py (Pydantic), deps.py
 │   ├── pipeline.py
 │   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc ui | manc serve
-├── site/                   # static dashboard: index.html, app.js, client.js, pages/, style.css; tests/ for node --test
+├── site/                   # the dashboard package: package.json, vite.config.ts, openapi.json, src/{api,lib,pages,components,tests}
 ├── scripts/publish-site.sh # site/ → gh-pages branch
 ├── scripts/container-entrypoint.sh  # migrate, then exec the command
 ├── Containerfile, compose.yaml, .containerignore  # the backend image (§8, Production)
@@ -630,7 +639,7 @@ manc/
 | `sqlalchemy`, `alembic`                           | store: Core tables and versioned migrations                            |
 | `pyyaml`                                          | config files                                                          |
 | `fastapi`, `uvicorn`, `pydantic`                  | REST API                                                              |
-| Vue 3, Vue Router, Plotly.js (CDN, pinned; nothing installed) | dashboard (`site/`); `node` 22+ on the machine for its tests   |
+| Vue 3, Vue Router, PrimeVue, FullCalendar, Plotly.js (basic), marked; Vite, TypeScript, vue-tsc, vitest, openapi-typescript | dashboard (`site/`, an npm package; `node` 22+ and `npm ci` once per clone) |
 | `pytest`, `pytest-cov`, `hypothesis`, `respx`, `ruff`, `pre-commit` | dev: tests, property tests, HTTP stubbing, coverage gate, lint and format, git hooks |
 
 Secrets: the API-key env var of whichever provider `llm.model` names (`ANTHROPIC_API_KEY`,

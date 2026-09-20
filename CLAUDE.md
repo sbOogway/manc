@@ -23,12 +23,16 @@ the index formula, storage, dashboard and milestones. Keep it updated when a dec
   `tests/formulas/test_isolation.py`). A formula change is a new versioned module (`v2.py`),
   never an edit to an old one.
 - **All LLM calls go through LiteLLM**; the model is a string in `config/llm.yaml`.
-- **UI talks to the backend over the REST API only.** The dashboard is a static site in
-  `site/` (Vue 3 and Plotly.js from a CDN, no build step, published to GitHub Pages from the
-  `gh-pages` branch by `scripts/publish-site.sh`); it knows the API URL and nothing else.
-  Read-side logic (bands, deltas, sparklines, ordering) lives in `src/manc/queries.py` as plain
-  functions; API routes and pages stay thin. Site logic that is not rendering (client, formats,
-  chart data) goes in plain ES modules tested with `node --test`.
+- **UI talks to the backend over the REST API only.** The dashboard is an npm package in
+  `site/` (Vue 3 + TypeScript, PrimeVue, FullCalendar, Plotly; built with Vite, published to
+  GitHub Pages from the `gh-pages` branch by `scripts/publish-site.sh`; nothing from a CDN); it
+  knows the API URL and nothing else. Read-side logic (bands, deltas, sparklines, ordering)
+  lives in `src/manc/queries.py` as plain functions; API routes and pages stay thin. Site logic
+  that is not rendering (client, formats, chart data, table rows) goes in `site/src/lib/*.ts`,
+  tested with vitest; rendering in `.vue` components. The API types come from
+  `site/openapi.json`: after a route or schema change run `uv run python
+  scripts/openapi-schema.py` and `npm run types` in `site/`. Use PrimeVue components and
+  FullCalendar before writing a control or a calendar by hand.
 - **Schema changes are Alembic revisions.** Edit `src/manc/store/schema.py`, then
   `uv run alembic revision --autogenerate -m "..."` and review the file. Never hand-edit the
   database; a test fails on drift between `schema.py` and `head`.
@@ -49,5 +53,6 @@ uv sync                              # environment
 uv run pre-commit install            # git hooks, once per clone
 uv run pytest                        # tests with coverage
 uv run pre-commit run --all-files    # every hook on every tracked file
+cd site && npm ci && npm run build   # the dashboard package, once per clone; then `npm run check`
 uv run alembic upgrade head          # migrate the database (MANC_DB_URL, default data/manc.db)
 ```

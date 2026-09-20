@@ -1,4 +1,4 @@
-"""scripts/publish-site.sh pushes site/ alone to the gh-pages branch of origin."""
+"""scripts/publish-site.sh builds site/ and pushes the build alone to the gh-pages branch."""
 
 import subprocess
 from pathlib import Path
@@ -23,9 +23,14 @@ def clone(tmp_path: Path) -> Path:
     _git("clone", "-q", str(remote), str(work), cwd=tmp_path)
     _git("config", "user.email", "test@example.org", cwd=work)
     _git("config", "user.name", "test", cwd=work)
-    (work / "site").mkdir()
-    (work / "site" / "index.html").write_text("<title>manc</title>")
-    (work / "site" / "app.js").write_text("// app")
+    (work / "site" / "src").mkdir(parents=True)
+    (work / "site" / "src" / "index.html").write_text("<title>manc</title>")
+    (work / "site" / "src" / "app.js").write_text("// app")
+    # a stand-in for vite: the build copies src/ into dist/
+    (work / "site" / "package.json").write_text(
+        '{"name": "fake", "private": true, "scripts": {"build": "rm -rf dist && cp -r src dist"}}'
+    )
+    (work / ".gitignore").write_text("site/dist/\n")
     (work / "README.md").write_text("# not published")
     (work / "scripts").mkdir()
     (work / "scripts" / "publish-site.sh").write_bytes(SCRIPT.read_bytes())
@@ -55,7 +60,7 @@ def test_a_second_publish_chains_on_the_first_and_an_unchanged_site_is_a_no_op(
         ["sh", "scripts/publish-site.sh"], cwd=clone, capture_output=True, text=True
     )
     assert again.returncode == 0 and "already holds" in again.stdout
-    (clone / "site" / "style.css").write_text("body{}")
+    (clone / "site" / "src" / "style.css").write_text("body{}")
     _git("add", "-A", cwd=clone)
     _git("commit", "-q", "-m", "style", cwd=clone)
     subprocess.run(["sh", "scripts/publish-site.sh"], cwd=clone, check=True, capture_output=True)
@@ -66,7 +71,7 @@ def test_a_second_publish_chains_on_the_first_and_an_unchanged_site_is_a_no_op(
 
 
 def test_refuses_uncommitted_site_changes(clone: Path) -> None:
-    (clone / "site" / "index.html").write_text("<title>draft</title>")
+    (clone / "site" / "src" / "index.html").write_text("<title>draft</title>")
     result = subprocess.run(
         ["sh", "scripts/publish-site.sh"], cwd=clone, capture_output=True, text=True
     )
