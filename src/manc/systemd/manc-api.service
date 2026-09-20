@@ -1,0 +1,24 @@
+# The REST API as the manc user, confined to /var/lib/manc. Installed and enabled by
+# `manc install`; the binary is the uv tool on the PATH (/usr/local/bin/manc).
+[Unit]
+Description=manc REST API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=manc
+Group=manc
+UMask=0002
+WorkingDirectory=/var/lib/manc
+EnvironmentFile=/etc/manc/env
+ExecStart=/usr/bin/env manc api
+Restart=on-failure
+RestartSec=10
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/manc
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -232,7 +232,7 @@ def _load_scoring(raw: dict[str, Any]) -> ScoringConfig:
 
 
 def _load_llm(raw: dict[str, Any]) -> LlmConfig:
-    """`MANC_LLM_MODEL` wins over the file: a container has no Claude CLI to run headless."""
+    """`MANC_LLM_MODEL` wins over the file, for a machine without a Claude Code login."""
     fields = raw["llm"]
     return LlmConfig(
         model=os.environ.get("MANC_LLM_MODEL") or fields["model"],

@@ -53,8 +53,8 @@ marks them; a refetch never resets it), extracts forecasts, scores and writes th
 
 Reading is separate from writing. The pipeline is the only writer. A REST API (`manc api`)
 serves everything a person might look at, and the dashboard (`manc ui`) is one client of that
-API; it never touches the database. Scheduling is two systemd user timers (`systemd/`); no
-queue, no workers, no orchestrator.
+API; it never touches the database. Scheduling is two systemd timers (`src/manc/systemd/`); no
+queue, no workers, no orchestrator, no container.
 
 ```
 manc fetch (timer, every 15 min) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── static site (GitHub Pages)
@@ -607,6 +607,8 @@ manc/
 │   │   ├── lexicon.yaml    # offline analyzer: economy, category, asset and polarity terms
 │   │   └── forecasts.yaml  # institutions with aliases, kind and weight; per-asset RSS queries; min_confidence
 │   ├── migrations/         # Alembic env.py + versions/
+│   ├── systemd/            # the production units and env.example, copied by `manc install`
+│   ├── install.py          # `manc install`: user, /var/lib/manc, /etc/manc/env, units (§8, Production)
 │   ├── formulas/           # stdlib only, never imports the rest of manc
 │   │   ├── contract.py     # ScoringInputs, IndexScore, IndexFormula
 │   │   ├── registry.py     # get_formula("v1")
@@ -627,11 +629,6 @@ manc/
 │   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc ui | manc serve
 ├── site/                   # the dashboard package: package.json, vite.config.ts, openapi.json, src/{api,lib,pages,components,tests}
 ├── scripts/publish-site.sh # site/ → gh-pages branch
-├── scripts/container-entrypoint.sh  # migrate, then exec the command
-├── scripts/install.sh      # curl | sudo sh: system install under the manc user (§8, Production)
-├── systemd/                # manc's user units (api, fetch) and the system units for the daily run
-├── .env.example            # the keys, MANC_API_BIND, MANC_DATA_DIR; the install writes /etc/manc/env
-├── Containerfile, compose.yaml, .containerignore  # the backend image (§8, Production)
 ├── tests/                  # one folder per module + fixtures/; isolation test for formulas
 └── data/                   # manc.db (gitignored; the folder is kept)
 ```
@@ -662,38 +659,37 @@ rejected. Hooks run through `uv run` so they use the project environment, and
 dashboard build goes to `gh-pages`, so the published site follows `main` (the script is a
 no-op on any other branch).
 
-Installing or updating a machine is one command, `scripts/install.sh` (`curl | sudo sh` from
-the repository); the layout it produces is under Production below, and editing `/etc/manc/env`
-is the only manual step. Scheduling is systemd timers from `systemd/`: `manc-fetch.timer` runs
-`manc fetch` in the container every 15 minutes; `manc-run.timer` runs `manc run` on the host at
-06:00 UTC every day (crypto trades on weekends) with `Persistent=true`, so a day the machine
-slept through runs at the next wake. Logs go to the journal.
+Installing or updating a machine is one line (README, Production): `sudo uvx --from
+git+https://github.com/sbOogway/manc manc install --owner <user>`. `manc install` does the
+permanent `uv tool install` itself (tool, interpreter and entry point under `/opt/manc` and
+`/usr/local/bin`, all world-readable, unlike uv's defaults under `/root`), then lays out the
+machine below; it is idempotent and every command it runs must succeed. Scheduling is
+systemd timers from `src/manc/systemd/`: `manc-fetch.timer` runs `manc fetch` every 15
+minutes; `manc-run@<owner>.timer` runs `manc run` at 06:00 UTC every day (crypto trades on
+weekends) with `Persistent=true`, so a day the machine slept through runs at the next wake.
+Logs go to the journal.
 
 ### Production
 
-The backend runs as one container (`Containerfile`: `python:3.12-slim` plus `uv sync
---frozen --no-dev`; the entrypoint runs `alembic upgrade head` and then the command, `manc api`
-by default). `compose.yaml` starts it with port 8000 on loopback, or on `MANC_API_BIND` from
-`.env` (the LAN address reached by the owner's tunnel, which runs on another machine and is
-not part of this stack), `MANC_DATA_DIR` (default `./data`) bind-mounted at `/data` so the
-SQLite file is the same one a host-side run writes, and `.env` for the API keys. Docker reads
-the same files. Two environment variables exist for the container and nothing else:
-`MANC_API_HOST` (the image binds `0.0.0.0`, the CLI keeps loopback) and `MANC_LLM_MODEL`, which
-overrides `llm.model` because the image has no Claude CLI to run headless.
+No container (decided 2026-09-21, reversing the 2026-09-20 image): a self-contained `uv tool`
+install gives the packaging, a dedicated user and a hardened unit give the isolation, and
+nothing else was gained by the image. The wheel carries everything (§8 tree): the YAML files,
+the migrations, the units and the env example.
 
-The install is system-wide under a dedicated user, apart from the development checkout and the
-owner's account (decided 2026-09-20): a `manc` system user (home `/var/lib/manc`, no login
-shell, its own subordinate id range, linger on) owns the code in `/opt/manc` and runs the
-container with rootless podman as its own user units, `manc-api.service` and
-`manc-fetch.service`/`.timer`. The database is `/var/lib/manc/data/manc.db`, group `manc` with
-a setgid bit and a default ACL, because the daily run stays on the host with the owner's Claude
-Code login: `manc-run.service`/`.timer` are system units running as the owner (`User=` rendered
-from `@OWNER@` at install), group `manc`, umask `0002`, `MANC_DB_URL` on that file. The env
-file is `/etc/manc/env` (`root:manc 0640`), symlinked as `/opt/manc/.env` for compose. The
-server never builds or publishes the site: the dashboard is on GitHub Pages, published by the
-owner's `post-merge` hook, and reads the API through the tunnel hostname. A run inside the
-container instead (`podman compose run --rm api manc run` with a keyed model) writes the same
-database.
+`manc install` creates a `manc` system user (no login shell, home `/var/lib/manc`) and adds
+the owner to its group; `/var/lib/manc` is `2770` with a default ACL for group `manc`, so the
+database `manc.db` there is written both by `manc` and by the owner; `/etc/manc/env`
+(`root:manc 0640`) is written once from `env.example` and never overwritten; the units go to
+`/etc/systemd/system` and are enabled. `manc-api.service` and `manc-fetch.service` run as
+`manc` with `ProtectSystem=strict`, `ReadWritePaths=/var/lib/manc`, `ProtectHome`,
+`NoNewPrivileges` and `PrivateTmp`. The daily run is a template, `manc-run@.service`, whose
+instance is the owner (`User=%i`, group `manc`, umask `0002`, the owner's `~/.local/bin` on the
+`PATH` for `claude`), because the tagger runs on the owner's Claude Code login. Every unit
+loads `/etc/manc/env`: the provider keys, `MANC_DB_URL`, `MANC_API_HOST` (loopback, or the LAN
+address the owner's tunnel machine reaches; the tunnel is not part of this stack) and, on a
+machine without a Claude login, `MANC_LLM_MODEL`. The server never builds or publishes the
+site: the dashboard is on GitHub Pages, published by the owner's `post-merge` hook, and reads
+the API through the tunnel hostname.
 
 ## 9 · Milestones
 
@@ -816,6 +812,10 @@ load-bearing enough to block a start.
 - **systemd timers, not a scheduler library.** The run is idempotent, so a missed run is just
   re-run, which `Persistent=true` does by itself; the journal replaces log redirection. Chosen
   over cron on 2026-09-20 for those two reasons.
+- **A uv tool install and a dedicated user, not a container** (2026-09-21). The container only
+  packaged the API process; `uv tool install` packages the whole application with its own
+  Python and locked dependencies, the `manc` user plus systemd hardening isolate it, and
+  `manc install` replaces a shell script with tested Python. No podman, no compose, no image.
 - **An LLM for tagging, not a keyword list.** Tagging quality is the biggest driver of N; the
   cost is cents per day.
 - **LiteLLM, not a hand-rolled provider adapter.** One dependency covers every provider; the
