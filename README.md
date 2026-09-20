@@ -98,6 +98,32 @@ branch, which Pages serves (enable Pages on that branch once, the command is in 
 The published site starts on `localhost:8000` too, so set the tunnel URL in the header after the
 first load.
 
+### Production
+
+The backend is one container; `Containerfile` and `compose.yaml` work with Podman (rootless)
+and Docker alike. The SQLite database stays in `./data`, bind-mounted, so the daily run can
+happen on the host with Claude Code or inside the container with a keyed model.
+
+```sh
+podman compose up -d --build                   # API on http://127.0.0.1:8000, migrates on start
+podman compose logs -f api                     # uvicorn log
+podman compose run --rm api manc run           # a daily run inside the container (see below)
+podman compose --profile tunnel up -d          # also cloudflared, with TUNNEL_TOKEN from .env
+podman compose down                            # stop everything; the data folder stays
+```
+
+`.env` holds the provider keys (`MISTRAL_API_KEY`, ...) and, for the tunnel, `TUNNEL_TOKEN`
+from the Zero Trust dashboard (Networks → Tunnels → Create, connector type cloudflared; give
+the tunnel a public hostname whose service is `http://api:8000`). Runs inside the container
+need `MANC_LLM_MODEL=mistral/ministral-14b-latest` (or any keyed model) in `.env`, because the
+image has no Claude CLI; a run on the host uses `config/llm.yaml` as usual and the container
+serves the result immediately. Either way the cron line is one of
+
+```
+0 6 * * 1-5 cd ~/quant/manc && uv run manc run                          # host, Claude Code
+0 6 * * 1-5 cd ~/quant/manc && podman compose run --rm api manc run     # container, keyed model
+```
+
 ## Development
 
 Test-driven: the failing test comes before the code. Every commit runs the pre-commit

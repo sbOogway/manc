@@ -67,6 +67,15 @@ def test_every_currency_pair_is_base_plus_quote_minus() -> None:
     assert config.llm.model
 
 
+def test_llm_model_env_var_overrides_the_file(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MANC_LLM_MODEL", "mistral/ministral-14b-latest")
+    config = load_config(REPO_CONFIG)
+    assert config.llm.model == "mistral/ministral-14b-latest"
+    assert config.llm.fallback  # the rest of the block is untouched
+    monkeypatch.setenv("MANC_LLM_MODEL", "")
+    assert load_config(REPO_CONFIG).llm.model == "claude_code/opus"  # blank means the file
+
+
 def test_signs_are_nested_country_then_category() -> None:
     config = load_config(REPO_CONFIG)
     eurusd = next(asset for asset in config.assets if asset.symbol == "EURUSD")

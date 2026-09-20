@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import os
 import sys
 import threading
 from collections.abc import Sequence
@@ -30,7 +31,7 @@ from manc.spot.yahoo import YahooSpot
 from manc.store import db
 from manc.store.sql import SqlStore
 
-API_HOST = "127.0.0.1"
+API_HOST = "127.0.0.1"  # MANC_API_HOST overrides it; the container image binds 0.0.0.0
 API_PORT = 8000
 SITE_PORT = 8050
 SITE_DIR = Path(__file__).resolve().parents[2] / "site"
@@ -55,8 +56,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     config = load_config()
     if args.command in ("api", "serve"):
-        log.info("manc api: serving http://%s:%d, %s", API_HOST, API_PORT, db.database_url())
-        serve_api = partial(uvicorn.run, create_app(config, store), host=API_HOST, port=API_PORT)
+        host = os.environ.get("MANC_API_HOST") or API_HOST
+        log.info("manc api: serving http://%s:%d, %s", host, API_PORT, db.database_url())
+        serve_api = partial(uvicorn.run, create_app(config, store), host=host, port=API_PORT)
         if args.command == "api":
             serve_api()
             return 0
