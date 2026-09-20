@@ -501,7 +501,7 @@ Pydantic response model. Read-only in v1; writes stay with the pipeline.
 
 | Route                                                   | Returns                                                        |
 |---------------------------------------------------------|----------------------------------------------------------------|
-| `GET /api/v1/assets`                                    | tracked assets: symbol, kind, economies                        |
+| `GET /api/v1/assets`                                    | active assets: symbol, kind, economies, TradingView ticker     |
 | `GET /api/v1/overview?as_of=`                           | per asset: score, band, delta, 30-day sparkline, event risk    |
 | `GET /api/v1/assets/{symbol}/scores?formula=&from=&to=` | score series with components                                   |
 | `GET /api/v1/assets/{symbol}/report?date=`              | that day's markdown report                                     |
@@ -509,6 +509,7 @@ Pydantic response model. Read-only in v1; writes stay with the pipeline.
 | `GET /api/v1/events?from=&to=&min_importance=`          | calendar events                                                |
 | `GET /api/v1/assets/{symbol}/forecasts?as_of=&min_confidence=` | the forecast panel: latest vintage per institution and horizon, % vs spot, revisions, median; macro forecasts for the asset's economies |
 | `GET /api/v1/assets/{symbol}/spot?from=&to=`            | daily closes, display only                                     |
+| `GET /api/v1/assets/{symbol}/chain?from=&to=`           | on-chain series of a coin, one per metric, net flow derived; empty for other kinds |
 | `GET /api/v1/macro/forecasts?economy=&metric=`          | macro and policy-rate forecasts across institutions            |
 | `GET /api/v1/formulas`                                  | known formulas and the configured default                      |
 | `GET /health`                                           | database at head, last run date                                |
@@ -540,7 +541,9 @@ rules.
   components as faint lines, markers on high-impact event days) with TradingView's daily price
   chart embedded next to it (the `tradingview` ticker in `config/assets.yaml`, through
   `/api/v1/assets`; the site keeps no price history and never mixes the two scales),
-  date-range and formula selectors, today's
+  date-range and formula selectors, an "On-chain" card of small multiples for the coins (one
+  thin line per stored series over the same range, the latest value as its headline, the
+  sources credited), today's
   report, upcoming high-impact events table, the headlines that moved the score with their
   direction and source, and a forecasts panel: one row per institution and horizon with the
   target, its distance from spot, a revision arrow, and a median row; the macro forecasts for

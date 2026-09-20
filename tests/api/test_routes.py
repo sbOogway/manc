@@ -9,7 +9,15 @@ from fastapi.testclient import TestClient
 from manc.api.app import create_app
 from manc.config import load_config
 from manc.formulas.contract import IndexScore
-from manc.models import CalendarEvent, ForecastAsset, ForecastMacro, NewsItem, NewsTag, SpotPrice
+from manc.models import (
+    CalendarEvent,
+    ChainMetric,
+    ForecastAsset,
+    ForecastMacro,
+    NewsItem,
+    NewsTag,
+    SpotPrice,
+)
 from tests.fakes import FakeStore
 
 CONFIG = replace(
@@ -91,6 +99,11 @@ def store() -> FakeStore:
         )
     )
     store.spot.add(SpotPrice("EURUSD", TODAY, 1.1, "yahoo"))
+    store.chain.add(
+        ChainMetric("BTCUSD", TODAY - DAY, "mvrv", 1.4, "coinmetrics"),
+        ChainMetric("BTCUSD", TODAY, "mvrv", 1.5, "coinmetrics"),
+        ChainMetric("BTCUSD", TODAY, "fees_usd", 10000.0, "defillama"),
+    )
     return store
 
 
@@ -156,6 +169,24 @@ def test_scores_formula_and_range(client: TestClient) -> None:
         params={"formula": "v2", "from": TODAY.isoformat(), "to": TODAY.isoformat()},
     )
     assert [point["score"] for point in response.json()["points"]] == [70.0]
+
+
+def test_chain_series_for_a_coin_and_nothing_for_the_rest(client: TestClient) -> None:
+    response = client.get("/api/v1/assets/BTCUSD/chain")
+    assert response.status_code == 200
+    body = response.json()
+    assert [(one["metric"], one["label"], one["source"]) for one in body] == [
+        ("fees_usd", "Fees paid (USD)", "defillama"),
+        ("mvrv", "MVRV", "coinmetrics"),
+    ]
+    assert body[1]["points"] == [
+        {"date": (TODAY - DAY).isoformat(), "value": 1.4},
+        {"date": TODAY.isoformat(), "value": 1.5},
+    ]
+    windowed = client.get("/api/v1/assets/BTCUSD/chain", params={"from": TODAY.isoformat()})
+    assert [len(one["points"]) for one in windowed.json()] == [1, 1]
+    assert client.get("/api/v1/assets/EURUSD/chain").json() == []
+    assert client.get("/api/v1/assets/NOPE/chain").status_code == 404
 
 
 def test_report_defaults_to_today_and_the_configured_formula(client: TestClient) -> None:

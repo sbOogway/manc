@@ -16,13 +16,23 @@ from typing import Any
 from manc.config import Config
 from manc.formulas.contract import BANDS, AssetSpec, IndexScore, Scale
 from manc.formulas.registry import get_formula
-from manc.models import CalendarEvent, ForecastAsset, ForecastMacro
+from manc.models import CalendarEvent, ChainMetric, ForecastAsset, ForecastMacro
 
 __all__ = ["BANDS"]
 SPARKLINE_DAYS = 30
 UNKNOWN_SOURCE_WEIGHT = 1.0
 UNKNOWN_INSTITUTION_WEIGHT = 0.0
 EVENT_RISK_COMPONENT = "R"
+# on-chain series in display order; the net flow is derived from the two flow readings
+CHAIN_METRICS: dict[str, str] = {
+    "active_addresses": "Active addresses",
+    "exchange_netflow_usd": "Exchange net flow (USD)",
+    "fees_usd": "Fees paid (USD)",
+    "mvrv": "MVRV",
+    "stablecoins_usd": "Stablecoins on chain (USD)",
+    "tvl_usd": "TVL (USD)",
+    "tx_per_second": "Transactions per second",
+}
 
 
 @dataclass(frozen=True)
@@ -101,6 +111,20 @@ class MacroForecastRow:
     previous_value: float | None
     published_at: datetime
     confidence: float
+
+
+@dataclass(frozen=True)
+class ChainPoint:
+    date: date
+    value: float
+
+
+@dataclass(frozen=True)
+class ChainSeries:
+    metric: str
+    label: str
+    source: str
+    points: tuple[ChainPoint, ...]  # oldest first
 
 
 @dataclass(frozen=True)
@@ -278,6 +302,56 @@ def forecasts_for(
         medians=tuple(medians),
         macro=tuple(macro),
     )
+
+
+def chain_series(
+    store: Any, config: Config, symbol: str, start: date, end: date
+) -> list[ChainSeries]:
+    """The stored on-chain readings of a coin in [start, end], one series per metric."""
+    asset = _asset(config, symbol)
+    if not asset.chain:
+        return []
+    stored = {
+        metric: store.chain.series(asset.symbol, metric, start, end)
+        for metric in (*CHAIN_METRICS, "exchange_inflow_usd", "exchange_outflow_usd")
+    }
+    stored["exchange_netflow_usd"] = _net_flow(
+        stored["exchange_inflow_usd"], stored["exchange_outflow_usd"]
+    )
+    series = []
+    for metric, label in CHAIN_METRICS.items():
+        rows = stored[metric]
+        if not rows:
+            continue
+        series.append(
+            ChainSeries(
+                metric=metric,
+                label=label,
+                source=rows[-1].source,
+                points=tuple(ChainPoint(date=row.date, value=row.value) for row in rows),
+            )
+        )
+    return series
+
+
+def _net_flow(inflows: list[ChainMetric], outflows: list[ChainMetric]) -> list[ChainMetric]:
+    """Inflow minus outflow on the days that have both: positive means supply for sale."""
+    outflow_by_day = {row.date: row for row in outflows}
+    net = []
+    for inflow in inflows:
+        outflow = outflow_by_day.get(inflow.date)
+        if outflow is None:
+            continue
+        net.append(
+            ChainMetric(
+                asset=inflow.asset,
+                date=inflow.date,
+                metric="exchange_netflow_usd",
+                value=inflow.value - outflow.value,
+                source=inflow.source,
+            )
+        )
+    return net
 
 
 def _asset(config: Config, symbol: str) -> AssetSpec:

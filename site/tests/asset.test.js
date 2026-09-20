@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  chainFigures,
   themeName,
   tradingViewUrl,
   COMPONENT_COLORS,
@@ -241,4 +242,32 @@ test("the theme name is the explicit choice, else the system preference", () => 
   assert.equal(themeName("light", true), "light");
   assert.equal(themeName(undefined, true), "dark");
   assert.equal(themeName(undefined, false), "light");
+});
+
+test("one small figure per on-chain series, labelled, thin line, values formatted compact", () => {
+  const series = [
+    {
+      metric: "active_addresses",
+      label: "Active addresses",
+      source: "coinmetrics",
+      points: [
+        { date: "2026-09-18", value: 681346 },
+        { date: "2026-09-19", value: 586590 },
+      ],
+    },
+    { metric: "mvrv", label: "MVRV", source: "coinmetrics", points: [{ date: "2026-09-19", value: 1.52 }] },
+  ];
+  const figures = chainFigures(series, TOKENS);
+  assert.equal(figures.length, 2);
+  const [addresses, mvrv] = figures;
+  assert.equal(addresses.metric, "active_addresses");
+  assert.equal(addresses.label, "Active addresses");
+  assert.equal(addresses.latest, "587k");
+  assert.deepEqual(addresses.data[0].x, ["2026-09-18", "2026-09-19"]);
+  assert.deepEqual(addresses.data[0].y, [681346, 586590]);
+  assert.equal(addresses.data[0].line.width, 2);
+  assert.equal(addresses.layout.paper_bgcolor, TOKENS.surface);
+  assert.equal(addresses.layout.showlegend, false);
+  assert.equal(mvrv.latest, "1.52");
+  assert.deepEqual(chainFigures([], TOKENS), []);
 });

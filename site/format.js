@@ -30,6 +30,16 @@ export function formatNumber(value) {
   return value.toLocaleString("en-US", { maximumFractionDigits: 4 });
 }
 
+export function formatCompact(value) {
+  if (value === null || value === undefined) return DASH;
+  const magnitude = Math.abs(value);
+  if (magnitude >= 1e9) return `${(value / 1e9).toLocaleString("en-US", { maximumFractionDigits: 2 })}bn`;
+  if (magnitude >= 1e6) return `${(value / 1e6).toLocaleString("en-US", { maximumFractionDigits: 1 })}M`;
+  if (magnitude >= 1e4) return `${Math.round(value / 1e3).toLocaleString("en-US")}k`;
+  if (magnitude >= 100) return Math.round(value).toLocaleString("en-US");
+  return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
 export function formatDate(value) {
   if (!value) return DASH;
   const [year, month, day] = value.slice(0, 10).split("-");

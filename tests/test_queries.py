@@ -18,11 +18,20 @@ from manc.config import (
     ScoringConfig,
 )
 from manc.formulas.contract import AssetSpec, IndexScore
-from manc.models import CalendarEvent, ForecastAsset, ForecastMacro, NewsItem, NewsTag, SpotPrice
+from manc.models import (
+    CalendarEvent,
+    ChainMetric,
+    ForecastAsset,
+    ForecastMacro,
+    NewsItem,
+    NewsTag,
+    SpotPrice,
+)
 from manc.queries import (
     BANDS,
     asset_history,
     band,
+    chain_series,
     forecasts_for,
     headlines_behind,
     overview,
@@ -37,8 +46,14 @@ HOUR = timedelta(hours=1)
 DAY = timedelta(days=1)
 EURUSD = AssetSpec(symbol="EURUSD", kind="forex", economies=("euro_area", "united_states"))
 SPX = AssetSpec(symbol="SPX", kind="equity_index", economies=("united_states",))
+BTCUSD = AssetSpec(
+    symbol="BTCUSD",
+    kind="crypto",
+    economies=("united_states",),
+    chain={"coinmetrics": "btc", "defillama": "bitcoin"},
+)
 CONFIG = Config(
-    assets=(EURUSD, SPX),
+    assets=(EURUSD, SPX, BTCUSD),
     feeds=(FeedSpec("reuters", "https://r", 1.0), FeedSpec("fxstreet", "https://f", 0.6)),
     scoring=ScoringConfig(
         formula="v1",
@@ -476,3 +491,47 @@ def test_forecasts_for_macro_limited_to_the_asset_economies() -> None:
 def test_forecasts_for_unknown_symbol() -> None:
     with pytest.raises(KeyError):
         forecasts_for(FakeStore(), CONFIG, "XXXUSD", TODAY, min_confidence=0.5)
+
+
+# --- on-chain ------------------------------------------------------------------
+
+
+def _chain(day: date, metric: str, value: float, source: str = "coinmetrics") -> ChainMetric:
+    return ChainMetric(asset="BTCUSD", date=day, metric=metric, value=value, source=source)
+
+
+def test_chain_series_in_a_fixed_order_with_the_net_flow_derived() -> None:
+    store = FakeStore()
+    store.chain.add(
+        _chain(TODAY - DAY, "mvrv", 1.4),
+        _chain(TODAY, "mvrv", 1.5),
+        _chain(TODAY, "active_addresses", 600000.0),
+        _chain(TODAY - 9 * DAY, "active_addresses", 1.0),  # outside the range
+        _chain(TODAY, "exchange_inflow_usd", 1000.0),
+        _chain(TODAY, "exchange_outflow_usd", 1500.0),
+        _chain(TODAY - DAY, "exchange_inflow_usd", 900.0),  # no outflow that day: no net flow
+        _chain(TODAY, "fees_usd", 10000.0, source="defillama"),
+    )
+    series = chain_series(store, CONFIG, "BTCUSD", TODAY - 7 * DAY, TODAY)
+    assert [(one.metric, one.source) for one in series] == [
+        ("active_addresses", "coinmetrics"),
+        ("exchange_netflow_usd", "coinmetrics"),
+        ("fees_usd", "defillama"),
+        ("mvrv", "coinmetrics"),
+    ]
+    by_metric = {one.metric: one for one in series}
+    assert [(point.date, point.value) for point in by_metric["mvrv"].points] == [
+        (TODAY - DAY, 1.4),
+        (TODAY, 1.5),
+    ]
+    assert [(point.date, point.value) for point in by_metric["exchange_netflow_usd"].points] == [
+        (TODAY, -500.0)
+    ]
+    assert by_metric["active_addresses"].label == "Active addresses"
+    assert by_metric["exchange_netflow_usd"].label == "Exchange net flow (USD)"
+
+
+def test_chain_series_is_empty_for_an_asset_without_chain_data() -> None:
+    assert chain_series(FakeStore(), CONFIG, "EURUSD", TODAY - DAY, TODAY) == []
+    with pytest.raises(KeyError):
+        chain_series(FakeStore(), CONFIG, "NOPE", TODAY - DAY, TODAY)
