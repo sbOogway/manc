@@ -30,6 +30,7 @@ news = Table(
     Column("published_at", DateTime(timezone=True), nullable=False),
     Column("summary", Text, nullable=False, default=""),
     Column("fetched_at", DateTime(timezone=True), nullable=False),
+    Column("analyzed_at", DateTime(timezone=True)),  # when a daily run tagged it; null until then
 )
 
 news_tags = Table(

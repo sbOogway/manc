@@ -124,6 +124,20 @@ def test_news_add_is_an_upsert(store: Store) -> None:
     assert [item.title for item in store.news.since(NOW - DAY)] == ["second"]
 
 
+def test_news_unanalyzed_window_and_the_mark_survives_a_refetch(store: Store) -> None:
+    old, mid, new = _item("u/old", NOW - 3 * DAY), _item("u/mid", NOW - DAY), _item("u/new", NOW)
+    store.news.add(old, mid, new)
+    assert store.news.unanalyzed(NOW - 2 * DAY) == [mid, new]
+    store.news.mark_analyzed(mid)
+    assert store.news.unanalyzed(NOW - 2 * DAY) == [new]
+    store.news.add(replace(mid, title="refetched"))  # the 15-minute fetch sees it again
+    assert store.news.unanalyzed(NOW - 2 * DAY) == [new]
+    assert [item.title for item in store.news.since(NOW - 2 * DAY)] == ["refetched", "t"]
+    store.news.mark_analyzed()  # nothing: a no-op
+    store.news.mark_analyzed(new, old)
+    assert store.news.unanalyzed(NOW - 7 * DAY) == []
+
+
 def test_tagged_joins_news_and_tags_for_one_asset(store: Store) -> None:
     item_a, item_b = _item("u/a"), _item("u/b")
     store.news.add(item_a, item_b)

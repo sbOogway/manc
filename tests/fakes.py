@@ -86,6 +86,7 @@ def recorded_history(ticker: str, start: date, end: date) -> pandas.DataFrame:
 class FakeNewsRepository:
     def __init__(self, tags: "FakeTagRepository") -> None:
         self.rows: dict[str, NewsItem] = {}
+        self.analyzed: set[str] = set()
         self._tags = tags
 
     def add(self, *items: NewsItem) -> None:
@@ -95,6 +96,12 @@ class FakeNewsRepository:
     def since(self, published_after: datetime) -> list[NewsItem]:
         recent = [item for item in self.rows.values() if item.published_at >= published_after]
         return sorted(recent, key=lambda item: item.published_at)
+
+    def unanalyzed(self, published_after: datetime) -> list[NewsItem]:
+        return [item for item in self.since(published_after) if item.id not in self.analyzed]
+
+    def mark_analyzed(self, *items: NewsItem) -> None:
+        self.analyzed.update(item.id for item in items)
 
     def tagged(self, asset: str, published_after: datetime) -> list[tuple[NewsItem, NewsTag]]:
         pairs: list[tuple[NewsItem, NewsTag]] = []
