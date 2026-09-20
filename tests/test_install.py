@@ -3,6 +3,7 @@ and the system units, then enables them. Everything privileged goes through one 
 runner, the files land under a prefix."""
 
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -17,12 +18,16 @@ class Recorder:
     def __init__(self, users: set[str] | None = None) -> None:
         self.users = users or set()
         self.commands: list[list[str]] = []
+        self.environments: list[dict[str, str]] = []
 
-    def __call__(self, command: list[str], **_: object) -> "Recorder":
+    def __call__(self, command: list[str], **kwargs: object) -> "Recorder":
         self.commands.append(command)
+        self.environments.append(dict(kwargs.get("env") or {}))
         self.returncode = 0
         if command[:2] == ["getent", "passwd"]:
             self.returncode = 0 if command[2] in self.users else 2
+        elif kwargs.get("check") is not True:
+            raise AssertionError(f"{command} must run with check=True")  # failures stop the install
         if command[0] == "useradd":
             self.users.add(command[-1])
         return self
@@ -60,6 +65,7 @@ def test_first_install_creates_everything_in_order(tmp_path: Path, root: None) -
     assert (system / "manc-api.service").read_text() == (UNITS_DIR / "manc-api.service").read_text()
     _in_order(
         runner.lines(),
+        "uv tool install --force --python 3.12 git+https://github.com/sbOogway/manc",
         "getent passwd manc",
         "useradd -r -m -d /var/lib/manc -s /usr/sbin/nologin manc",
         "usermod -aG manc mattia",
@@ -67,10 +73,21 @@ def test_first_install_creates_everything_in_order(tmp_path: Path, root: None) -
         "setfacl -d -m g:manc:rwx",
         "chown root:manc",
         "runuser -u manc -- env MANC_DB_URL=sqlite:////var/lib/manc/manc.db manc migrate",
+        "chmod 0660 /var/lib/manc/manc.db",
         "systemctl daemon-reload",
         "systemctl enable --now manc-api.service manc-fetch.timer manc-run@mattia.timer",
         "systemctl restart manc-api.service",
     )
+    tool_env = runner.environments[0]  # the tool, its Python and the entry point outside /root
+    assert tool_env["UV_TOOL_DIR"] == "/opt/manc/tools"
+    assert tool_env["UV_PYTHON_INSTALL_DIR"] == "/opt/manc/python"
+    assert tool_env["UV_TOOL_BIN_DIR"] == "/usr/local/bin"
+
+
+def test_the_source_can_be_a_local_repository(tmp_path: Path, root: None) -> None:
+    runner = Recorder()
+    install.install("mattia", source="git+file:///tmp/manc.git", prefix=tmp_path, run=runner)
+    assert runner.lines()[0].endswith("git+file:///tmp/manc.git")
 
 
 def test_second_install_keeps_the_env_file_and_the_user(tmp_path: Path, root: None) -> None:
@@ -91,16 +108,31 @@ def test_refuses_without_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
         install.install("mattia", prefix=tmp_path, run=Recorder())
 
 
-def test_cli_install_takes_the_owner(
+def test_cli_install_takes_the_owner_and_the_source(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ) -> None:
-    calls: list[str] = []
-    monkeypatch.setattr(install, "install", lambda owner, **_: calls.append(owner))
+    calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(install, "install", lambda owner, **kw: calls.append((owner, kw["source"])))
     assert cli.main(["install", "--owner", "mattia"]) == 0
-    assert calls == ["mattia"]
+    assert calls == [("mattia", install.SOURCE)]
     assert "manc-run@mattia.timer" in capsys.readouterr().out
-    monkeypatch.setattr(
-        install, "install", lambda owner, **_: (_ for _ in ()).throw(PermissionError("run as root"))
-    )
+    assert cli.main(["install", "--owner", "mattia", "--source", "git+file:///x"]) == 0
+    assert calls[-1] == ("mattia", "git+file:///x")
+
+
+def test_cli_install_reports_refusals_and_failed_commands(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    def refuse(owner: str, **_: object) -> None:
+        raise PermissionError("run as root")
+
+    monkeypatch.setattr(install, "install", refuse)
     assert cli.main(["install", "--owner", "mattia"]) == 1
     assert "root" in capsys.readouterr().err
+
+    def fail(owner: str, **_: object) -> None:
+        raise subprocess.CalledProcessError(1, ["setfacl"])
+
+    monkeypatch.setattr(install, "install", fail)
+    assert cli.main(["install", "--owner", "mattia"]) == 1
+    assert "setfacl" in capsys.readouterr().err

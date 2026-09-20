@@ -41,6 +41,7 @@ def test_the_manc_user_services_are_hardened() -> None:
     for name in USER_MANC:
         service = _unit(name)["Service"]
         assert service["User"] == "manc" and service["Group"] == "manc", name
+        assert service["UMask"] == "0002", name  # the owner's run writes the same database
         assert service["ProtectSystem"] == "strict", name
         assert service["ReadWritePaths"] == "/var/lib/manc", name
         assert service["NoNewPrivileges"] == "yes" and service["PrivateTmp"] == "yes", name

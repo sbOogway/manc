@@ -8,6 +8,7 @@ Wants=network-online.target
 Type=oneshot
 User=manc
 Group=manc
+UMask=0002
 WorkingDirectory=/var/lib/manc
 EnvironmentFile=/etc/manc/env
 ExecStart=/usr/bin/env manc fetch

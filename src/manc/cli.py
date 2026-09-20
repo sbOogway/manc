@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import subprocess
 import sys
 import threading
 from collections.abc import Sequence
@@ -60,8 +61,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "install":
         try:
-            installer.install(args.owner)
-        except PermissionError as error:
+            installer.install(args.owner, source=args.source)
+        except (PermissionError, subprocess.CalledProcessError) as error:
             print(f"manc: {error}", file=sys.stderr)
             return 1
         print(
@@ -235,6 +236,9 @@ def _parser() -> argparse.ArgumentParser:
     )
     install_cmd.add_argument(
         "--owner", required=True, help="the user whose Claude Code login runs the daily run"
+    )
+    install_cmd.add_argument(
+        "--source", default=installer.SOURCE, help="what `uv tool install` installs (a git URL)"
     )
     commands.add_parser(
         "migrate", help="create or migrate the database (MANC_DB_URL) to the current schema"

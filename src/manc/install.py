@@ -15,18 +15,33 @@ UNITS_DIR = Path(__file__).resolve().parent / "systemd"
 USER = "manc"
 DATA_DIR = Path("/var/lib/manc")
 DATABASE_URL = f"sqlite:///{DATA_DIR}/manc.db"
+SOURCE = "git+https://github.com/sbOogway/manc"
+TOOL_HOME = Path("/opt/manc")  # the tool, its interpreter and the entry point, readable by all
+TOOL_ENV = {
+    "UV_TOOL_DIR": str(TOOL_HOME / "tools"),
+    "UV_PYTHON_INSTALL_DIR": str(TOOL_HOME / "python"),  # not under /root, unlike uv's default
+    "UV_TOOL_BIN_DIR": "/usr/local/bin",
+}
 Runner = Callable[..., object]
 
 
-def install(owner: str, prefix: Path = Path("/"), run: Runner = subprocess.run) -> None:
+def install(
+    owner: str,
+    source: str = SOURCE,
+    prefix: Path = Path("/"),
+    run: Runner = subprocess.run,
+) -> None:
     """Everything below `prefix` (`/` for real), every privileged command through `run`."""
     if os.geteuid() != 0:
-        raise PermissionError("manc install must run as root: sudo manc install --owner $USER")
+        raise PermissionError("manc install must run as root: sudo uvx ... manc install")
     data = prefix / DATA_DIR.relative_to("/")
     etc = prefix / "etc" / "manc"
     system = prefix / "etc" / "systemd" / "system"
 
-    if _run(run, ["getent", "passwd", USER]) != 0:
+    tool = ["uv", "tool", "install", "--force", "--python", "3.12", source]
+    run(tool, check=True, env={**os.environ, **TOOL_ENV})
+
+    if int(getattr(run(["getent", "passwd", USER], check=False), "returncode", 1)) != 0:
         _run(run, ["useradd", "-r", "-m", "-d", str(DATA_DIR), "-s", "/usr/sbin/nologin", USER])
     _run(run, ["usermod", "-aG", USER, owner])
 
@@ -45,6 +60,7 @@ def install(owner: str, prefix: Path = Path("/"), run: Runner = subprocess.run) 
     _run(
         run, ["runuser", "-u", USER, "--", "env", f"MANC_DB_URL={DATABASE_URL}", "manc", "migrate"]
     )
+    _run(run, ["chmod", "0660", str(DATA_DIR / "manc.db")])  # SQLite makes it 0644: the ACL mask
 
     for unit in sorted(UNITS_DIR.glob("manc-*")):
         shutil.copy(unit, system / unit.name)
@@ -64,6 +80,5 @@ def install(owner: str, prefix: Path = Path("/"), run: Runner = subprocess.run) 
     _run(run, ["systemctl", "restart", "manc-api.service"])
 
 
-def _run(run: Runner, command: list[str]) -> int:
-    result = run(command, check=False)
-    return int(getattr(result, "returncode", 0))
+def _run(run: Runner, command: list[str]) -> None:
+    run(command, check=True)

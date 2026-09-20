@@ -117,19 +117,18 @@ in the script). The published site reads the production backend (`PRODUCTION_API
 
 ### Production
 
-Two commands install the whole thing on a machine with `uv`, `setfacl` (`acl`) and
-[Claude Code](https://claude.com/claude-code) logged in under your account; the same two bring
-an existing install up to date:
+One line installs the whole thing on a machine with `uv` and `setfacl` (`sudo dnf install uv
+acl`) and [Claude Code](https://claude.com/claude-code) logged in under your account; the
+same line brings an existing install up to date:
 
 ```sh
-sudo env UV_TOOL_DIR=/opt/manc UV_TOOL_BIN_DIR=/usr/local/bin uv tool install --python 3.12 git+https://github.com/sbOogway/manc
-sudo manc install --owner $USER
+sudo uvx --from git+https://github.com/sbOogway/manc manc install --owner $USER
 ```
 
-The first is a self-contained `manc` (its own Python and locked dependencies) under
-`/opt/manc`, on everyone's `PATH` as `/usr/local/bin/manc`; `uv tool upgrade manc` with the
-same two variables updates it, `@v1.2.3` after the URL pins a tag. The second lays the
-machine out, idempotently:
+`uvx` runs `manc install` from the repository once; that command installs the tool for good
+(`uv tool install`, its own Python 3.12 and locked dependencies under `/opt/manc`, the entry
+point on everyone's `PATH` as `/usr/local/bin/manc`; `--source git+...@v1.2.3` pins a tag) and
+lays the machine out, idempotently:
 
 - `manc`, a system user with no login shell, runs the API and the fetch as system units
   confined to `/var/lib/manc`: `manc-api.service` (up all the time, restarts on failure) and

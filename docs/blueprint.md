@@ -659,9 +659,11 @@ rejected. Hooks run through `uv run` so they use the project environment, and
 dashboard build goes to `gh-pages`, so the published site follows `main` (the script is a
 no-op on any other branch).
 
-Installing or updating a machine is two commands (README, Production): a `uv tool install`
-of the repository into `/opt/manc` with the entry point on `/usr/local/bin`, then `manc install
---owner <user>` as root, which lays out the machine below and is idempotent. Scheduling is
+Installing or updating a machine is one line (README, Production): `sudo uvx --from
+git+https://github.com/sbOogway/manc manc install --owner <user>`. `manc install` does the
+permanent `uv tool install` itself (tool, interpreter and entry point under `/opt/manc` and
+`/usr/local/bin`, all world-readable, unlike uv's defaults under `/root`), then lays out the
+machine below; it is idempotent and every command it runs must succeed. Scheduling is
 systemd timers from `src/manc/systemd/`: `manc-fetch.timer` runs `manc fetch` every 15
 minutes; `manc-run@<owner>.timer` runs `manc run` at 06:00 UTC every day (crypto trades on
 weekends) with `Persistent=true`, so a day the machine slept through runs at the next wake.
