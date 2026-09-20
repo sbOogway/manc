@@ -520,8 +520,11 @@ rules.
 - `/` — overview: one card per asset with today's score as a large number, a coloured band
   label, the delta from yesterday, a 30-day sparkline, and an event-risk badge; sorted by
   absolute distance from 50
-- `/asset/<symbol>` — score history chart (shaded bands, 50 reference line, formula components
-  as faint lines, markers on high-impact event days), date-range and formula selectors, today's
+- `/asset/<symbol>` — score history chart (shaded bands, neutral reference line, formula
+  components as faint lines, markers on high-impact event days) with TradingView's daily price
+  chart embedded next to it (the `tradingview` ticker in `config/assets.yaml`, through
+  `/api/v1/assets`; the site keeps no price history and never mixes the two scales),
+  date-range and formula selectors, today's
   report, upcoming high-impact events table, the headlines that moved the score with their
   direction and source, and a forecasts panel: one row per institution and horizon with the
   target, its distance from spot, a revision arrow, and a median row; the macro forecasts for

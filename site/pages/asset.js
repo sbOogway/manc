@@ -16,6 +16,36 @@ function shiftDays(iso, days) {
   return isoDay(new Date(new Date(`${iso}T00:00:00Z`).getTime() + days * DAY_MS));
 }
 
+export function themeName(chosen, prefersDark) {
+  return chosen === "dark" || chosen === "light" ? chosen : prefersDark ? "dark" : "light";
+}
+
+export function tradingViewUrl(symbol, theme) {
+  // TradingView's own widget iframe, daily candles, no toolbar: the price next to the score.
+  if (!symbol) return null;
+  const params = new URLSearchParams({
+    symbol,
+    interval: "D",
+    theme,
+    style: "1",
+    locale: "en",
+    timezone: "Etc/UTC",
+    hide_top_toolbar: "1",
+    hidesidetoolbar: "1",
+    symboledit: "0",
+    saveimage: "0",
+    withdateranges: "1",
+    hideideas: "1",
+  });
+  return `https://s.tradingview.com/widgetembed/?${params}`;
+}
+
+function currentTheme() {
+  const chosen = globalThis.document?.documentElement.dataset.theme;
+  const prefersDark = globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+  return themeName(chosen, prefersDark);
+}
+
 function rgba(hex, alpha) {
   const [red, green, blue] = [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16));
   return `rgba(${red},${green},${blue},${alpha})`;
@@ -242,8 +272,11 @@ export const AssetPage = {
     const error = ref(null);
     const scorePlot = ref(null);
     const componentsPlot = ref(null);
+    const tradingview = ref(null);
+    const theme = ref(currentTheme());
 
     function draw() {
+      theme.value = currentTheme();
       if (!history.value || !scorePlot.value) return;
       const tokens = readTokens();
       const score = scoreFigure(history.value, events.value.filter((event) => event.importance === 3), tokens);
@@ -286,6 +319,7 @@ export const AssetPage = {
         const asset = assets.find((candidate) => candidate.symbol === props.symbol);
         if (!asset) throw new Error(`unknown asset ${props.symbol}`);
         economies.value = asset.economies;
+        tradingview.value = asset.tradingview;
         formulas.value = known.known;
         formula.value = formula.value ?? known.default;
         await Promise.all([
@@ -322,6 +356,7 @@ export const AssetPage = {
       scorePlot,
       componentsPlot,
       RANGE_PRESETS,
+      priceUrl: () => tradingViewUrl(tradingview.value, theme.value),
       upcoming: () => eventsFor(events.value, economies.value, today),
       latest: () => history.value?.points.at(-1),
       groups: () => (panel.value ? forecastRows(panel.value) : []),
@@ -352,13 +387,19 @@ export const AssetPage = {
         </div>
       </header>
 
-      <div class="card chart-card">
-        <div v-if="history === null" class="skeleton" style="min-height: 480px"></div>
-        <template v-else>
-          <p v-if="!history.points.length" class="muted">No score in this range.</p>
-          <div ref="scorePlot" class="chart"></div>
-          <div ref="componentsPlot" class="chart"></div>
-        </template>
+      <div class="charts">
+        <div class="card chart-card">
+          <div v-if="history === null" class="skeleton" style="min-height: 480px"></div>
+          <template v-else>
+            <p v-if="!history.points.length" class="muted">No score in this range.</p>
+            <div ref="scorePlot" class="chart"></div>
+            <div ref="componentsPlot" class="chart"></div>
+          </template>
+        </div>
+        <div v-if="priceUrl()" class="card chart-card price">
+          <h2>Price</h2>
+          <iframe :src="priceUrl()" :title="symbol + ' price on TradingView'" loading="lazy" allowfullscreen></iframe>
+        </div>
       </div>
 
       <div class="columns">
