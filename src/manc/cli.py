@@ -26,7 +26,7 @@ from manc.formulas.contract import IndexScore
 from manc.formulas.registry import get_formula
 from manc.llm import complete
 from manc.news.rss import RssNews
-from manc.pipeline import fetch_forecasts, rescore, run
+from manc.pipeline import fetch, fetch_forecasts, rescore, run
 from manc.spot.yahoo import YahooSpot
 from manc.store import db
 from manc.store.sql import SqlStore
@@ -67,6 +67,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "forecasts":
         return _backfill_forecasts(config, store, args.since)
+    if args.command == "fetch":
+        fetched = fetch(
+            as_of=datetime.now(UTC),
+            config=config,
+            calendar=NasdaqCalendar(config.calendar),
+            news=RssNews(config.feeds + config.forecasts.query_feeds),
+            spot=YahooSpot(),
+            store=store,
+        )
+        print(
+            f"events={len(fetched.events)} news={len(fetched.items)} closes={len(fetched.closes)}"
+        )
+        return 0
     if args.command == "run":
         as_of = _as_of(args.date)
         log.info(
@@ -146,6 +159,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
+    commands.add_parser("fetch", help="calendar, news and spot closes into the store; no model")
     run_cmd = commands.add_parser("run", help="fetch, tag, score and store every asset")
     run_cmd.add_argument("--date", type=date.fromisoformat, help="score as of this day (UTC)")
 

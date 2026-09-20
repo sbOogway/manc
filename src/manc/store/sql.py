@@ -4,7 +4,7 @@ from collections.abc import Callable
 from datetime import UTC, date, datetime
 from typing import Any
 
-from sqlalchemy import Engine, Table, case, func, select
+from sqlalchemy import Engine, Table, case, func, select, update
 from sqlalchemy.dialects import postgresql, sqlite
 
 from manc.formulas.contract import IndexScore
@@ -24,7 +24,10 @@ def _insert(engine: Engine, table: Table, rows: list[dict[str, Any]]) -> Any:
     return insert(table).values(rows)
 
 
-def _upsert(engine: Engine, table: Table, rows: list[dict[str, Any]]) -> None:
+def _upsert(
+    engine: Engine, table: Table, rows: list[dict[str, Any]], keep: tuple[str, ...] = ()
+) -> None:
+    """Insert or overwrite by primary key; the `keep` columns follow the existing row."""
     if not rows:
         return
     key_columns = [column.name for column in table.primary_key.columns]
@@ -34,7 +37,7 @@ def _upsert(engine: Engine, table: Table, rows: list[dict[str, Any]]) -> None:
         set_={
             column.name: getattr(statement.excluded, column.name)
             for column in table.columns
-            if column.name not in key_columns
+            if column.name not in key_columns and column.name not in keep
         },
     )
     with engine.begin() as connection:
@@ -78,6 +81,7 @@ class SqlNewsRepository:
                 }
                 for item in items
             ],
+            keep=("analyzed_at",),
         )
 
     def since(self, published_after: datetime) -> list[NewsItem]:
@@ -88,6 +92,27 @@ class SqlNewsRepository:
         )
         with self._engine.connect() as connection:
             return [_news_item(row) for row in connection.execute(statement).mappings()]
+
+    def unanalyzed(self, published_after: datetime) -> list[NewsItem]:
+        statement = (
+            select(schema.news)
+            .where(schema.news.c.published_at >= published_after)
+            .where(schema.news.c.analyzed_at.is_(None))
+            .order_by(schema.news.c.published_at)
+        )
+        with self._engine.connect() as connection:
+            return [_news_item(row) for row in connection.execute(statement).mappings()]
+
+    def mark_analyzed(self, *items: NewsItem) -> None:
+        if not items:
+            return
+        statement = (
+            update(schema.news)
+            .where(schema.news.c.id.in_([item.id for item in items]))
+            .values(analyzed_at=datetime.now(UTC))
+        )
+        with self._engine.begin() as connection:
+            connection.execute(statement)
 
     def tagged(self, asset: str, published_after: datetime) -> list[tuple[NewsItem, NewsTag]]:
         statement = (

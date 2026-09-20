@@ -65,6 +65,7 @@ erDiagram
     DATETIME published_at
     TEXT summary
     DATETIME fetched_at
+    DATETIME analyzed_at "nullable"
   }
 
   news_tags {

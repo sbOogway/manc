@@ -1,10 +1,12 @@
 """The daily run on fakes: fetch, tag, score, store."""
 
+from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
 from manc.config import load_config
+from manc.formulas.contract import AssetSpec
 from manc.formulas.registry import get_formula
 from manc.models import (
     CalendarEvent,
@@ -12,9 +14,10 @@ from manc.models import (
     ForecastMacro,
     Forecasts,
     NewsItem,
+    NewsTag,
     SpotPrice,
 )
-from manc.pipeline import rescore, run
+from manc.pipeline import fetch, rescore, run
 from tests.fakes import (
     FakeAnalyzer,
     FakeCalendar,
@@ -124,6 +127,67 @@ def test_run_stores_the_forecasts_every_provider_returns() -> None:
     assert store.forecasts_asset.latest("XAUUSD") == [gold]
     assert store.forecasts_asset.latest("BRENT") == []  # outside the news window
     assert store.forecasts_macro.latest("united_states") == [rate]
+
+
+class ExplodingAnalyzer:
+    def tag(self, items: object, assets: object) -> list[NewsTag]:
+        raise AssertionError("fetch must not tag")
+
+
+def test_fetch_stores_the_inputs_and_never_analyzes() -> None:
+    store = FakeStore()
+    event = _event("e1", AS_OF + timedelta(days=2))
+    item = NewsItem.from_feed(source="cnbc_top", title="t", url="u", published_at=AS_OF)
+    bitcoin = SpotPrice(asset="BTCUSD", date=AS_OF.date(), close=115000.0, source="yahoo")
+    fetched = fetch(
+        as_of=AS_OF,
+        config=CONFIG,
+        calendar=FakeCalendar([event]),
+        news=FakeNews([item]),
+        spot=FakeSpot([bitcoin]),
+        store=store,
+    )
+    assert (fetched.events, fetched.items, fetched.closes) == ([event], [item], [bitcoin])
+    assert store.events.rows == {"e1": event}
+    assert store.news.unanalyzed(AS_OF - timedelta(days=1)) == [item]
+    assert store.spot.latest("BTCUSD") == bitcoin
+    assert store.tags.rows == {} and store.scores.rows == {}
+
+
+def test_run_tags_only_what_earlier_fetches_left_unanalyzed() -> None:
+    store = FakeStore()
+    earlier = NewsItem.from_feed(source="cnbc_top", title="a", url="u/a", published_at=AS_OF)
+    fetch(
+        as_of=AS_OF,
+        config=CONFIG,
+        calendar=FakeCalendar(),
+        news=FakeNews([earlier]),
+        spot=FakeSpot(),
+        store=store,
+    )
+    seen_twice = NewsItem.from_feed(source="cnbc_top", title="b", url="u/b", published_at=AS_OF)
+    tagged_ids: list[set[str]] = []
+
+    class RecordingAnalyzer(FakeAnalyzer):
+        def tag(self, items: Sequence[NewsItem], assets: Sequence[AssetSpec]) -> list[NewsTag]:
+            tagged_ids.append({item.id for item in items})
+            return super().tag(items, assets)
+
+    common = dict(
+        as_of=AS_OF,
+        config=CONFIG,
+        calendar=FakeCalendar(),
+        analyzer=RecordingAnalyzer(),
+        forecasts=[],
+        spot=FakeSpot(),
+        store=store,
+        formula=get_formula("v1"),
+        summarize=None,
+    )
+    run(news=FakeNews([earlier, seen_twice]), **common)
+    run(news=FakeNews([seen_twice]), **common)  # the next day: nothing new to tag
+    assert tagged_ids == [{earlier.id, seen_twice.id}, set()]
+    assert store.news.unanalyzed(AS_OF - timedelta(days=1)) == []
 
 
 class ExplodingCalendar:
