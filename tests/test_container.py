@@ -37,5 +37,7 @@ def test_compose_mounts_the_data_folder_and_the_env_file() -> None:
     compose = (ROOT / "compose.yaml").read_text()
     assert "./data:/data" in compose
     assert "env_file" in compose and ".env" in compose
-    assert "127.0.0.1:8000:8000" in compose  # loopback only; the tunnel reaches it by name
-    assert "cloudflare/cloudflared" in compose and "TUNNEL_TOKEN" in compose
+    # loopback unless .env sets MANC_API_BIND, e.g. a LAN address for the tunnel machine
+    assert "${MANC_API_BIND:-127.0.0.1}:8000:8000" in compose
+    assert "cloudflared" not in compose and "TUNNEL_TOKEN" not in compose
+    assert "profiles" not in compose  # one service, no optional ones
