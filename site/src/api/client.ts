@@ -82,21 +82,24 @@ export function buildUrl(base: string, path: string, params: Params = {}): strin
   return `${base}${path}${suffix ? `?${suffix}` : ""}`;
 }
 
-type Fetch = (url: string) => Promise<Response>;
+type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
 export interface ClientOptions {
   fetch?: Fetch;
   baseUrl?: () => string;
 }
 
-export function createClient({ fetch = (url) => globalThis.fetch(url), baseUrl = apiUrl }: ClientOptions = {}) {
+export function createClient({ fetch = (url, init) => globalThis.fetch(url, init), baseUrl = apiUrl }: ClientOptions = {}) {
   async function get<T>(path: string, params: Params = {}): Promise<T> {
     const url = buildUrl(baseUrl(), path, params);
     let response: Response;
     try {
-      response = await fetch(url);
+      // with credentials: the cookie of a login in front of the backend (Cloudflare Access on
+      // the tunnel) rides along; a fetch cannot follow the login page itself, hence the hint
+      response = await fetch(url, { credentials: "include" });
     } catch (error) {
-      throw new ApiError(`cannot reach ${baseUrl()} (${(error as Error).message})`, null);
+      const reason = (error as Error).message;
+      throw new ApiError(`cannot reach ${baseUrl()} (${reason}); if it sits behind a login, open ${baseUrl()}/health in a tab first`, null);
     }
     if (!response.ok) {
       let detail = `${response.status} from ${url}`;

@@ -723,11 +723,14 @@ the MTA is the owner's, manc carries no SMTP code (2026-09-21). The server never
 site: the dashboard is on GitHub Pages, published by the owner's `post-merge` hook, and reads
 the API through the tunnel hostname.
 
-What the public hostname exposes is read-only data with no auth, so the exposure is denial of
-service, and the rest of the protection is the owner's configuration rather than code: a
-rate-limiting rule on the tunnel hostname (Cloudflare's free tier does it), Cloudflare Access
-in front of it when the dashboard is for the owner alone, and, when `MANC_API_HOST` is a LAN
-address, a firewall rule that lets only the tunnel machine reach port 8888.
+The API has no auth of its own: access control is Cloudflare Access on the tunnel hostname
+(README, Production), the owner's configuration rather than code. The site sends the Access
+cookie with every request (`credentials: "include"` in `client.ts`, which is why the API's
+CORS grant names the site's origins, §7) and, since a fetch cannot follow the login page,
+tells the owner to open the API hostname in a tab when the backend cannot be reached. A
+rate-limiting rule on the same hostname (Cloudflare's free tier does it) covers denial of
+service, and, when `MANC_API_HOST` is a LAN address, a firewall rule lets only the tunnel
+machine reach port 8888.
 
 ## 9 · Milestones
 
