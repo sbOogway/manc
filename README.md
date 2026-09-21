@@ -150,8 +150,10 @@ the site pointed at the tunnel. In this order (C depends on the hostname chosen 
      at the next wake). The site is not published from the server; the `post-merge` hook in
      your development checkout does that.
 3. Edit `/etc/manc/env` (`root:manc 0640`, written once from the packaged example, never
-   overwritten), then `sudo systemctl restart manc-api`: `MANC_API_HOST` is loopback when
-   cloudflared runs on this machine, else the LAN address the tunnel machine reaches;
+   overwritten), then `sudo systemctl restart manc-api`: `MANC_API_HOST` is the address the API
+   listens on, one of this server's own (`ip -br addr`): loopback when cloudflared runs on
+   this machine, else this server's LAN address, which the tunnel then points at (the tunnel
+   machine's own address cannot be bound here);
    `MANC_MAIL_TO` your address or empty; the provider keys only for a keyed fallback model.
    `MANC_DB_URL` and `MANC_API_PORT` (8888) stay.
 4. Only when `MANC_API_HOST` is a LAN address, port 8888 from the tunnel machine alone
