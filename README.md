@@ -16,7 +16,7 @@ US Treasury yields (`src/manc/config/assets.yaml`).
 ```
 calendar (Nasdaq) ─┐
 news (RSS feeds)  ─┼─► tag headlines (LLM) ─► formula ─► SQLite ◄── FastAPI ◄── static site
-forecasts (LLM)   ─┘                                               manc api      GitHub Pages
+forecasts (LLM)   ─┘                                               manc api ───── serves ─┘
   manc fetch (timer, every 15 min): the inputs only
   manc run   (timer, once a day):   fetch, tag what is new, forecasts, scores, reports
 ```
@@ -90,9 +90,7 @@ scores go to stdout, one line per asset. Scheduling is systemd user units, see P
 ### Dashboard
 
 ```sh
-uv run manc serve                              # API on :8888 and the dashboard on :8050
-uv run manc api                                # the REST API alone (OpenAPI UI at /docs)
-uv run manc ui                                 # the static dashboard alone
+uv run manc api                                # the REST API and the built dashboard on :8888 (OpenAPI UI at /docs)
 ```
 
 The dashboard is an npm package in `site/` (Vue 3 + TypeScript, PrimeVue, FullCalendar,
@@ -100,22 +98,20 @@ Plotly, built with Vite) that only talks to the API:
 
 ```sh
 cd site && npm ci                              # once per clone
-npm run dev                                    # development server with hot reload
-npm run build                                  # site/dist, what `manc ui` and the publish script serve
+npm run dev                                    # development server with hot reload, API proxied to :8888
+npm run build                                  # site/dist, what `manc api` serves at /
 npm run check                                  # vue-tsc + vitest (also a pre-commit hook)
 npm run types                                  # regenerate src/api/schema.d.ts from openapi.json
 ```
 
-Open http://localhost:8050 and it reads `http://localhost:8888`. The field in the header
-points it at another backend, for instance the tunnel in front of `manc api`; the
-choice stays in the browser. When a route or schema changes, `uv run python
-scripts/openapi-schema.py` refreshes `site/openapi.json` (a test fails otherwise) and
-`npm run types` the TypeScript types.
+The page and the API share one origin: `manc api` serves `site/dist` at `/` when it is
+built (`MANC_SITE_DIR` points it elsewhere), and `npm run dev` proxies the API paths to it.
+When a route or schema changes, `uv run python scripts/openapi-schema.py` refreshes
+`site/openapi.json` (a test fails otherwise) and `npm run types` the TypeScript types.
 
 Publishing it to GitHub Pages is `scripts/publish-site.sh`: it builds and pushes `site/dist`
 to the `gh-pages` branch, which Pages serves (enable Pages on that branch once, the command is
-in the script). The published site reads the production backend (`PRODUCTION_API_URL` in
-`site/src/api/client.ts`, the tunnel hostname); the header field still overrides it.
+in the script).
 
 ### Production
 

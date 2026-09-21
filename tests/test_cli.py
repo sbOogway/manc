@@ -6,11 +6,11 @@ import re
 from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import ClassVar
 
 import httpx
 import pytest
 import respx
+from fastapi.testclient import TestClient
 
 from manc import cli, llm
 from manc.chain import coingecko, coinmetrics, defillama, fear_greed, solana_rpc
@@ -180,66 +180,25 @@ def test_unmigrated_database_fails_with_hint(
     assert "manc migrate" in capsys.readouterr().err
 
 
-class FakeSiteServer:
-    """Records how the site server was built and returns at once instead of serving."""
-
-    instances: ClassVar[list["FakeSiteServer"]] = []
-
-    def __init__(self, address: tuple[str, int], handler: object) -> None:
-        self.address = address
-        self.handler = handler
-        self.served = False
-        FakeSiteServer.instances.append(self)
-
-    def serve_forever(self) -> None:
-        self.served = True
+def test_unknown_site_commands(capsys: pytest.CaptureFixture) -> None:
+    """`manc api` serves the dashboard itself; the separate site server is gone."""
+    for command in ("ui", "serve"):
+        with pytest.raises(SystemExit):
+            cli.main([command])
+        assert "invalid choice" in capsys.readouterr().err
 
 
-@pytest.fixture
-def site_server(monkeypatch: pytest.MonkeyPatch) -> type[FakeSiteServer]:
-    FakeSiteServer.instances.clear()
-    monkeypatch.setattr(cli, "ThreadingHTTPServer", FakeSiteServer)
-    return FakeSiteServer
-
-
-def test_ui_serves_the_built_site(
-    site_server: type[FakeSiteServer], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_api_serves_the_site_from_the_environment(
+    migrated_db: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     (tmp_path / "index.html").write_text("<title>manc</title>")
-    monkeypatch.setattr(cli, "SITE_DIR", tmp_path)
-    assert cli.main(["ui"]) == 0
-    [server] = site_server.instances
-    assert server.address == ("127.0.0.1", 8050)
-    assert server.served
-    assert Path(server.handler.keywords["directory"]) == tmp_path
-
-
-def test_ui_refuses_an_unbuilt_site(
-    site_server: type[FakeSiteServer],
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture,
-) -> None:
-    monkeypatch.setattr(cli, "SITE_DIR", tmp_path / "dist")
-    assert cli.main(["ui"]) == 1
-    assert "npm run build" in capsys.readouterr().err
-    assert site_server.instances == []
-
-
-def test_serve_starts_the_api_in_a_thread_and_the_site(
-    migrated_db: str,
-    site_server: type[FakeSiteServer],
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    (tmp_path / "index.html").write_text("<title>manc</title>")
-    monkeypatch.setattr(cli, "SITE_DIR", tmp_path)
+    monkeypatch.setenv("MANC_SITE_DIR", str(tmp_path))
     served: dict[str, object] = {}
-    monkeypatch.setattr(cli.uvicorn, "run", lambda app, **kwargs: served.update(kwargs))
-    assert cli.main(["serve"]) == 0
-    [server] = site_server.instances
-    assert server.served
-    assert served["port"] == 8888
+    monkeypatch.setattr(cli.uvicorn, "run", lambda app, **kwargs: served.update(app=app))
+    assert cli.main(["api"]) == 0
+    client = TestClient(served["app"])  # type: ignore[arg-type]
+    assert client.get("/").text == "<title>manc</title>"
+    assert client.get("/health").status_code == 200
 
 
 def test_api_serves_the_app_with_uvicorn(migrated_db: str, monkeypatch: pytest.MonkeyPatch) -> None:
