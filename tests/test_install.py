@@ -4,6 +4,7 @@ runner, the files land under a prefix."""
 
 import os
 import re
+import shutil
 import subprocess
 import tomllib
 from pathlib import Path
@@ -71,7 +72,8 @@ def test_first_install_creates_everything_in_order(tmp_path: Path, root: None) -
     assert (system / "manc-api.service").read_text() == (UNITS_DIR / "manc-api.service").read_text()
     _in_order(
         runner.lines(),
-        f"uv tool install --force --python 3.12 --constraints {CONSTRAINTS} {install.SOURCE}",
+        f"{shutil.which('uv')} tool install --force --python 3.12 --constraints {CONSTRAINTS} "
+        f"{install.SOURCE}",
         "getent passwd manc",
         "useradd -r -m -d /var/lib/manc -s /usr/sbin/nologin manc",
         "usermod -aG manc mattia",
@@ -87,6 +89,33 @@ def test_first_install_creates_everything_in_order(tmp_path: Path, root: None) -
     assert tool_env["UV_TOOL_DIR"] == "/opt/manc/tools"
     assert tool_env["UV_PYTHON_INSTALL_DIR"] == "/opt/manc/python"
     assert tool_env["UV_TOOL_BIN_DIR"] == "/usr/local/bin"
+
+
+def test_uv_is_found_where_sudo_does_not_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The upstream installer puts uv in ~/.local/bin, which root's PATH under sudo lacks."""
+    monkeypatch.delenv("UV", raising=False)
+    monkeypatch.setattr(install.shutil, "which", lambda name: None)
+    home = tmp_path / "home" / "mattia"
+    monkeypatch.setattr(install, "_home", lambda owner: home if owner == "mattia" else None)
+    with pytest.raises(FileNotFoundError, match=r"uv .*\.local/bin/uv.*dnf install uv"):
+        install.find_uv("mattia")
+    users_uv = home / ".local" / "bin" / "uv"
+    users_uv.parent.mkdir(parents=True)
+    users_uv.write_text("")
+    assert install.find_uv("mattia") == str(users_uv)
+    monkeypatch.setenv("UV", "/somewhere/uv")
+    assert install.find_uv("mattia") == "/somewhere/uv"  # what launched us wins
+
+
+def test_the_install_runs_the_uv_it_found(
+    tmp_path: Path, root: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(install, "find_uv", lambda owner: "/home/mattia/.local/bin/uv")
+    runner = Recorder()
+    install.install("mattia", prefix=tmp_path, run=runner)
+    assert runner.lines()[0].startswith("/home/mattia/.local/bin/uv tool install ")
 
 
 def test_the_default_source_is_the_tag_of_this_version() -> None:
@@ -167,3 +196,10 @@ def test_cli_install_reports_refusals_and_failed_commands(
     monkeypatch.setattr(install, "install", fail)
     assert cli.main(["install", "--owner", "mattia"]) == 1
     assert "useradd" in capsys.readouterr().err
+
+    def missing(owner: str, **_: object) -> None:
+        raise FileNotFoundError("uv not found")
+
+    monkeypatch.setattr(install, "install", missing)
+    assert cli.main(["install", "--owner", "mattia"]) == 1
+    assert "uv not found" in capsys.readouterr().err

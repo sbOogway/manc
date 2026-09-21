@@ -123,7 +123,7 @@ One line installs the whole thing on a machine with `uv` (`sudo dnf install uv`)
 same line brings an existing install up to date:
 
 ```sh
-sudo uvx --from git+https://github.com/sbOogway/manc@v0.2.0 manc install --owner $USER
+sudo uvx --from git+https://github.com/sbOogway/manc@v0.2.1 manc install --owner $USER
 ```
 
 `uvx` runs `manc install` from the release tag once; that command installs the same tag for
