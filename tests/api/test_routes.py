@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from manc.api.app import create_app
+from manc.api.routes import MAX_RANGE_DAYS
 from manc.config import load_config
 from manc.formulas.contract import IndexScore
 from manc.models import (
@@ -299,6 +300,23 @@ def test_unknown_asset_is_404(client: TestClient, path: str) -> None:
 
 def test_malformed_date_is_422(client: TestClient) -> None:
     assert client.get("/api/v1/overview", params={"as_of": "yesterday"}).status_code == 422
+
+
+@pytest.mark.parametrize(
+    "path", ["assets/EURUSD/scores", "assets/BTCUSD/chain", "assets/EURUSD/spot", "events"]
+)
+def test_a_range_is_bounded_and_ordered(client: TestClient, path: str) -> None:
+    """One client must not make the process scan the whole history on every request."""
+    widest = {"from": (TODAY - timedelta(days=MAX_RANGE_DAYS)).isoformat(), "to": TODAY.isoformat()}
+    assert client.get(f"/api/v1/{path}", params=widest).status_code == 200
+    too_wide = {**widest, "from": (TODAY - timedelta(days=MAX_RANGE_DAYS + 1)).isoformat()}
+    response = client.get(f"/api/v1/{path}", params=too_wide)
+    assert response.status_code == 422
+    assert response.json() == {"detail": f"from..to spans more than {MAX_RANGE_DAYS} days"}
+    backwards = {"from": TODAY.isoformat(), "to": (TODAY - timedelta(days=1)).isoformat()}
+    response = client.get(f"/api/v1/{path}", params=backwards)
+    assert response.status_code == 422
+    assert response.json() == {"detail": "from is after to"}
 
 
 def test_cross_origin_reads_are_allowed(client: TestClient) -> None:

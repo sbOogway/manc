@@ -15,6 +15,7 @@ from manc.store.interface import Store
 
 SERIES_DAYS = 90
 EVENTS_AHEAD_DAYS = 30
+MAX_RANGE_DAYS = 400  # the API is public: one request must not scan the whole history
 
 router = APIRouter()
 ConfigDep = Annotated[Config, Depends(get_config)]
@@ -29,7 +30,17 @@ def _today() -> date:
 
 def _range(start: date | None, end: date | None) -> tuple[date, date]:
     end = end or _today()
-    return start or end - timedelta(days=SERIES_DAYS), end
+    return _bounded(start or end - timedelta(days=SERIES_DAYS), end)
+
+
+def _bounded(start: date, end: date) -> tuple[date, date]:
+    if start > end:
+        raise HTTPException(status_code=422, detail="from is after to")
+    if (end - start).days > MAX_RANGE_DAYS:
+        raise HTTPException(
+            status_code=422, detail=f"from..to spans more than {MAX_RANGE_DAYS} days"
+        )
+    return start, end
 
 
 def _unknown_asset(symbol: str) -> HTTPException:
@@ -127,7 +138,7 @@ def events(
     min_importance: Importance = 1,
 ) -> list:
     start = start or _today()
-    end = end or start + timedelta(days=EVENTS_AHEAD_DAYS)
+    start, end = _bounded(start, end or start + timedelta(days=EVENTS_AHEAD_DAYS))
     return queries.upcoming_events(store, config, start, end, min_importance)
 
 
