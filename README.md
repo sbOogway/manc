@@ -119,11 +119,14 @@ in the script). The published site reads the production backend (`PRODUCTION_API
 
 ### Production
 
-One line installs the whole thing on a machine with `uv` (`sudo dnf install uv`) and [Claude Code](https://claude.com/claude-code) logged in under your account; the
-same line brings an existing install up to date:
+One line installs the whole thing on a machine with `uv` and [Claude Code](https://claude.com/claude-code)
+logged in under your account (run `claude` once, `/login`); the same line brings an existing
+install up to date. `uv` is usually a user install (`~/.local/bin`, which `sudo` does not have
+on its PATH, hence the path; `manc install` finds it there too), or `sudo dnf install uv` and
+plain `sudo uvx`:
 
 ```sh
-sudo uvx --from git+https://github.com/sbOogway/manc@v0.2.1 manc install --owner $USER
+sudo ~/.local/bin/uvx --from git+https://github.com/sbOogway/manc@v0.2.1 manc install --owner $USER
 ```
 
 `uvx` runs `manc install` from the release tag once; that command installs the same tag for
@@ -152,7 +155,15 @@ another git URL, `main` included) and lays the machine out, idempotently:
   cookie with every request; open the API hostname once in a tab to log in and the dashboard
   works from then on. A rate-limiting rule on the same hostname covers what Access lets
   through, and when `MANC_API_HOST` is a LAN address let only the tunnel machine reach port
-  8888 through the firewall.
+  8888 through the firewall (firewalld: a zone for that one source, the default zone keeps
+  the port closed to everyone else):
+
+  ```sh
+  sudo firewall-cmd --permanent --new-zone=manc-tunnel
+  sudo firewall-cmd --permanent --zone=manc-tunnel --add-source=<tunnel machine IP>/32
+  sudo firewall-cmd --permanent --zone=manc-tunnel --add-port=8888/tcp
+  sudo firewall-cmd --reload
+  ```
 
 ```sh
 sudo systemctl status manc-api manc-fetch.timer manc-run@$USER.timer
