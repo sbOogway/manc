@@ -6,7 +6,7 @@ This file is the source of truth; update it when a decision changes.
 A small daily pipeline that reads the economic calendar and trusted news feeds, scores each
 tracked asset 0–100, stores the score, and plots it.
 
-Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · FastAPI · Vue 3 static site on GitHub Pages · SQLite via SQLAlchemy Core + Alembic · Nasdaq calendar.
+Stack: Python 3.12 · uv · pytest, TDD · pre-commit · LiteLLM · FastAPI · Vue 3 static site served by the API · SQLite via SQLAlchemy Core + Alembic · Nasdaq calendar.
 
 ---
 
@@ -52,13 +52,13 @@ marks them; a refetch never resets it), extracts forecasts, scores and writes th
 | 05   | Store + report | Write score, components and markdown report to SQLite.      | `store/` `report/` |
 
 Reading is separate from writing. The pipeline is the only writer. A REST API (`manc api`)
-serves everything a person might look at, and the dashboard (`manc ui`) is one client of that
-API; it never touches the database. Scheduling is two systemd timers (`src/manc/systemd/`); no
+serves everything a person might look at, and the dashboard (the static site the same process
+serves at `/`) is one client of that API; it never touches the database. Scheduling is two systemd timers (`src/manc/systemd/`); no
 queue, no workers, no orchestrator, no container.
 
 ```
-manc fetch (timer, every 15 min) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── static site (GitHub Pages)
-manc run   (timer, once a day)   ──►            manc api                  site/
+manc fetch (timer, every 15 min) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── static site (site/, built)
+manc run   (timer, once a day)   ──►            manc api ──── serves ────┘
 ```
 
 Because every input to step 04 is
@@ -527,7 +527,7 @@ injected through a FastAPI dependency so tests run the app against `FakeStore`. 
 
 ### Dashboard: `site/`
 
-An npm package in `site/`, built with Vite into static files that GitHub Pages can serve:
+An npm package in `site/`, built with Vite into static files that `manc api` serves at `/`:
 Vue 3 single-file components in TypeScript, Vue Router in hash mode, PrimeVue 4 for the
 controls and tables (the MIT line: PrimeVue 5 and `@primeuix/themes` 3 moved to the PrimeUI
 licence, which wants a key; Aura preset on the site's blue accent, dark mode off the
@@ -536,7 +536,7 @@ scatter) for the charts, marked for the report. Feed text reaches the DOM only t
 `src/lib/markdown.ts`: the report HTML goes through DOMPurify and a headline is linked only
 when its URL is `http(s):`, so markup in a title renders as text. Nothing loads from a CDN. It lives outside
 the Python package, so it cannot import the backend; the only thing it knows about it is the
-API URL. `src/api/client.ts` wraps the routes above in one typed function per route over
+API paths. `src/api/client.ts` wraps the routes above in one typed function per route over
 `fetch`; the types come from `site/openapi.json`, a snapshot of the app's OpenAPI document
 that `scripts/openapi-schema.py` writes, `npm run types` turns into `src/api/schema.d.ts`,
 and a Python test keeps equal to the app, so the site and the API cannot drift apart
@@ -545,12 +545,10 @@ computable (figures, table rows, URLs, filters) is a pure function in `src/lib/*
 with vitest, and `vue-tsc` type-checks the whole package; both run from the `site-tests`
 pre-commit hook (`npm run check`).
 
-The API URL follows where the page is served from: `http://localhost:8888` on localhost (the
-local test against `manc api`), the production backend (the tunnel in front of the
-owner's machine, one constant in `src/api/client.ts`) from GitHub Pages. The header has a field to
-point the site at any other backend; the choice is kept in `localStorage` and wins over both
-defaults. Routing uses the hash (`/#/asset/EURUSD`), which GitHub Pages serves without rewrite
-rules.
+Every request goes to the page's own origin: the API serves the site, so there is no backend
+URL to know, no cross-origin grant, and a login in front of the origin covers the page and
+its requests alike. Routing uses the hash (`/#/asset/EURUSD`), so one `index.html` serves
+every route.
 
 - `/` — overview: one card per asset with today's score as a large number, a coloured band
   label, the delta from yesterday, a 30-day sparkline, and an event-risk badge; sorted by
@@ -585,19 +583,14 @@ Looking good, concretely:
 
 Serving and publishing:
 
-- `npm run dev` in `site/` is the development server with hot reload; `npm run build` writes
-  `site/dist/` (relative asset paths, so the same build serves from `/manc/` on Pages and
-  from `/` locally). `uv run manc ui` serves that build on `localhost:8050` with the standard
-  library's HTTP server and refuses to start without it; `uv run manc serve` starts it together
-  with the API. The API grants cross-origin reads, with credentials, to the dashboard's own
-origins only (`ALLOWED_ORIGINS` in `api/app.py`: the Pages site on its custom domain and on
-github.io, `manc ui` and the Vite dev
-server): other sites' JavaScript cannot read it from a visitor's browser. That is all CORS
-does; anything else ignores it, so access control is Cloudflare Access on the tunnel
-hostname (§8, Production), whose cookie the client sends with every request.
-- `scripts/publish-site.sh` builds and pushes `site/dist/` to the `gh-pages` branch as its
-  own commit chain (`git commit-tree` over a temporary index, no subtree); GitHub Pages serves
-  that branch. No workflow file, in line with §8.
+- `npm run dev` in `site/` is the development server with hot reload; it proxies `/api` and
+  `/health` to a local `manc api`, so the page is same-origin there too. `npm run build`
+  writes `site/dist/` (relative asset paths). `manc api` mounts that folder at `/` when it
+  holds an `index.html` (`MANC_SITE_DIR`, the checkout's `site/dist` by default) and the
+  routes win over it; without a build it serves the API alone and says so. No CORS: nothing
+  reads the API from another origin, and access control is the login in front of the origin
+  (§8, Production).
+- Publishing is copying the build to the server's site folder (§8, Production).
 
 ## 8 · Repo and tooling
 
@@ -637,7 +630,7 @@ manc/
 │   ├── queries.py          # read-side logic over a Store, returns frozen dataclasses
 │   ├── api/                # app.py (FastAPI), routes.py, schemas.py (Pydantic), deps.py
 │   ├── pipeline.py
-│   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc ui | manc serve
+│   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc install
 ├── site/                   # the dashboard package: package.json, vite.config.ts, openapi.json, src/{api,lib,pages,components,tests}
 ├── scripts/                # publish-site.sh: site/ → gh-pages; openapi-schema.py: site/openapi.json
 ├── tests/                  # one folder per module + fixtures/; isolation test for formulas
