@@ -146,8 +146,12 @@ another git URL, `main` included) and lays the machine out, idempotently:
   `MANC_API_HOST` (the address the API listens on: loopback, or the LAN address that the
   machine running the public tunnel reaches; that tunnel's hostname is `PRODUCTION_API_URL`).
   Editing it is the one manual step;
-- the API is public and read-only: put a rate-limiting rule (or Access) on the tunnel
-  hostname, and when `MANC_API_HOST` is a LAN address let only the tunnel machine reach port
+- the API is read-only and the dashboard is yours, so the tunnel hostname gets a Cloudflare
+  Access application: a policy that allows your login, and in its CORS settings the allowed
+  origin `https://sboogway.github.io`, credentials on, method GET. The site sends the Access
+  cookie with every request; open the API hostname once in a tab to log in and the dashboard
+  works from then on. A rate-limiting rule on the same hostname covers what Access lets
+  through, and when `MANC_API_HOST` is a LAN address let only the tunnel machine reach port
   8888 through the firewall.
 
 ```sh

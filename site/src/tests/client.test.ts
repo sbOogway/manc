@@ -27,12 +27,14 @@ class FakeStorage implements KeyValueStorage {
 
 function fakeFetch(responses: { status: number; body: unknown }[]) {
   const calls: string[] = [];
-  const fetchFake = async (url: string) => {
+  const inits: RequestInit[] = [];
+  const fetchFake = async (url: string, init: RequestInit = {}) => {
     calls.push(url);
+    inits.push(init);
     const answer = responses[calls.length - 1] ?? { status: 200, body: {} };
     return { ok: answer.status < 300, status: answer.status, json: async () => answer.body } as Response;
   };
-  return Object.assign(fetchFake, { calls });
+  return Object.assign(fetchFake, { calls, inits });
 }
 
 describe("backend URL", () => {
@@ -122,5 +124,14 @@ describe("client", () => {
     expect(failure).toBeInstanceOf(ApiError);
     expect((failure as ApiError).status).toBeNull();
     expect((failure as ApiError).message).toMatch(/http:\/\/x/);
+    expect((failure as ApiError).message).toMatch(/open http:\/\/x\/health in a tab/); // a login in front
+  });
+
+  test("every request carries the cookie of a login in front of the backend", async () => {
+    const fetchFake = fakeFetch([]);
+    const client = createClient({ fetch: fetchFake, baseUrl: () => "http://x" });
+    await client.assets();
+    await client.health();
+    expect(fetchFake.inits.map((init) => init.credentials)).toEqual(["include", "include"]);
   });
 });
