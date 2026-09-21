@@ -1,0 +1,35 @@
+# The manc stack: the dashboard is the only published port, the API stays on the internal
+# network, cron runs the schedule. Settings and keys in .env (see .env.example); the database
+# in the data volume, the Claude Code login in the claude volume.
+services:
+  web:
+    build: site
+    ports:
+      - "${MANC_PORT:-8080}:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  api:
+    build: .
+    command: ["sh", "-c", "manc migrate && manc api"]
+    env_file: .env
+    volumes:
+      - data:/var/lib/manc
+      - claude:/claude
+    restart: unless-stopped
+
+  cron:
+    build: .
+    command: ["supercronic", "/app/crontab"]
+    env_file: .env
+    volumes:
+      - data:/var/lib/manc
+      - claude:/claude
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  data:
+  claude:

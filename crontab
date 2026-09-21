@@ -1,0 +1,4 @@
+# supercronic reads this in the cron container (UTC): the inputs every 15 minutes, the daily
+# run (fetch, tag, forecasts, score, report) at 06:00, when crypto has traded through the night.
+*/15 * * * * manc fetch
+0 6 * * * manc run
