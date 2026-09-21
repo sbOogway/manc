@@ -53,12 +53,12 @@ marks them; a refetch never resets it), extracts forecasts, scores and writes th
 
 Reading is separate from writing. The pipeline is the only writer. A REST API (`manc api`)
 serves everything a person might look at, and the dashboard (the static site the same process
-serves at `/`) is one client of that API; it never touches the database. Scheduling is two systemd timers (`src/manc/systemd/`); no
-queue, no workers, no orchestrator, no container.
+serves at `/`) is one client of that API; it never touches the database. Scheduling is two
+cron lines (`crontab`, run by supercronic in the stack); no queue, no workers, no orchestrator.
 
 ```
-manc fetch (timer, every 15 min) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── static site (site/, built)
-manc run   (timer, once a day)   ──►            manc api ──── serves ────┘
+manc fetch (cron, every 15 min) ──► SQLite ◄── FastAPI  ◄── HTTP/JSON ── nginx ── static site (site/, built)
+manc run   (cron, once a day)   ──►            manc api    (internal)     web  (the published port)
 ```
 
 Because every input to step 04 is
@@ -600,7 +600,11 @@ manc/
 ├── .pre-commit-config.yaml # hygiene, ruff format, ruff check, pytest
 ├── alembic.ini             # for `alembic revision` only; the code finds the migrations in the package
 ├── docs/blueprint.md       # this file
-├── src/manc/               # everything a `uv tool install` needs ships in here
+├── Dockerfile              # the manc image: python 3.12, uv sync --frozen, claude, supercronic
+├── compose.yaml            # web (nginx, published), api (internal), cron; volumes data and claude
+├── crontab                 # the schedule supercronic runs in the cron container
+├── .env.example            # MANC_PORT, MANC_LLM_MODEL, provider keys → .env
+├── src/manc/               # the package
 │   ├── models.py           # frozen dataclasses (§3)
 │   ├── config/             # __init__.py loads the YAML files next to it
 │   │   ├── assets.yaml     # symbols, economies, sign map
@@ -611,8 +615,6 @@ manc/
 │   │   ├── lexicon.yaml    # offline analyzer: economy, category, asset and polarity terms
 │   │   └── forecasts.yaml  # institutions with aliases, kind and weight; per-asset RSS queries; min_confidence
 │   ├── migrations/         # Alembic env.py + versions/
-│   ├── systemd/            # the production units and env.example, copied by `manc install`
-│   ├── install.py          # `manc install`: the manc user, its home, /etc/manc/env, units (§8, Production)
 │   ├── formulas/           # stdlib only, never imports the rest of manc
 │   │   ├── contract.py     # ScoringInputs, IndexScore, IndexFormula
 │   │   ├── registry.py     # get_formula("v1")
@@ -630,9 +632,9 @@ manc/
 │   ├── queries.py          # read-side logic over a Store, returns frozen dataclasses
 │   ├── api/                # app.py (FastAPI), routes.py, schemas.py (Pydantic), deps.py
 │   ├── pipeline.py
-│   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc install
-├── site/                   # the dashboard package: package.json, vite.config.ts, openapi.json, src/{api,lib,pages,components,tests}
-├── scripts/                # publish-site.sh: site/dist → the server; openapi-schema.py: site/openapi.json
+│   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc migrate
+├── site/                   # the dashboard package: package.json, vite.config.ts, openapi.json, src/{api,lib,pages,components,tests}, Dockerfile + nginx.conf (the web image)
+├── scripts/                # openapi-schema.py: site/openapi.json
 ├── tests/                  # one folder per module + fixtures/; isolation test for formulas
 └── data/                   # manc.db (gitignored; the folder is kept)
 ```
@@ -658,64 +660,40 @@ then on every commit runs, in order: file hygiene checks (trailing whitespace, e
 YAML/TOML syntax, large files), `ruff format`, `ruff check --fix`, `pytest` with the coverage
 floor and, when `site/` changed, `npm run check`. A commit that fails any step is rejected.
 Hooks run through `uv run` so they use the project environment, and `SKIP=pytest git commit`
-remains available for work-in-progress commits on a branch. Nothing publishes from a hook:
-`scripts/publish-site.sh` is run on purpose (§8, Production).
-
-Installing or updating a machine is one line (README, Production): `sudo uvx --from
-git+https://github.com/sbOogway/manc@main manc install`. `manc install` does the permanent
-`uv tool install` itself, as the `manc` user under its home, then lays the machine out; it
-is idempotent and every command it runs must succeed. It installs `main` unless `--source`
-names a tag or another URL, and the dependencies are the ones in `uv.lock`: `uv tool install`
-from git does not read the lock, so a pre-commit hook exports it to
-`src/manc/constraints.txt`, which ships in the wheel, is copied to `/etc/manc/` and goes to
-`--constraints`. A release is a version bump in `pyproject.toml` and `manc/__init__.py`, a
-tag `v<version>` and a GitHub release, and is optional: `main` is what runs. `main` has
-branch protection (no force-push, no deletion). Scheduling is systemd timers from
-`src/manc/systemd/`: `manc-fetch.timer` runs `manc fetch` every 15 minutes;
-`manc-run.timer` runs `manc run` at 06:00 UTC every day (crypto trades on weekends) with
-`Persistent=true`, so a day the machine slept through runs at the next wake. Logs go to the
-journal.
+remains available for work-in-progress commits on a branch. A release is a version bump in
+`pyproject.toml` and `manc/__init__.py` and a tag `v<version>`, and is optional: `main` is
+what a machine builds. `main` has branch protection (no force-push, no deletion).
 
 ### Production
 
-One machine, one user, one origin. A self-contained `uv tool` install gives the packaging,
-a dedicated user and hardened units give the isolation, and the API process serves the
-dashboard, so nothing crosses an origin. The wheel carries everything (§8 tree): the YAML
-files, the migrations, the units and the env example.
+One compose stack (`compose.yaml`), three containers from two images, on whatever machine
+runs Docker; a clone of the repo is the only input, `.env` the only file to write.
 
-`manc install` creates a `manc` system user (no login shell, home `/var/lib/manc`, mode
-`0750`) and installs the tool under that home (`~/.local/bin/manc`, on the distro's
-`python3.12` package, since Fedora's `uv` does not download interpreters);
-`/etc/manc/env` (`root:manc 0640`) is written once from `env.example` and never overwritten;
-the units go to `/etc/systemd/system` and are enabled. All three services run as `manc`
-with one confinement block: read-only system, `ProtectHome`, `/var/lib/manc` the only
-writable path, private `/tmp` and devices, no new privileges, no capabilities, native
-syscalls of the `@system-service` set, `AF_INET`/`AF_UNIX` only (`tests/test_systemd.py`
-verifies the units; `systemd-analyze security` scores each "OK", about 1.5). The daily run
-tags with the `manc` user's own Claude Code login: `claude` is installed under
-`~/.local/bin` of that home and logged in once (`sudo -u manc -H
-/var/lib/manc/.local/bin/claude`), the credentials live in `~/.claude` inside the writable
-path, and the auto-updater is off so a run never changes the binary it was logged in with.
-Every unit loads `/etc/manc/env`: the provider keys, `MANC_DB_URL`, `MANC_SITE_DIR`
-(`/var/lib/manc/site`, where `scripts/publish-site.sh` copies a build), `MANC_API_PORT`
-(8888), `MANC_API_HOST` (loopback, or `0.0.0.0` when cloudflared runs on another machine
-of the LAN) and, on a machine without a Claude login, `MANC_LLM_MODEL`, and `MANC_MAIL_TO`,
-which makes the run unit pipe `manc report` (the stored reports of the day) into the
-machine's own `mail` afterwards: the MTA is the owner's, manc carries no SMTP code.
+- `web` (`site/Dockerfile`): the site built once with Vite in a node stage, served by nginx
+  (`site/nginx.conf`), the only published port (`MANC_PORT`, 8080). nginx proxies `/api/`
+  and `/health` to `api`, so the page and its requests share one origin, and answers every
+  other path with `index.html` for the hash router.
+- `api` (`Dockerfile`): `python:3.12-slim` with uv, the dependencies of `uv.lock` (`uv sync
+  --frozen --no-dev`, the lock is what runs), the package, and `claude` installed under the
+  `manc` user's home for the tagger; `manc migrate && manc api` on the internal network,
+  nothing published. `MANC_DB_URL`, `MANC_API_HOST=0.0.0.0` and the port are set in the
+  image; `.env` adds the keys, the model and the port.
+- `cron`: the same image running supercronic over `crontab`: `manc fetch` every 15 minutes,
+  `manc run` at 06:00 UTC (crypto trades on weekends). Logs are the container's.
+- volumes: `data` at `/var/lib/manc` (the database, `manc migrate` on every start) and
+  `claude` at `CLAUDE_CONFIG_DIR=/claude`, the Claude Code login done once with `docker
+  compose run --rm api claude` and shared by `api` and `cron`; `DISABLE_AUTOUPDATER=1` so a
+  run never changes the `claude` it logged in with.
 
-The API has no auth of its own: a Cloudflare tunnel publishes one hostname for the page and
-the API together, and Cloudflare Access on it is the login, the owner's configuration rather
-than code. Because the page and its requests share the origin, Access needs no CORS or
-cookie settings and the browser sends the session cookie by itself. A rate-limiting rule on
-the same hostname covers denial of service. On the LAN, `manc-api.service` lets only
-loopback in (`IPAddressDeny=any`, `IPAddressAllow=localhost`), and the tunnel machine's
-address goes in a drop-in the owner writes once (`systemctl edit manc-api`); the filter is
-systemd's, per service, so it holds whatever the firewall opens.
+`tests/test_compose.py` reads the compose file, the Dockerfiles, the crontab and the nginx
+config and checks that shape: the API has no published port, both manc containers mount
+both volumes, the schedule has its two lines, the proxy points at `api:8888`.
 
-Publishing the dashboard is `MANC_SERVER=you@server scripts/publish-site.sh` from the dev
-checkout: it builds `site/` and copies `site/dist/` to the server through the owner's login
-there (`rsync` into that home, then `sudo rsync --chown=manc:manc` under `/var/lib/manc/site`),
-so neither a key for `manc` nor a sudoers rule exists. The server never builds the site.
+The API has no auth of its own: a Cloudflare tunnel publishes the `web` port under one
+hostname and Cloudflare Access on it is the login, the owner's configuration rather than
+code; page and API share the origin, so Access needs no CORS or cookie settings. A
+rate-limiting rule on the same hostname covers denial of service. Mail is not part of the
+stack: the reports are on the dashboard.
 
 ## 9 · Milestones
 
@@ -768,10 +746,9 @@ the API only, against `manc api` on localhost.
 - overview page with asset cards and sparklines
 - asset page with history chart, selectors, report, events, headlines, forecasts panel
 - events page
-- `scripts/publish-site.sh`
 
 **M5 Operations** — done when: two weeks of daily scores exist without manual intervention.
-- systemd units and README runbook
+- the schedule and the README runbook
 - run log (timestamped stderr lines per step and tagging batch) and failure notification
   (stderr + exit code is enough)
 - first tuning pass on weights using the accumulated scores
@@ -832,18 +809,16 @@ Evaluation, since the index is not a predictor:
 (§7), type-checked and tested by the hooks.
 
 **M8 Security hardening** — done (2026-09-21), the surface found by the review of that day
-closed in code; three items stay with the owner's configuration and are listed in the
-README's production notes: a rate-limiting rule or Access on the tunnel hostname, the
-tunnel machine's address in the `manc-api` drop-in, and branch protection on `main`
-(no force-push, no deletion). The only input that reaches a browser is text from RSS feeds
+closed in code; two items stay with the owner's configuration and are listed in the
+README's production notes: a rate-limiting rule or Access on the tunnel hostname, and
+branch protection on `main` (no force-push, no deletion). The only input that reaches a browser is text from RSS feeds
 (titles, links) and the LLM paragraph, so the one real hole was there; the rest is exposure
 and blast radius.
 - stored XSS: the report markdown goes through DOMPurify and a headline is linked only when
   its URL is `http(s):` (§7)
 - the public API: a `from`/`to` range is bounded (§7)
-- the install path: `manc install` installs with the dependencies of `uv.lock`, which
-  `uv tool install` from git would otherwise ignore (§8)
-- every unit confined (§8, Production)
+- the install path runs the dependencies of `uv.lock` and nothing else (§8)
+- the API is not reachable from outside the stack (§8, Production)
 - the tagger runs `claude -p` with no built-in tools, no MCP servers, no saved transcript and
   a JSON schema (§3), so a hostile title can only bend a tag or a summary; prompt injection
   is therefore not on the list
@@ -852,10 +827,12 @@ and blast radius.
 one user and one origin after a day of deployment-only releases (§8, Production, and the
 decisions below).
 - `manc api` serves the built site at `/`; no CORS, no backend URL in the site, no `manc ui`
-- every unit runs as `manc`, whose own Claude Code login tags; no template unit, no shared
-  database modes
-- `manc install` installs `main` as `manc` under its home; a release is optional
-- `scripts/publish-site.sh` copies the build to the server; no `gh-pages`, no post-merge hook
+- one user, one hardening block, install from `main`, publish by copy (superseded by M10
+  the same night)
+
+**M10 Compose** — done (2026-09-22): the host install replaced by the compose stack (§8,
+Production): `web` published, `api` internal, `cron` for the schedule, the Claude login in a
+volume. `manc install`, the units, the publish script and the constraints export are gone.
 
 ## 10 · Decisions taken
 
@@ -864,21 +841,18 @@ load-bearing enough to block a start.
 
 - **SQLite, not Postgres — but through SQLAlchemy Core and Alembic.** One user, one writer per
   day, one file; the schema is versioned from day one and the engine is a URL change away.
-- **systemd timers, not a scheduler library.** The run is idempotent, so a missed run is just
-  re-run, which `Persistent=true` does by itself; the journal replaces log redirection. Chosen
-  over cron on 2026-09-20 for those two reasons.
-- **A uv tool install and a dedicated user, not a container** (2026-09-21). The container only
-  packaged the API process; `uv tool install` packages the whole application with its own
-  Python and locked dependencies, the `manc` user plus systemd hardening isolate it, and
-  `manc install` replaces a shell script with tested Python. No podman, no compose, no image.
-  Reconsidered the same evening and kept: a compose file, a Claude volume and host timers to
-  drive it would replace the units one for one, not remove a layer.
-- **One user runs everything, with its own Claude Code login** (2026-09-21). The daily run
-  used to execute as the owner because the tagger needs a Claude login; that one choice
-  produced a template unit with a second confinement profile around a person's home, a
-  database shared across two users (setgid directory, `0660`, umask), a tool under `/opt`
-  so both could run it, and a search for `uv` where `sudo` does not look. Logging the `manc`
-  user in once (`~/.claude` under `/var/lib/manc`) removed all of it.
+- **Cron in the stack, not a scheduler library.** The run is idempotent, so a missed run is
+  just re-run by hand; two crontab lines under supercronic, whose output is the container's
+  log. systemd timers did the same on the host until 2026-09-22.
+- **A compose stack, not a host install** (2026-09-22, the owner's call, reversing the
+  2026-09-21 decision for a `uv tool install` under a dedicated user with hardened units).
+  The host install needed a system user, a Claude login in its home, an env file under
+  `/etc`, unit drop-ins for the tunnel machine and a publish script over ssh: correct, and
+  too much to operate. The stack is a clone, a `.env` and `docker compose up -d --build`:
+  the image carries Python, the locked dependencies and `claude`; the volumes carry the
+  database and the login; nginx puts the page and the API on one origin and is the only
+  thing exposed. Container isolation replaces the systemd hardening. What the 2026-09-21
+  decision got right stays: no owner account involved, one origin, `main` is what runs.
 - **The API serves the site: one origin** (2026-09-21, replacing GitHub Pages). The static
   site on Pages and the API behind the tunnel were two origins, which is what CORS with
   credentials, the Access cookie and CORS settings, a production URL in the site, a header

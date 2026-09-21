@@ -49,7 +49,7 @@ the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the 
 | M2 Ingestion: RSS news, Nasdaq calendar, LLM forecast extractor, Yahoo spot closes, Fed SEP and World Bank publishers | done |
 | M3 Analysis and index: LLM tagger, lexicon fallback, formula v1 | done |
 | M4 Report, API and dashboard: markdown report, REST API, static dashboard | done |
-| M5 Operations: systemd units, journal log, tuning pass | in progress |
+| M5 Operations: scheduled runs, run log, tuning pass | in progress |
 | M6 Formula v2: standardised surprise, novelty, dispersion, asymmetry | done |
 | M7 Site package: Vue 3 + TypeScript, PrimeVue, Vite | done |
 | M8 Security hardening: sanitised site, bounded API, pinned install, confined units, tool-less tagger | done |
@@ -85,7 +85,7 @@ uv run manc report                             # the stored reports of the newes
 ```
 
 Every run logs its start, each step and each tagging batch to stderr with the time; the
-scores go to stdout, one line per asset. Scheduling is systemd timers, see Production.
+scores go to stdout, one line per asset. Scheduling is cron in the stack, see Production.
 
 ### Dashboard
 
@@ -109,78 +109,43 @@ built (`MANC_SITE_DIR` points it elsewhere), and `npm run dev` proxies the API p
 When a route or schema changes, `uv run python scripts/openapi-schema.py` refreshes
 `site/openapi.json` (a test fails otherwise) and `npm run types` the TypeScript types.
 
-Publishing it is `MANC_SERVER=you@server scripts/publish-site.sh`: it builds and copies
-`site/dist` to `/var/lib/manc/site` on the server (through your login there and one `sudo`),
-where `manc api` serves it. Run it whenever the site changed; nothing publishes on its own.
+In production the site is built into its own image and served by nginx, which proxies the
+API paths to the API container (Production below); `manc api` serving `site/dist` is for the
+local test.
 
 ### Production
 
-One machine runs everything as a dedicated `manc` user: the API with the dashboard, a fetch
-every 15 minutes and the daily run, whose headline tagging uses that user's own Claude Code
-login. A Cloudflare tunnel (on this machine or another on the LAN) publishes the API's
-hostname, and Cloudflare Access on it makes the whole thing yours alone; the API has no auth
-of its own.
+One compose stack, `compose.yaml` at the repo root, three containers from two images:
 
-1. Packages: `sudo dnf install uv python3.12 git` (the distro's `uv` does not download
-   interpreters, hence `python3.12`; the project pins 3.12). For the daily mail, a working
-   `mail` (`echo test | mail -s test you@example.com`).
-2. Install, and later upgrade, with the same line (it is idempotent; `--source` takes a tag
-   or another URL instead of `main`):
+| container | image | what it does |
+|---|---|---|
+| `web`  | `site/Dockerfile`: the site built with Vite, served by nginx | the only published port (`MANC_PORT`, 8080); proxies `/api/` and `/health` to `api`, so page and requests share one origin |
+| `api`  | `Dockerfile`: Python 3.12, the locked dependencies (`uv sync --frozen`), `claude` | `manc migrate && manc api`, on the internal network only |
+| `cron` | the same image, under supercronic (`crontab`) | `manc fetch` every 15 minutes, `manc run` daily at 06:00 UTC |
 
-   ```sh
-   sudo uvx --from git+https://github.com/sbOogway/manc@main manc install
-   ```
-
-   It creates the `manc` system user (home `/var/lib/manc`, no login shell), installs the
-   tool under that home with `uv tool install` and the dependencies pinned by `uv.lock`,
-   migrates `/var/lib/manc/manc.db`, writes `/etc/manc/env` from the packaged example when
-   missing, and enables `manc-api.service`, `manc-fetch.timer` and `manc-run.timer` (06:00
-   UTC daily, caught up after a missed day). Every unit is confined to `/var/lib/manc`
-   (`systemd-analyze security` says "OK").
-3. Claude Code for the `manc` user, once: install it under that home and log in.
-
-   ```sh
-   sudo -u manc -H bash -c 'curl -fsSL https://claude.ai/install.sh | bash'   # → /var/lib/manc/.local/bin/claude
-   sudo -u manc -H /var/lib/manc/.local/bin/claude                            # /login: open the URL, paste the code
-   ```
-
-   A machine without a Claude login can tag with a keyed model instead:
-   `MANC_LLM_MODEL=mistral/ministral-14b-latest` and the key in the env file.
-4. Edit `/etc/manc/env` (`root:manc 0640`, never overwritten), then
-   `sudo systemctl restart manc-api`: `MANC_API_HOST` is `127.0.0.1` when cloudflared runs
-   on this machine, `0.0.0.0` when it runs elsewhere; `MANC_MAIL_TO` your address, or empty;
-   the provider keys only for a keyed model. When cloudflared runs elsewhere, the unit lets
-   nothing but loopback in, whatever the firewall opens, so add that machine once in a
-   drop-in that upgrades leave alone:
-
-   ```sh
-   sudo systemctl edit manc-api      # under [Service]: IPAddressAllow=<tunnel machine IP>
-   sudo systemctl restart manc-api
-   ```
-5. Cloudflare: in cloudflared a public hostname, say `manc.<your-domain>`, with service
-   `http://<MANC_API_HOST or this machine's LAN IP>:8888`; in Zero Trust an Access
-   application (self-hosted) on that hostname with an Allow policy for your email and a
-   long session; optionally a rate-limiting rule on the hostname. Nothing else: the page
-   and the API share the hostname, so the default cookie and CORS settings are right.
-6. Publish the dashboard from your checkout: `MANC_SERVER=you@server scripts/publish-site.sh`
-   (step "Dashboard" above), then open `https://manc.<your-domain>/`.
-7. Check, and run the first day by hand:
-
-   ```sh
-   curl -s http://127.0.0.1:8888/health          # {"status":"ok","last_run":null}
-   sudo systemctl status manc-api manc-fetch.timer manc-run.timer
-   sudo systemctl start manc-run                 # a daily run now, same environment as the timer
-   sudo journalctl -u manc-run -f                # its log; then /health shows last_run
-   ```
-
-Your own account and the dev checkout are not involved. Branch protection on `main` (no
-force-push, no deletion) and 2FA on the GitHub account are the repository's side:
+Two volumes: `data` (`/var/lib/manc`, the database) and `claude` (the Claude Code login,
+`CLAUDE_CONFIG_DIR`). Settings and keys in `.env` next to the compose file.
 
 ```sh
-gh api -X PUT repos/sbOogway/manc/branches/main/protection --input - <<'EOF'
-{"required_status_checks":null,"enforce_admins":false,"required_pull_request_reviews":null,"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}
-EOF
+git clone https://github.com/sbOogway/manc && cd manc
+cp .env.example .env                          # MANC_PORT, keys; the defaults are fine
+docker compose up -d --build                  # builds both images, starts the three containers
+docker compose run --rm api claude            # once: /login, open the URL, paste the code, /exit
+curl -s http://localhost:8080/health          # {"status":"ok","last_run":null}
+docker compose run --rm cron manc run         # the first day by hand; then /health shows last_run
+docker compose logs -f cron                   # the schedule and every run
 ```
+
+The login survives restarts and rebuilds in the `claude` volume; the auto-updater is off in
+the image, so `claude` stays the version the image was built with until a rebuild. A machine
+without a Claude login tags with a keyed model instead: `MANC_LLM_MODEL=mistral/…` and its
+key in `.env`.
+
+Upgrading is `git pull && docker compose up -d --build`. The API is not reachable from
+outside the stack; put the tunnel (cloudflared, on this machine or another on the LAN) in
+front of `http://<this machine>:8080` with Cloudflare Access on the hostname, since the
+API has no auth of its own. Mail is not part of the stack; the reports are on the
+dashboard.
 
 ## Development
 

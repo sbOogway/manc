@@ -25,8 +25,8 @@ the index formula, storage, dashboard and milestones. Keep it updated when a dec
 - **All LLM calls go through LiteLLM**; the model is a string in `src/manc/config/llm.yaml`.
 - **UI talks to the backend over the REST API only.** The dashboard is an npm package in
   `site/` (Vue 3 + TypeScript, PrimeVue, FullCalendar, Plotly; built with Vite into static
-  files that `manc api` serves next to the routes, same origin; nothing from a CDN); it knows
-  the API paths and nothing else. Read-side logic (bands, deltas, sparklines, ordering)
+  files served next to the API paths, same origin: by nginx in the `web` container, by
+  `manc api` locally; nothing from a CDN); it knows the API paths and nothing else. Read-side logic (bands, deltas, sparklines, ordering)
   lives in `src/manc/queries.py` as plain functions; API routes and pages stay thin. Site logic
   that is not rendering (client, formats, chart data, table rows) goes in `site/src/lib/*.ts`,
   tested with vitest; rendering in `.vue` components. The API types come from
