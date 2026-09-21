@@ -204,7 +204,9 @@ API-key env var.
 
 The default is the owner's Claude subscription, no API key: `claude_code/<model>` is a
 LiteLLM custom provider (`manc.llm.claude_code`) that runs Claude Code headless, `claude -p`
-with the response schema as `--json-schema`, tools off, and returns its `structured_output`.
+with the response schema as `--json-schema`, no built-in tools (`--tools ""`), none of the
+owner's MCP servers (`--strict-mcp-config`) and no saved transcript, and returns its
+`structured_output`.
 It needs the `claude` binary logged in on the machine that runs the pipeline. Models are
 chosen with the tagger benchmark (`tests/analysis/test_live_tagger.py`, recorded headlines
 with the direction a market reader expects; `MANC_LIVE_MODEL` benchmarks any model, the
@@ -823,7 +825,8 @@ paragraph, so the one real hole is there; the rest is exposure and blast radius.
 - `manc-run@.service`, the one unit running as the owner: the same confinement as the others
   where the Claude login allows it
 Prompt injection through headlines is not on the list: the tagger runs `claude -p` with no
-tools and a JSON schema, so a hostile title can only bend a tag or a summary.
+built-in tools, no MCP servers and a JSON schema (§3), so a hostile title can only bend a tag
+or a summary.
 
 ## 10 · Decisions taken
 

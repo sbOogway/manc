@@ -54,7 +54,9 @@ def test_complete_runs_claude_headless_with_the_schema(monkeypatch: pytest.Monke
     argv = call["argv"]
     assert argv[:2] == ["claude", "-p"]
     assert argv[argv.index("--model") + 1] == "opus"
-    assert argv[argv.index("--tools") + 1] == ""
+    assert argv[argv.index("--tools") + 1] == ""  # no built-in tools
+    assert "--strict-mcp-config" in argv  # and none of the owner's MCP servers
+    assert "--no-session-persistence" in argv  # no transcript of the batch under ~/.claude
     assert argv[argv.index("--output-format") + 1] == "json"
     assert argv[argv.index("--system-prompt") + 1] == "You tag headlines."
     schema = json.loads(argv[argv.index("--json-schema") + 1])
