@@ -5,11 +5,8 @@ import logging
 import os
 import subprocess
 import sys
-import threading
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import uvicorn
@@ -41,8 +38,8 @@ from manc.store.sql import SqlStore
 
 API_HOST = "127.0.0.1"  # MANC_API_HOST overrides it (the env file, for the tunnel machine)
 API_PORT = 8888  # MANC_API_PORT overrides it
-SITE_PORT = 8050
-SITE_DIR = Path(__file__).resolve().parents[2] / "site" / "dist"  # what `npm run build` writes
+# the built dashboard, served by `manc api` at /: MANC_SITE_DIR overrides it (the env file)
+SITE_DIR = Path(__file__).resolve().parents[2] / "site" / "dist"
 LOG_FORMAT = "%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s"
 LOG_DATEFMT = "%H:%M:%S"
 
@@ -54,11 +51,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     # no-op if a handler is already installed
     logging.basicConfig(stream=sys.stderr, format=LOG_FORMAT, datefmt=LOG_DATEFMT)
     logging.getLogger("manc").setLevel(logging.DEBUG if args.verbose else logging.INFO)
-    if args.command == "ui":
-        if not _site_built():
-            return 1
-        _serve_site()
-        return 0
     if args.command == "install":
         try:
             installer.install(args.owner, source=args.source)
@@ -80,18 +72,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"manc: {error}", file=sys.stderr)
         return 1
     config = load_config()
-    if args.command == "serve" and not _site_built():
-        return 1
-    if args.command in ("api", "serve"):
+    if args.command == "api":
         host = os.environ.get("MANC_API_HOST") or API_HOST
         port = int(os.environ.get("MANC_API_PORT") or API_PORT)
+        site_dir = Path(os.environ.get("MANC_SITE_DIR") or SITE_DIR)
+        site = site_dir if (site_dir / "index.html").is_file() else None
         log.info("manc api: serving http://%s:%d, %s", host, port, db.database_url())
-        serve_api = partial(uvicorn.run, create_app(config, store), host=host, port=port)
-        if args.command == "api":
-            serve_api()
-            return 0
-        threading.Thread(target=serve_api, daemon=True).start()
-        _serve_site()
+        if site is None:
+            log.warning("manc api: no built dashboard at %s, the API alone", site_dir)
+        uvicorn.run(create_app(config, store, site_dir=site), host=host, port=port)
         return 0
     if args.command == "forecasts":
         return _backfill_forecasts(config, store, args.since)
@@ -187,23 +176,6 @@ def _forecast_providers(config: Config, store: SqlStore) -> list[ForecastProvide
     return [LlmExtractor(config, store.news), FedSep(), WorldBankOutlook()]
 
 
-def _site_built() -> bool:
-    if (SITE_DIR / "index.html").is_file():
-        return True
-    print(
-        f"manc: no built site at {SITE_DIR}: run `cd site && npm ci && npm run build`",
-        file=sys.stderr,
-    )
-    return False
-
-
-def _serve_site() -> None:
-    """The built site from `site/dist`, for the local test against the API."""
-    handler = partial(SimpleHTTPRequestHandler, directory=str(SITE_DIR))
-    log.info("manc ui: serving %s on http://%s:%d", SITE_DIR, API_HOST, SITE_PORT)
-    ThreadingHTTPServer((API_HOST, SITE_PORT), handler).serve_forever()
-
-
 def _as_of(day: date | None) -> datetime:
     """Now for today; end of day for a past date so its whole news window counts."""
     if day is None or day == datetime.now(UTC).date():
@@ -266,7 +238,7 @@ def _parser() -> argparse.ArgumentParser:
     commands.add_parser(
         "migrate", help="create or migrate the database (MANC_DB_URL) to the current schema"
     )
-    commands.add_parser("api", help=f"serve the REST API on http://{API_HOST}:{API_PORT}")
-    commands.add_parser("ui", help=f"serve the dashboard on http://{API_HOST}:{SITE_PORT}")
-    commands.add_parser("serve", help="the API and the dashboard together")
+    commands.add_parser(
+        "api", help=f"serve the REST API and the built dashboard on http://{API_HOST}:{API_PORT}"
+    )
     return parser

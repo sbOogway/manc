@@ -2,6 +2,7 @@
 
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -319,20 +320,31 @@ def test_a_range_is_bounded_and_ordered(client: TestClient, path: str) -> None:
     assert response.json() == {"detail": "from is after to"}
 
 
-@pytest.mark.parametrize(
-    "origin",
-    ["https://mattiapapaccioli.com", "https://sboogway.github.io", "http://localhost:8050"],
-)
-def test_the_site_origins_may_read_across_origins_with_credentials(
-    client: TestClient, origin: str
-) -> None:
-    response = client.get("/api/v1/formulas", headers={"Origin": origin})
-    assert response.headers["access-control-allow-origin"] == origin
-    assert response.headers["access-control-allow-credentials"] == "true"
-
-
-def test_other_origins_get_no_cross_origin_grant(client: TestClient) -> None:
-    """Browsers only: curl ignores CORS. Access control is Cloudflare Access on the tunnel."""
+def test_no_cross_origin_grant_at_all(client: TestClient) -> None:
+    """The site is served by this app, same origin: nothing needs CORS (browsers only anyway)."""
     response = client.get("/api/v1/formulas", headers={"Origin": "https://evil.test"})
     assert response.status_code == 200
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_the_site_is_served_at_the_root_next_to_the_api(store: FakeStore, tmp_path: Path) -> None:
+    (tmp_path / "index.html").write_text("<title>manc</title>")
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "app.js").write_text("console.log(1)")
+    client = TestClient(create_app(CONFIG, store, site_dir=tmp_path))
+    assert client.get("/").text == "<title>manc</title>"
+    assert client.get("/assets/app.js").status_code == 200
+    assert client.get("/health").json()["status"] == "ok"  # the routes win over the folder
+    assert client.get("/api/v1/formulas").status_code == 200
+
+
+@pytest.mark.parametrize("site_dir", [None, "missing", "empty"])
+def test_without_a_built_site_only_the_api_answers(
+    store: FakeStore, tmp_path: Path, site_dir: str | None
+) -> None:
+    folder = None if site_dir is None else tmp_path / site_dir
+    if site_dir == "empty":
+        folder.mkdir()  # type: ignore[union-attr]
+    client = TestClient(create_app(CONFIG, store, site_dir=folder))
+    assert client.get("/").status_code == 404
+    assert client.get("/health").json()["status"] == "ok"
