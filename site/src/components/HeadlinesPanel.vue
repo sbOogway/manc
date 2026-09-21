@@ -19,7 +19,8 @@ const rows = computed(() => headlineRows(props.headlines));
       <li v-for="row in rows" :key="row.url" :class="row.direction > 0 ? 'bull' : 'bear'">
         <div class="headline-line">
           <span class="glyph">{{ row.glyph }}</span>
-          <a :href="row.url" target="_blank" rel="noopener">{{ row.title }}</a>
+          <a v-if="row.href" :href="row.href" target="_blank" rel="noopener">{{ row.title }}</a>
+          <span v-else>{{ row.title }}</span>
           <span v-tooltip.left="'confidence ' + row.confidence + ' × source weight'" class="num weight">{{ row.weight }}</span>
         </div>
         <div class="weight-bar"><span :style="{ width: row.bar + '%' }"></span></div>

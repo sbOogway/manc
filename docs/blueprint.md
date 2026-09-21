@@ -530,7 +530,9 @@ Vue 3 single-file components in TypeScript, Vue Router in hash mode, PrimeVue 4 
 controls and tables (the MIT line: PrimeVue 5 and `@primeuix/themes` 3 moved to the PrimeUI
 licence, which wants a key; Aura preset on the site's blue accent, dark mode off the
 `data-theme` attribute), FullCalendar for the events page, Plotly (the basic bundle: every chart here is a
-scatter) for the charts, marked for the report. Nothing loads from a CDN. It lives outside
+scatter) for the charts, marked for the report. Feed text reaches the DOM only through
+`src/lib/markdown.ts`: the report HTML goes through DOMPurify and a headline is linked only
+when its URL is `http(s):`, so markup in a title renders as text. Nothing loads from a CDN. It lives outside
 the Python package, so it cannot import the backend; the only thing it knows about it is the
 API URL. `src/api/client.ts` wraps the routes above in one typed function per route over
 `fetch`; the types come from `site/openapi.json`, a snapshot of the app's OpenAPI document
@@ -644,7 +646,7 @@ manc/
 | `sqlalchemy`, `alembic`                           | store: Core tables and versioned migrations                            |
 | `pyyaml`                                          | config files                                                          |
 | `fastapi`, `uvicorn`, `pydantic`                  | REST API                                                              |
-| Vue 3, Vue Router, PrimeVue, FullCalendar, Plotly.js (basic), marked; Vite, TypeScript, vue-tsc, vitest, openapi-typescript | dashboard (`site/`, an npm package; `node` 22+ and `npm ci` once per clone) |
+| Vue 3, Vue Router, PrimeVue, FullCalendar, Plotly.js (basic), marked, DOMPurify; Vite, TypeScript, vue-tsc, vitest, openapi-typescript | dashboard (`site/`, an npm package; `node` 22+ and `npm ci` once per clone) |
 | `pytest`, `pytest-cov`, `hypothesis`, `respx`, `ruff`, `pre-commit` | dev: tests, property tests, HTTP stubbing, coverage gate, lint and format, git hooks |
 
 Secrets: the API-key env var of whichever provider `llm.model` names (`ANTHROPIC_API_KEY`,
