@@ -4,14 +4,12 @@ runner, the files land under a prefix."""
 
 import os
 import re
-import shutil
 import subprocess
 import tomllib
 from pathlib import Path
 
 import pytest
 
-import manc
 from manc import cli, install
 from manc.install import CONSTRAINTS, UNITS_DIR
 
@@ -54,73 +52,65 @@ def _in_order(lines: list[str], *steps: str) -> None:
 @pytest.fixture
 def root(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(os, "geteuid", lambda: 0)
+    monkeypatch.setattr(install, "system_uv", lambda: "/usr/bin/uv")
 
 
 def test_first_install_creates_everything_in_order(tmp_path: Path, root: None) -> None:
     runner = Recorder()
-    install.install("mattia", prefix=tmp_path, run=runner)
+    install.install(prefix=tmp_path, run=runner)
     env_file = tmp_path / "etc" / "manc" / "env"
     assert env_file.read_text() == (UNITS_DIR / "env.example").read_text()
     assert oct(env_file.stat().st_mode & 0o777) == "0o640"
+    constraints = tmp_path / "etc" / "manc" / "constraints.txt"
+    assert constraints.read_text() == CONSTRAINTS.read_text()  # readable by the manc user
     data = tmp_path / "var" / "lib" / "manc"
-    assert data.is_dir() and oct(data.stat().st_mode & 0o7777) == "0o2770"
-    assert not any(line.startswith("setfacl") for line in runner.lines())  # setgid + umask do it
+    assert data.is_dir() and oct(data.stat().st_mode & 0o7777) == "0o750"
     system = tmp_path / "etc" / "systemd" / "system"
     assert {path.name for path in system.iterdir()} == {
         path.name for path in UNITS_DIR.iterdir() if path.name != "env.example"
     }
     assert (system / "manc-api.service").read_text() == (UNITS_DIR / "manc-api.service").read_text()
+    as_manc = "runuser -u manc -- env -i HOME=/var/lib/manc PATH=/var/lib/manc/.local/bin:/usr/bin"
     _in_order(
         runner.lines(),
-        f"{shutil.which('uv')} tool install --force --python 3.12 --constraints {CONSTRAINTS} "
-        f"{install.SOURCE}",
         "getent passwd manc",
         "useradd -r -m -d /var/lib/manc -s /usr/sbin/nologin manc",
-        "usermod -aG manc mattia",
         "chown manc:manc",
         "chown root:manc",
-        "runuser -u manc -- env MANC_DB_URL=sqlite:////var/lib/manc/manc.db manc migrate",
-        "chmod 0660 /var/lib/manc/manc.db",
+        f"{as_manc} /usr/bin/uv tool install --force --python 3.12 "
+        f"--constraints /etc/manc/constraints.txt {install.SOURCE}",
+        f"{as_manc} MANC_DB_URL=sqlite:////var/lib/manc/manc.db manc migrate",
         "systemctl daemon-reload",
-        "systemctl enable --now manc-api.service manc-fetch.timer manc-run@mattia.timer",
+        "systemctl enable --now manc-api.service manc-fetch.timer manc-run.timer",
         "systemctl restart manc-api.service",
     )
-    tool_env = runner.environments[0]  # the tool, its Python and the entry point outside /root
-    assert tool_env["UV_TOOL_DIR"] == "/opt/manc/tools"
-    assert tool_env["UV_PYTHON_INSTALL_DIR"] == "/opt/manc/python"
-    assert tool_env["UV_TOOL_BIN_DIR"] == "/usr/local/bin"
+    for line in runner.lines():  # one user owns the database: nothing to share with anyone
+        assert not line.startswith(("usermod", "chmod", "setfacl")), line
 
 
-def test_uv_is_found_where_sudo_does_not_look(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """The upstream installer puts uv in ~/.local/bin, which root's PATH under sudo lacks."""
-    monkeypatch.delenv("UV", raising=False)
-    monkeypatch.setattr(install.shutil, "which", lambda name: None)
-    home = tmp_path / "home" / "mattia"
-    monkeypatch.setattr(install, "_home", lambda owner: home if owner == "mattia" else None)
-    with pytest.raises(FileNotFoundError, match=r"uv .*\.local/bin/uv.*dnf install uv"):
-        install.find_uv("mattia")
-    users_uv = home / ".local" / "bin" / "uv"
-    users_uv.parent.mkdir(parents=True)
-    users_uv.write_text("")
-    assert install.find_uv("mattia") == str(users_uv)
-    monkeypatch.setenv("UV", "/somewhere/uv")
-    assert install.find_uv("mattia") == "/somewhere/uv"  # what launched us wins
-
-
-def test_the_install_runs_the_uv_it_found(
-    tmp_path: Path, root: None, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(install, "find_uv", lambda owner: "/home/mattia/.local/bin/uv")
+def test_the_tool_and_the_migration_run_as_manc_in_its_own_home(tmp_path: Path, root: None) -> None:
+    """`runuser` keeps root's environment, so HOME is set by hand: uv installs under it."""
     runner = Recorder()
-    install.install("mattia", prefix=tmp_path, run=runner)
-    assert runner.lines()[0].startswith("/home/mattia/.local/bin/uv tool install ")
+    install.install(prefix=tmp_path, run=runner)
+    as_manc = [line for line in runner.lines() if line.startswith("runuser")]
+    assert len(as_manc) == 2
+    for line in as_manc:
+        assert "env -i HOME=/var/lib/manc" in line
 
 
-def test_the_default_source_is_the_tag_of_this_version() -> None:
-    """A checkout of `main` is never what production runs; a release is a tag."""
-    assert f"git+https://github.com/sbOogway/manc@v{manc.__version__}" == install.SOURCE
+def test_uv_must_be_the_system_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The manc user cannot run a uv from the owner's home; the distro package is on /usr/bin."""
+    monkeypatch.setattr(install.shutil, "which", lambda name, path=None: None)
+    with pytest.raises(FileNotFoundError, match="dnf install uv"):
+        install.system_uv()
+    found = lambda name, path=None: "/usr/bin/uv" if path and "/usr/bin" in path else None  # noqa: E731
+    monkeypatch.setattr(install.shutil, "which", found)
+    assert install.system_uv() == "/usr/bin/uv"
+
+
+def test_the_default_source_is_main() -> None:
+    """A fix reaches the machine without a release; `--source` takes a tag when one is wanted."""
+    assert install.SOURCE == "git+https://github.com/sbOogway/manc@main"
 
 
 def test_the_constraints_pin_every_dependency_from_the_lock() -> None:
@@ -146,17 +136,17 @@ def test_the_constraints_pin_every_dependency_from_the_lock() -> None:
 
 def test_the_source_can_be_a_local_repository(tmp_path: Path, root: None) -> None:
     runner = Recorder()
-    install.install("mattia", source="git+file:///tmp/manc.git", prefix=tmp_path, run=runner)
-    assert runner.lines()[0].endswith("git+file:///tmp/manc.git")
+    install.install(source="git+file:///tmp/manc.git", prefix=tmp_path, run=runner)
+    assert any(line.endswith("git+file:///tmp/manc.git") for line in runner.lines())
 
 
 def test_second_install_keeps_the_env_file_and_the_user(tmp_path: Path, root: None) -> None:
     first = Recorder()
-    install.install("mattia", prefix=tmp_path, run=first)
+    install.install(prefix=tmp_path, run=first)
     env_file = tmp_path / "etc" / "manc" / "env"
     env_file.write_text("MISTRAL_API_KEY=secret\n")
     again = Recorder(users=first.users)
-    install.install("mattia", prefix=tmp_path, run=again)
+    install.install(prefix=tmp_path, run=again)
     assert env_file.read_text() == "MISTRAL_API_KEY=secret\n"
     assert not any(line.startswith("useradd") for line in again.lines())
     assert any(line.startswith("systemctl restart manc-api.service") for line in again.lines())
@@ -165,41 +155,42 @@ def test_second_install_keeps_the_env_file_and_the_user(tmp_path: Path, root: No
 def test_refuses_without_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(os, "geteuid", lambda: 1000)
     with pytest.raises(PermissionError, match="root"):
-        install.install("mattia", prefix=tmp_path, run=Recorder())
+        install.install(prefix=tmp_path, run=Recorder())
 
 
-def test_cli_install_takes_the_owner_and_the_source(
+def test_cli_install_takes_the_source(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ) -> None:
-    calls: list[tuple[str, str]] = []
-    monkeypatch.setattr(install, "install", lambda owner, **kw: calls.append((owner, kw["source"])))
-    assert cli.main(["install", "--owner", "mattia"]) == 0
-    assert calls == [("mattia", install.SOURCE)]
-    assert "manc-run@mattia.timer" in capsys.readouterr().out
-    assert cli.main(["install", "--owner", "mattia", "--source", "git+file:///x"]) == 0
-    assert calls[-1] == ("mattia", "git+file:///x")
+    calls: list[str] = []
+    monkeypatch.setattr(install, "install", lambda **kw: calls.append(kw["source"]))
+    assert cli.main(["install"]) == 0
+    assert calls == [install.SOURCE]
+    out = capsys.readouterr().out
+    assert "manc-run.timer" in out and "sudo -u manc -H claude" in out  # the login is next
+    assert cli.main(["install", "--source", "git+file:///x"]) == 0
+    assert calls[-1] == "git+file:///x"
 
 
 def test_cli_install_reports_refusals_and_failed_commands(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ) -> None:
-    def refuse(owner: str, **_: object) -> None:
+    def refuse(**_: object) -> None:
         raise PermissionError("run as root")
 
     monkeypatch.setattr(install, "install", refuse)
-    assert cli.main(["install", "--owner", "mattia"]) == 1
+    assert cli.main(["install"]) == 1
     assert "root" in capsys.readouterr().err
 
-    def fail(owner: str, **_: object) -> None:
+    def fail(**_: object) -> None:
         raise subprocess.CalledProcessError(1, ["useradd"])
 
     monkeypatch.setattr(install, "install", fail)
-    assert cli.main(["install", "--owner", "mattia"]) == 1
+    assert cli.main(["install"]) == 1
     assert "useradd" in capsys.readouterr().err
 
-    def missing(owner: str, **_: object) -> None:
+    def missing(**_: object) -> None:
         raise FileNotFoundError("uv not found")
 
     monkeypatch.setattr(install, "install", missing)
-    assert cli.main(["install", "--owner", "mattia"]) == 1
+    assert cli.main(["install"]) == 1
     assert "uv not found" in capsys.readouterr().err
