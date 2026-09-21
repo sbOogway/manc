@@ -628,7 +628,7 @@ manc/
 │   ├── pipeline.py
 │   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc ui | manc serve
 ├── site/                   # the dashboard package: package.json, vite.config.ts, openapi.json, src/{api,lib,pages,components,tests}
-├── scripts/publish-site.sh # site/ → gh-pages branch
+├── scripts/                # publish-site.sh: site/ → gh-pages; openapi-schema.py: site/openapi.json
 ├── tests/                  # one folder per module + fixtures/; isolation test for formulas
 └── data/                   # manc.db (gitignored; the folder is kept)
 ```
@@ -695,7 +695,7 @@ the API through the tunnel hostname.
 
 ## 9 · Milestones
 
-Six milestones, each shippable on its own. Every feature inside a milestone becomes a GitHub
+Milestones, each shippable on its own (M7, the site package, was added on 2026-09-20). Every feature inside a milestone becomes a GitHub
 issue when work on it starts, and each issue lists the tests to write before any
 implementation. An issue is done when those tests pass through the pre-commit hook.
 
