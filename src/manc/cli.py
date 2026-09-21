@@ -62,7 +62,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "install":
         try:
             installer.install(args.owner, source=args.source)
-        except (PermissionError, subprocess.CalledProcessError) as error:
+        except (PermissionError, FileNotFoundError, subprocess.CalledProcessError) as error:
             print(f"manc: {error}", file=sys.stderr)
             return 1
         print(

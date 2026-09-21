@@ -6,6 +6,7 @@ The one file left to edit is /etc/manc/env. Idempotent: run again after `uv tool
 """
 
 import os
+import pwd
 import shutil
 import subprocess
 from collections.abc import Callable
@@ -42,7 +43,7 @@ def install(
     etc = prefix / "etc" / "manc"
     system = prefix / "etc" / "systemd" / "system"
 
-    tool = ["uv", "tool", "install", "--force", "--python", "3.12"]
+    tool = [find_uv(owner), "tool", "install", "--force", "--python", "3.12"]
     tool += ["--constraints", str(CONSTRAINTS), source]
     run(tool, check=True, env={**os.environ, **TOOL_ENV})
 
@@ -84,6 +85,30 @@ def install(
         ],
     )
     _run(run, ["systemctl", "restart", "manc-api.service"])
+
+
+def find_uv(owner: str) -> str:
+    """The uv that launched us, one on the PATH, or the owner's or root's user install: the
+    upstream installer puts uv in ~/.local/bin, which root's PATH under sudo does not have."""
+    if os.environ.get("UV"):
+        return os.environ["UV"]
+    if found := shutil.which("uv"):
+        return found
+    homes = [home for home in (_home(owner), _home("root")) if home is not None]
+    candidates = [home / ".local" / "bin" / "uv" for home in homes]
+    candidates.append(Path("/usr/local/bin/uv"))
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    tried = ", ".join(str(candidate) for candidate in candidates)
+    raise FileNotFoundError(f"uv not found on the PATH nor at {tried}: `dnf install uv` or add it")
+
+
+def _home(user: str) -> Path | None:
+    try:
+        return Path(pwd.getpwnam(user).pw_dir)
+    except KeyError:
+        return None
 
 
 def _run(run: Runner, command: list[str]) -> None:
