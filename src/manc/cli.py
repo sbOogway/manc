@@ -1,9 +1,8 @@
-"""`manc` command line: the subcommands of `_parser()`, from fetch and run to install."""
+"""`manc` command line: the subcommands of `_parser()`, from fetch and run to api."""
 
 import argparse
 import logging
 import os
-import subprocess
 import sys
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time
@@ -11,7 +10,6 @@ from pathlib import Path
 
 import uvicorn
 
-from manc import install as installer
 from manc.analysis.lexicon import LexiconAnalyzer
 from manc.analysis.llm import LlmAnalyzer
 from manc.api.app import create_app
@@ -51,18 +49,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     # no-op if a handler is already installed
     logging.basicConfig(stream=sys.stderr, format=LOG_FORMAT, datefmt=LOG_DATEFMT)
     logging.getLogger("manc").setLevel(logging.DEBUG if args.verbose else logging.INFO)
-    if args.command == "install":
-        try:
-            installer.install(source=args.source)
-        except (PermissionError, FileNotFoundError, subprocess.CalledProcessError) as error:
-            print(f"manc: {error}", file=sys.stderr)
-            return 1
-        print(
-            "install: manc-api.service, manc-fetch.timer and manc-run.timer are up. Next: "
-            "`sudo -u manc -H /var/lib/manc/.local/bin/claude` and /login (once), "
-            "edit /etc/manc/env, then `systemctl restart manc-api`"
-        )
-        return 0
     if args.command == "migrate":
         db.upgrade()
         print(f"migrate: {db.database_url()} at {db.head_revision()}")
@@ -227,12 +213,6 @@ def _parser() -> argparse.ArgumentParser:
         "report", help="print the stored report of every active asset (newest day, or --date)"
     )
     report_cmd.add_argument("--date", type=date.fromisoformat, help="the scored day to print")
-    install_cmd = commands.add_parser(
-        "install", help="as root: the manc user, /var/lib/manc, /etc/manc/env and the systemd units"
-    )
-    install_cmd.add_argument(
-        "--source", default=installer.SOURCE, help="what `uv tool install` installs (a git URL)"
-    )
     commands.add_parser(
         "migrate", help="create or migrate the database (MANC_DB_URL) to the current schema"
     )
