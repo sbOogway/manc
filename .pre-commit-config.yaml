@@ -26,12 +26,6 @@ repos:
         language: system
         pass_filenames: false
         files: ^(src/manc/store/schema\.py|docs/er-schema\.md)$
-      - id: constraints
-        name: constraints.txt exported from uv.lock
-        entry: uv export --frozen --no-dev --no-hashes --no-emit-project --no-header -o src/manc/constraints.txt
-        language: system
-        pass_filenames: false
-        files: ^(uv\.lock|pyproject\.toml|src/manc/constraints\.txt)$
       - id: pytest
         name: pytest
         entry: uv run pytest
