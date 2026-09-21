@@ -48,8 +48,7 @@ def install(
     for folder in (data, etc, system):
         folder.mkdir(parents=True, exist_ok=True)
     _run(run, ["chown", f"{USER}:{USER}", str(data)])
-    data.chmod(0o2770)  # group manc writes; new files inherit the group...
-    _run(run, ["setfacl", "-d", "-m", f"g:{USER}:rwx", str(data)])  # ...and are group-writable
+    data.chmod(0o2770)  # the owner is in group manc; setgid: new files carry the group
 
     env_file = etc / "env"
     if not env_file.exists():
@@ -60,7 +59,9 @@ def install(
     _run(
         run, ["runuser", "-u", USER, "--", "env", f"MANC_DB_URL={DATABASE_URL}", "manc", "migrate"]
     )
-    _run(run, ["chmod", "0660", str(DATA_DIR / "manc.db")])  # SQLite makes it 0644: the ACL mask
+    # SQLite creates the file 0644 and gives journal and WAL files the same mode as the database,
+    # so 0660 here (with UMask=0002 in every unit) is what lets the owner's run write it too
+    _run(run, ["chmod", "0660", str(DATA_DIR / "manc.db")])
 
     for unit in sorted(UNITS_DIR.glob("manc-*")):
         shutil.copy(unit, system / unit.name)

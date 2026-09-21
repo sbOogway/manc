@@ -58,6 +58,7 @@ def test_first_install_creates_everything_in_order(tmp_path: Path, root: None) -
     assert oct(env_file.stat().st_mode & 0o777) == "0o640"
     data = tmp_path / "var" / "lib" / "manc"
     assert data.is_dir() and oct(data.stat().st_mode & 0o7777) == "0o2770"
+    assert not any(line.startswith("setfacl") for line in runner.lines())  # setgid + umask do it
     system = tmp_path / "etc" / "systemd" / "system"
     assert {path.name for path in system.iterdir()} == {
         path.name for path in UNITS_DIR.iterdir() if path.name != "env.example"
@@ -70,7 +71,6 @@ def test_first_install_creates_everything_in_order(tmp_path: Path, root: None) -
         "useradd -r -m -d /var/lib/manc -s /usr/sbin/nologin manc",
         "usermod -aG manc mattia",
         "chown manc:manc",
-        "setfacl -d -m g:manc:rwx",
         "chown root:manc",
         "runuser -u manc -- env MANC_DB_URL=sqlite:////var/lib/manc/manc.db manc migrate",
         "chmod 0660 /var/lib/manc/manc.db",
@@ -131,8 +131,8 @@ def test_cli_install_reports_refusals_and_failed_commands(
     assert "root" in capsys.readouterr().err
 
     def fail(owner: str, **_: object) -> None:
-        raise subprocess.CalledProcessError(1, ["setfacl"])
+        raise subprocess.CalledProcessError(1, ["useradd"])
 
     monkeypatch.setattr(install, "install", fail)
     assert cli.main(["install", "--owner", "mattia"]) == 1
-    assert "setfacl" in capsys.readouterr().err
+    assert "useradd" in capsys.readouterr().err
