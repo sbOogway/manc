@@ -166,7 +166,9 @@ def test_cli_install_takes_the_source(
     assert cli.main(["install"]) == 0
     assert calls == [install.SOURCE]
     out = capsys.readouterr().out
-    assert "manc-run.timer" in out and "sudo -u manc -H claude" in out  # the login is next
+    assert (
+        "manc-run.timer" in out and "sudo -u manc -H /var/lib/manc/.local/bin/claude" in out
+    )  # the login is next
     assert cli.main(["install", "--source", "git+file:///x"]) == 0
     assert calls[-1] == "git+file:///x"
 

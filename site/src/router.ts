@@ -4,7 +4,7 @@ import AssetPage from "./pages/AssetPage.vue";
 import EventsPage from "./pages/EventsPage.vue";
 import OverviewPage from "./pages/OverviewPage.vue";
 
-// Hash history: GitHub Pages serves the site without rewrite rules.
+// Hash history: one index.html serves every route, wherever the build is mounted.
 export const router = createRouter({
   history: createWebHashHistory(),
   routes: [

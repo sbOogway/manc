@@ -1,5 +1,6 @@
-"""scripts/publish-site.sh builds site/ and pushes the build alone to the gh-pages branch."""
+"""scripts/publish-site.sh builds site/ and copies the build to the server's site folder."""
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -8,95 +9,79 @@ import pytest
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "publish-site.sh"
 
 
-def _git(*args: str, cwd: Path) -> str:
-    return subprocess.run(
-        ["git", *args], cwd=cwd, check=True, capture_output=True, text=True
-    ).stdout.strip()
-
-
 @pytest.fixture
-def clone(tmp_path: Path) -> Path:
-    """A throwaway repo with a site/ folder and a bare origin, so nothing touches GitHub."""
-    remote = tmp_path / "origin.git"
-    _git("init", "--bare", "-q", "-b", "main", str(remote), cwd=tmp_path)
+def checkout(tmp_path: Path) -> Path:
+    """A folder shaped like the repo, with a stand-in for vite and fakes for rsync and ssh
+    that record their arguments instead of touching a machine."""
     work = tmp_path / "work"
-    _git("clone", "-q", str(remote), str(work), cwd=tmp_path)
-    _git("config", "user.email", "test@example.org", cwd=work)
-    _git("config", "user.name", "test", cwd=work)
     (work / "site" / "src").mkdir(parents=True)
     (work / "site" / "src" / "index.html").write_text("<title>manc</title>")
-    (work / "site" / "src" / "app.js").write_text("// app")
-    # a stand-in for vite: the build copies src/ into dist/
     (work / "site" / "package.json").write_text(
         '{"name": "fake", "private": true, "scripts": {"build": "rm -rf dist && cp -r src dist"}}'
     )
-    (work / ".gitignore").write_text("site/dist/\n")
-    (work / "README.md").write_text("# not published")
     (work / "scripts").mkdir()
     (work / "scripts" / "publish-site.sh").write_bytes(SCRIPT.read_bytes())
     (work / "scripts" / "publish-site.sh").chmod(0o755)
-    _git("add", "-A", cwd=work)
-    _git("commit", "-q", "-m", "site", cwd=work)
-    _git("push", "-q", "origin", "main", cwd=work)
+    fakes = tmp_path / "bin"
+    fakes.mkdir()
+    for tool in ("rsync", "ssh"):
+        (fakes / tool).write_text(f'#!/bin/sh\necho "{tool} $*" >> "{tmp_path}/calls"\n')
+        (fakes / tool).chmod(0o755)
+    subprocess.run(["git", "init", "-q", str(work)], check=True)
+    subprocess.run(["git", "-C", str(work), "add", "-A"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(work),
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@x",
+            "commit",
+            "-q",
+            "-m",
+            "site",
+        ],
+        check=True,
+    )
     return work
 
 
-def test_publishes_the_site_folder_alone_to_gh_pages(clone: Path) -> None:
-    result = subprocess.run(
-        ["sh", "scripts/publish-site.sh"], cwd=clone, capture_output=True, text=True
+def _publish(checkout: Path, server: str | None) -> subprocess.CompletedProcess[str]:
+    environment = {**os.environ, "PATH": f"{checkout.parent / 'bin'}:{os.environ['PATH']}"}
+    environment.pop("MANC_SERVER", None)
+    if server is not None:
+        environment["MANC_SERVER"] = server
+    return subprocess.run(
+        ["scripts/publish-site.sh"], cwd=checkout, env=environment, capture_output=True, text=True
     )
+
+
+def test_builds_then_copies_to_the_server_and_moves_it_under_the_manc_user(checkout: Path) -> None:
+    result = _publish(checkout, "me@server")
     assert result.returncode == 0, result.stderr
-    _git("fetch", "-q", "origin", "gh-pages", cwd=clone)
-    published = _git("ls-tree", "--name-only", "-r", "origin/gh-pages", cwd=clone).splitlines()
-    assert sorted(published) == ["app.js", "index.html"]
-    assert "github.io" in result.stdout
+    assert (checkout / "site" / "dist" / "index.html").is_file()  # the build ran first
+    calls = (checkout.parent / "calls").read_text().splitlines()
+    into_home = "rsync -a --delete site/dist/ me@server:manc-site/"  # no key for manc needed
+    under_manc = "sudo rsync -a --delete --chown=manc:manc manc-site/ /var/lib/manc/site/"
+    assert calls == [into_home, f"ssh -t me@server {under_manc}"]
+    assert "me@server:/var/lib/manc/site/" in result.stdout
 
 
-def test_a_second_publish_chains_on_the_first_and_an_unchanged_site_is_a_no_op(
-    clone: Path,
-) -> None:
-    subprocess.run(["sh", "scripts/publish-site.sh"], cwd=clone, check=True, capture_output=True)
-    again = subprocess.run(
-        ["sh", "scripts/publish-site.sh"], cwd=clone, capture_output=True, text=True
-    )
-    assert again.returncode == 0 and "already holds" in again.stdout
-    (clone / "site" / "src" / "style.css").write_text("body{}")
-    _git("add", "-A", cwd=clone)
-    _git("commit", "-q", "-m", "style", cwd=clone)
-    subprocess.run(["sh", "scripts/publish-site.sh"], cwd=clone, check=True, capture_output=True)
-    _git("fetch", "-q", "origin", "gh-pages", cwd=clone)
-    assert _git("rev-list", "--count", "origin/gh-pages", cwd=clone) == "2"
-    published = _git("ls-tree", "--name-only", "-r", "origin/gh-pages", cwd=clone).splitlines()
-    assert sorted(published) == ["app.js", "index.html", "style.css"]
+def test_refuses_without_a_server(checkout: Path) -> None:
+    result = _publish(checkout, None)
+    assert result.returncode != 0
+    assert "MANC_SERVER" in result.stderr
+    assert not (checkout.parent / "calls").exists()
 
 
-def test_refuses_uncommitted_site_changes(clone: Path) -> None:
-    (clone / "site" / "src" / "index.html").write_text("<title>draft</title>")
-    result = subprocess.run(
-        ["sh", "scripts/publish-site.sh"], cwd=clone, capture_output=True, text=True
-    )
-    assert result.returncode == 1
-    assert "uncommitted" in result.stderr
-
-
-def test_skips_quietly_off_main_so_the_daily_run_never_publishes_a_branch(clone: Path) -> None:
-    _git("checkout", "-q", "-b", "feat/draft", cwd=clone)
-    result = subprocess.run(
-        ["sh", "scripts/publish-site.sh"], cwd=clone, capture_output=True, text=True
-    )
-    assert result.returncode == 0
-    assert "not on main" in result.stdout
-    assert _git("ls-remote", "--heads", "origin", "gh-pages", cwd=clone) == ""
-
-
-def test_a_post_merge_hook_runs_the_publish_and_nothing_else_moves_off_commit() -> None:
+def test_no_hook_publishes_the_site() -> None:
+    """Publishing is a deliberate command, never a side effect of a commit or a pull."""
     import yaml
 
     config = yaml.safe_load((SCRIPT.parents[1] / ".pre-commit-config.yaml").read_text())
     hooks = [hook for repo in config["repos"] for hook in repo["hooks"]]
-    publish = next(hook for hook in hooks if hook["id"] == "publish-site")
-    assert publish["stages"] == ["post-merge"]
-    assert publish["entry"] == "scripts/publish-site.sh"
-    assert publish["always_run"] is True and publish["pass_filenames"] is False
-    assert all("stages" not in hook for hook in hooks if hook["id"] != "publish-site")
-    assert config["default_stages"] == ["pre-commit"]  # else they all run after a merge too
+    assert "publish-site" not in {hook["id"] for hook in hooks}
+    assert all("stages" not in hook for hook in hooks)
+    assert "default_stages" not in config

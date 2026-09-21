@@ -59,8 +59,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 1
         print(
             "install: manc-api.service, manc-fetch.timer and manc-run.timer are up. Next: "
-            "`sudo -u manc -H claude` and /login (once), edit /etc/manc/env, then "
-            "`systemctl restart manc-api`"
+            "`sudo -u manc -H /var/lib/manc/.local/bin/claude` and /login (once), "
+            "edit /etc/manc/env, then `systemctl restart manc-api`"
         )
         return 0
     if args.command == "migrate":

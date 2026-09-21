@@ -1,8 +1,5 @@
-# Runs on every commit; a failing hook rejects the commit. The last hook runs after a merge
-# or pull instead and publishes the dashboard build when the branch is main.
-# Install once after cloning:
-#   uv run pre-commit install --hook-type pre-commit --hook-type post-merge
-default_stages: [pre-commit]
+# Runs on every commit; a failing hook rejects the commit. Install once after cloning:
+#   uv run pre-commit install
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -47,10 +44,3 @@ repos:
         language: system
         pass_filenames: false
         files: ^site/
-      - id: publish-site
-        name: publish site to gh-pages (after a merge on main)
-        entry: scripts/publish-site.sh
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [post-merge]
