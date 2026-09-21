@@ -8,7 +8,9 @@ from manc.config import Config
 from manc.store.interface import Store
 
 ALLOWED_ORIGINS = [
-    "https://sboogway.github.io",  # GitHub Pages
+    "https://mattiapapaccioli.com",  # GitHub Pages, on its custom domain
+    "https://www.mattiapapaccioli.com",
+    "https://sboogway.github.io",  # the same site before the redirect
     "http://localhost:8050",  # manc ui
     "http://127.0.0.1:8050",
     "http://localhost:5173",  # npm run dev

@@ -590,7 +590,8 @@ Serving and publishing:
   from `/` locally). `uv run manc ui` serves that build on `localhost:8050` with the standard
   library's HTTP server and refuses to start without it; `uv run manc serve` starts it together
   with the API. The API grants cross-origin reads, with credentials, to the dashboard's own
-origins only (`ALLOWED_ORIGINS` in `api/app.py`: the Pages site, `manc ui` and the Vite dev
+origins only (`ALLOWED_ORIGINS` in `api/app.py`: the Pages site on its custom domain and on
+github.io, `manc ui` and the Vite dev
 server): other sites' JavaScript cannot read it from a visitor's browser. That is all CORS
 does; anything else ignores it, so access control is Cloudflare Access on the tunnel
 hostname (§8, Production), whose cookie the client sends with every request.
