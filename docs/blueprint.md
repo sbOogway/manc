@@ -839,21 +839,22 @@ Evaluation, since the index is not a predictor:
 **M7 Site package** — done (2026-09-20): the dashboard is an npm package built with Vite
 (§7), type-checked and tested by the hooks.
 
-**M8 Security hardening** — done when: the surface found by the review of 2026-09-21 is closed.
-The only input that reaches a browser is text from RSS feeds (titles, links) and the LLM
-paragraph, so the one real hole is there; the rest is exposure and blast radius.
-- stored XSS: sanitise the markdown the site renders (`marked` output through DOMPurify) and
-  allow only `http(s):` links in the headlines panel; a feed title carrying markup must render
-  as text
-- the public API: rate limit or Access at the tunnel, a cap on date ranges, port 8888
-  reachable from the tunnel machine only
-- the install path: `manc install` pins a tag, branch protection on `main`; check that a
-  `uv tool install` from git honours `uv.lock`
-- `manc-run@.service`, the one unit running as the owner: the same confinement as the others
-  where the Claude login allows it
-Prompt injection through headlines is not on the list: the tagger runs `claude -p` with no
-built-in tools, no MCP servers and a JSON schema (§3), so a hostile title can only bend a tag
-or a summary.
+**M8 Security hardening** — done (2026-09-21), the surface found by the review of that day
+closed in code; three items stay with the owner's configuration and are listed in the
+README's production notes: a rate-limiting rule or Access on the tunnel hostname, the
+firewall on port 8888 when `MANC_API_HOST` is a LAN address, and branch protection on `main`
+(no force-push, no deletion). The only input that reaches a browser is text from RSS feeds
+(titles, links) and the LLM paragraph, so the one real hole was there; the rest is exposure
+and blast radius.
+- stored XSS: the report markdown goes through DOMPurify and a headline is linked only when
+  its URL is `http(s):` (§7)
+- the public API: a `from`/`to` range is bounded (§7)
+- the install path: `manc install` installs the release tag of its own version with the
+  dependencies of `uv.lock`, which `uv tool install` from git would otherwise ignore (§8)
+- every unit confined, the daily run around the owner's Claude login (§8, Production)
+- the tagger runs `claude -p` with no built-in tools, no MCP servers, no saved transcript and
+  a JSON schema (§3), so a hostile title can only bend a tag or a summary; prompt injection
+  is therefore not on the list
 
 ## 10 · Decisions taken
 
