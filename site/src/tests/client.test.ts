@@ -42,7 +42,8 @@ describe("backend URL", () => {
     expect(defaultApiUrl("localhost")).toBe(DEFAULT_API_URL);
     expect(defaultApiUrl("127.0.0.1")).toBe(DEFAULT_API_URL);
     expect(defaultApiUrl("")).toBe(DEFAULT_API_URL); // file:// or a test runner
-    expect(defaultApiUrl("sboogway.github.io")).toBe(PRODUCTION_API_URL || DEFAULT_API_URL);
+    expect(defaultApiUrl("sboogway.github.io")).toBe(PRODUCTION_API_URL);
+    expect(PRODUCTION_API_URL).toMatch(/^https:\/\/[^/]+$/); // set, and no trailing slash
   });
 
   test("the override survives in storage and wins over the host default", () => {

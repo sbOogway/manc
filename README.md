@@ -197,7 +197,10 @@ hostname makes it yours alone.
    a policy Allow that includes your email (or your GitHub identity, if GitHub is a login
    method); in the application's CORS settings the allowed origin
    `https://sboogway.github.io`, method `GET`, **allow credentials on** (without it the
-   browser blocks the fetch even when you are logged in).
+   browser blocks the fetch even when you are logged in); in its cookie settings **SameSite
+   Attribute = None** (unset reads as Lax and the browser then withholds the cookie from the
+   Pages site: every request is a 302 to the login, which the site reports as "cannot
+   reach").
 8. Rate limit: Security → WAF → Rate limiting rules, on hostname `manc-api.<your-domain>`,
    about 60 requests per 10 seconds per IP, action block (the free tier includes one rule).
 
