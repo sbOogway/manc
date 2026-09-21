@@ -319,7 +319,10 @@ def test_a_range_is_bounded_and_ordered(client: TestClient, path: str) -> None:
     assert response.json() == {"detail": "from is after to"}
 
 
-@pytest.mark.parametrize("origin", ["https://sboogway.github.io", "http://localhost:8050"])
+@pytest.mark.parametrize(
+    "origin",
+    ["https://mattiapapaccioli.com", "https://sboogway.github.io", "http://localhost:8050"],
+)
 def test_the_site_origins_may_read_across_origins_with_credentials(
     client: TestClient, origin: str
 ) -> None:

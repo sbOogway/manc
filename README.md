@@ -132,7 +132,7 @@ the site pointed at the tunnel. In this order (C depends on the hostname chosen 
    has no `~/.local/bin` on its PATH, hence the path; `manc install` finds `uv` there too):
 
    ```sh
-   sudo ~/.local/bin/uvx --from git+https://github.com/sbOogway/manc@v0.2.2 manc install --owner $USER
+   sudo ~/.local/bin/uvx --from git+https://github.com/sbOogway/manc@v0.2.3 manc install --owner $USER
    ```
 
    `uvx` runs `manc install` from the release tag once; that command installs the same tag
@@ -196,7 +196,8 @@ hostname makes it yours alone.
    `manc-api.<your-domain>`; session duration long (a week or a month) so the login is rare;
    a policy Allow that includes your email (or your GitHub identity, if GitHub is a login
    method); in the application's CORS settings the allowed origin
-   `https://sboogway.github.io`, method `GET`, **allow credentials on** (without it the
+   `https://mattiapapaccioli.com` (the Pages site's custom domain, the origin the browser
+   sends), method `GET`, **allow credentials on** (without it the
    browser blocks the fetch even when you are logged in); in its cookie settings **SameSite
    Attribute = None** (unset reads as Lax and the browser then withholds the cookie from the
    Pages site: every request is a 302 to the login, which the site reports as "cannot
@@ -210,7 +211,8 @@ hostname makes it yours alone.
    "https://manc-api.<your-domain>"`, no trailing slash; one PR, merge, and the `post-merge`
    hook publishes `gh-pages` (Pages enabled on that branch once, Settings → Pages).
 10. Open `https://manc-api.<your-domain>/health` in a tab and log in through Access, then
-    `https://sboogway.github.io/manc/`. The site sends the Access cookie with every request;
+    `https://mattiapapaccioli.com/manc/` (Pages with **Enforce HTTPS** on: over plain http
+    the Secure cookie is never sent). The site sends the Access cookie with every request;
     when it says "cannot reach … open …/health in a tab first", the session has expired:
     repeat this step. The header field that points the site at another backend still works;
     a backend behind Access needs the same one-time login, `localhost:8888` needs none.
