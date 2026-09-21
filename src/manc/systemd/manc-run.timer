@@ -1,5 +1,5 @@
 [Unit]
-Description=manc daily run as %i at 06:00 UTC, caught up after a missed day
+Description=manc daily run at 06:00 UTC, caught up after a missed day
 
 [Timer]
 OnCalendar=*-*-* 06:00:00 UTC

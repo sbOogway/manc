@@ -1,4 +1,4 @@
-# The inputs only (calendar, news, closes) as the manc user: no model needed.
+# The inputs only (calendar, news, closes): no model needed.
 [Unit]
 Description=manc fetch
 After=network-online.target
@@ -8,9 +8,9 @@ Wants=network-online.target
 Type=oneshot
 User=manc
 Group=manc
-UMask=0002
 WorkingDirectory=/var/lib/manc
 EnvironmentFile=/etc/manc/env
+Environment=PATH=/var/lib/manc/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/usr/bin/env manc fetch
 ProtectSystem=strict
 ProtectHome=yes
