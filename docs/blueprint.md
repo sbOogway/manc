@@ -677,8 +677,10 @@ nothing else was gained by the image. The wheel carries everything (§8 tree): t
 the migrations, the units and the env example.
 
 `manc install` creates a `manc` system user (no login shell, home `/var/lib/manc`) and adds
-the owner to its group; `/var/lib/manc` is `2770` with a default ACL for group `manc`, so the
-database `manc.db` there is written both by `manc` and by the owner; `/etc/manc/env`
+the owner to its group; `/var/lib/manc` is `2770` (setgid, group `manc`) and `manc.db` in it is
+`0660`, so the database is written both by `manc` and by the owner: every unit runs with
+umask `0002`, and SQLite gives journal and WAL files the database's mode (an ACL adds nothing
+here, its mask follows the created mode; dropped 2026-09-21); `/etc/manc/env`
 (`root:manc 0640`) is written once from `env.example` and never overwritten; the units go to
 `/etc/systemd/system` and are enabled. `manc-api.service` and `manc-fetch.service` run as
 `manc` with `ProtectSystem=strict`, `ReadWritePaths=/var/lib/manc`, `ProtectHome`,

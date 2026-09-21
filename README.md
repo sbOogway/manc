@@ -117,8 +117,7 @@ in the script). The published site reads the production backend (`PRODUCTION_API
 
 ### Production
 
-One line installs the whole thing on a machine with `uv` and `setfacl` (`sudo dnf install uv
-acl`) and [Claude Code](https://claude.com/claude-code) logged in under your account; the
+One line installs the whole thing on a machine with `uv` (`sudo dnf install uv`) and [Claude Code](https://claude.com/claude-code) logged in under your account; the
 same line brings an existing install up to date:
 
 ```sh
@@ -133,8 +132,9 @@ lays the machine out, idempotently:
 - `manc`, a system user with no login shell, runs the API and the fetch as system units
   confined to `/var/lib/manc`: `manc-api.service` (up all the time, restarts on failure) and
   `manc-fetch.timer` (`manc fetch` every 15 minutes, no model needed);
-- the database is `/var/lib/manc/manc.db`, group `manc` with a default ACL so both `manc` and
-  you write it (you are added to the group);
+- the database is `/var/lib/manc/manc.db`, mode `0660` in a setgid group-`manc` directory, so
+  both `manc` and you write it (you are added to the group; every unit runs with umask
+  `0002`, and SQLite gives its journal files the database's mode);
 - the daily run stays with your Claude Code login: `manc-run@<you>.timer` runs `manc run` as
   you at 06:00 UTC every day (`Persistent=true`: a day the machine slept through runs at the
   next wake). The site is not published from the server; the `post-merge` hook in your
