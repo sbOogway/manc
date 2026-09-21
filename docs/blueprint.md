@@ -807,6 +807,24 @@ Evaluation, since the index is not a predictor:
   and history is never backfilled through the tagger (LLM look-ahead bias); rescoring stored
   tags is safe
 
+**M7 Site package** — done (2026-09-20): the dashboard is an npm package built with Vite
+(§7), type-checked and tested by the hooks.
+
+**M8 Security hardening** — done when: the surface found by the review of 2026-09-21 is closed.
+The only input that reaches a browser is text from RSS feeds (titles, links) and the LLM
+paragraph, so the one real hole is there; the rest is exposure and blast radius.
+- stored XSS: sanitise the markdown the site renders (`marked` output through DOMPurify) and
+  allow only `http(s):` links in the headlines panel; a feed title carrying markup must render
+  as text
+- the public API: rate limit or Access at the tunnel, a cap on date ranges, port 8888
+  reachable from the tunnel machine only
+- the install path: `manc install` pins a tag, branch protection on `main`; check that a
+  `uv tool install` from git honours `uv.lock`
+- `manc-run@.service`, the one unit running as the owner: the same confinement as the others
+  where the Claude login allows it
+Prompt injection through headlines is not on the list: the tagger runs `claude -p` with no
+tools and a JSON schema, so a hostile title can only bend a tag or a summary.
+
 ## 10 · Decisions taken
 
 Choices made to keep the system small. Any of them can be revisited; none of them are
