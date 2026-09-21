@@ -519,8 +519,10 @@ Pydantic response model. Read-only in v1; writes stay with the pipeline.
 | `GET /api/v1/formulas`                                  | known formulas and the configured default                      |
 | `GET /health`                                           | database at head, last run date                                |
 
-Unknown asset → 404; malformed dates → 422 from validation. The store is injected through a
-FastAPI dependency so tests run the app against `FakeStore`. `uv run manc api` serves it on
+Unknown asset → 404; malformed dates → 422 from validation; a `from`/`to` range is 422 when
+reversed or wider than `MAX_RANGE_DAYS` (`routes.py`), because the API is public and one
+client must not make the process scan the whole history on every request. The store is
+injected through a FastAPI dependency so tests run the app against `FakeStore`. `uv run manc api` serves it on
 `localhost:8888`; `/docs` shows the OpenAPI UI.
 
 ### Dashboard: `site/`
@@ -699,6 +701,12 @@ pipe `manc report` (the stored reports of the day) into the machine's own `mail`
 the MTA is the owner's, manc carries no SMTP code (2026-09-21). The server never builds or publishes the
 site: the dashboard is on GitHub Pages, published by the owner's `post-merge` hook, and reads
 the API through the tunnel hostname.
+
+What the public hostname exposes is read-only data with no auth, so the exposure is denial of
+service, and the rest of the protection is the owner's configuration rather than code: a
+rate-limiting rule on the tunnel hostname (Cloudflare's free tier does it), Cloudflare Access
+in front of it when the dashboard is for the owner alone, and, when `MANC_API_HOST` is a LAN
+address, a firewall rule that lets only the tunnel machine reach port 8888.
 
 ## 9 · Milestones
 

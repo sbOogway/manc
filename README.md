@@ -144,7 +144,10 @@ lays the machine out, idempotently:
   overwritten) holds the provider keys, `MANC_DB_URL`, `MANC_API_PORT` (8888) and
   `MANC_API_HOST` (the address the API listens on: loopback, or the LAN address that the
   machine running the public tunnel reaches; that tunnel's hostname is `PRODUCTION_API_URL`).
-  Editing it is the one manual step.
+  Editing it is the one manual step;
+- the API is public and read-only: put a rate-limiting rule (or Access) on the tunnel
+  hostname, and when `MANC_API_HOST` is a LAN address let only the tunnel machine reach port
+  8888 through the firewall.
 
 ```sh
 sudo systemctl status manc-api manc-fetch.timer manc-run@$USER.timer
