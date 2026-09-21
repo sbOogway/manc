@@ -589,7 +589,11 @@ Serving and publishing:
   `site/dist/` (relative asset paths, so the same build serves from `/manc/` on Pages and
   from `/` locally). `uv run manc ui` serves that build on `localhost:8050` with the standard
   library's HTTP server and refuses to start without it; `uv run manc serve` starts it together
-  with the API. The API allows cross-origin reads from any origin: it is read-only and public.
+  with the API. The API grants cross-origin reads, with credentials, to the dashboard's own
+origins only (`ALLOWED_ORIGINS` in `api/app.py`: the Pages site, `manc ui` and the Vite dev
+server): other sites' JavaScript cannot read it from a visitor's browser. That is all CORS
+does; anything else ignores it, so access control is Cloudflare Access on the tunnel
+hostname (§8, Production), whose cookie the client sends with every request.
 - `scripts/publish-site.sh` builds and pushes `site/dist/` to the `gh-pages` branch as its
   own commit chain (`git commit-tree` over a temporary index, no subtree); GitHub Pages serves
   that branch. No workflow file, in line with §8.

@@ -319,6 +319,17 @@ def test_a_range_is_bounded_and_ordered(client: TestClient, path: str) -> None:
     assert response.json() == {"detail": "from is after to"}
 
 
-def test_cross_origin_reads_are_allowed(client: TestClient) -> None:
-    response = client.get("/api/v1/formulas", headers={"Origin": "https://sboogway.github.io"})
-    assert response.headers["access-control-allow-origin"] == "*"
+@pytest.mark.parametrize("origin", ["https://sboogway.github.io", "http://localhost:8050"])
+def test_the_site_origins_may_read_across_origins_with_credentials(
+    client: TestClient, origin: str
+) -> None:
+    response = client.get("/api/v1/formulas", headers={"Origin": origin})
+    assert response.headers["access-control-allow-origin"] == origin
+    assert response.headers["access-control-allow-credentials"] == "true"
+
+
+def test_other_origins_get_no_cross_origin_grant(client: TestClient) -> None:
+    """Browsers only: curl ignores CORS. Access control is Cloudflare Access on the tunnel."""
+    response = client.get("/api/v1/formulas", headers={"Origin": "https://evil.test"})
+    assert response.status_code == 200
+    assert "access-control-allow-origin" not in response.headers

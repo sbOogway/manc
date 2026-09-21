@@ -7,12 +7,23 @@ from manc.api.routes import router
 from manc.config import Config
 from manc.store.interface import Store
 
+ALLOWED_ORIGINS = [
+    "https://sboogway.github.io",  # GitHub Pages
+    "http://localhost:8050",  # manc ui
+    "http://127.0.0.1:8050",
+    "http://localhost:5173",  # npm run dev
+    "http://127.0.0.1:5173",
+]
+
 
 def create_app(config: Config, store: Store) -> FastAPI:
     app = FastAPI(title="manc", version="1")
     app.state.config = config
     app.state.store = store
-    # read-only public data: any origin may read it, the GitHub Pages site included
-    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"])
+    # only the dashboard's own origins read the API from a browser, with the cookie of a login
+    # in front of the tunnel (Cloudflare Access) when there is one
+    app.add_middleware(
+        CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_methods=["GET"], allow_credentials=True
+    )
     app.include_router(router)
     return app
