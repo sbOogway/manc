@@ -1,6 +1,7 @@
 // The asset page's pure helpers: range, TradingView embed, report parsing, table rows.
 import type { AssetHistory, CalendarEvent, ForecastPanel, ForecastRow, HeadlineView, MacroForecastRow } from "../api/types";
 import { DASH, formatDate, formatNumber, formatPercent, isoDay, shiftDays, words } from "./format";
+import { safeHref } from "./markdown";
 
 export const RANGE_PRESETS = [30, 90, 180, 365] as const;
 export const EVENTS_AHEAD_DAYS = 14;
@@ -66,6 +67,7 @@ export function reportDay(history: AssetHistory | null | undefined, today: strin
 export interface HeadlineRow {
   title: string;
   url: string;
+  href: string | undefined; // the feed link, only when it is http(s)
   source: string;
   date: string;
   direction: number;
@@ -80,6 +82,7 @@ export function headlineRows(headlines: HeadlineView[]): HeadlineRow[] {
   return headlines.map((headline) => ({
     title: headline.title,
     url: headline.url,
+    href: safeHref(headline.url),
     source: headline.source,
     date: formatDate(headline.published_at),
     direction: headline.direction,

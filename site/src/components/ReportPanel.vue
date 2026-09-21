@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { marked } from "marked";
 import { computed } from "vue";
 
 import { reportParts } from "../lib/asset";
 import { formatDate } from "../lib/format";
+import { renderMarkdown } from "../lib/markdown";
 
 const props = defineProps<{ markdown: string | null; day: string | null; note: string }>();
 const parts = computed(() => reportParts(props.markdown));
-const html = computed(() => (parts.value.rest ? (marked.parse(parts.value.rest) as string) : ""));
+const html = computed(() => renderMarkdown(parts.value.rest));
 </script>
 
 <template>

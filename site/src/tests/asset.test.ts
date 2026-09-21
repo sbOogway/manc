@@ -103,6 +103,16 @@ test("headlineRows scales the weight bars to the strongest headline, in API orde
   expect(headlineRows([])).toEqual([]);
 });
 
+test("headlineRows links only to http(s) feed URLs", () => {
+  const headline = { title: "a", source: "x", published_at: "2026-09-18T10:00:00Z", direction: 1, confidence: 1, source_weight: 1, weight: 1 };
+  const [safe, hostile] = headlineRows([
+    { ...headline, url: "https://feed.test/story" },
+    { ...headline, url: "javascript:alert(1)" },
+  ]);
+  expect(safe?.href).toBe("https://feed.test/story");
+  expect(hostile?.href).toBeUndefined();
+});
+
 test("reportDay is the last scored day, or today without scores", () => {
   const history = { symbol: "EURUSD", formula: "v2", scale: { low: -100, high: 100, neutral: 0, edges: [-40, -10, 10, 40] as [number, number, number, number] }, points: [{ date: "2026-09-17", score: 1, band: "neutral", components: {}, n_news: 0, n_events: 0 }] };
   expect(reportDay(history, "2026-09-19")).toBe("2026-09-17");
