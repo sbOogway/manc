@@ -132,7 +132,7 @@ the site pointed at the tunnel. In this order (C depends on the hostname chosen 
    has no `~/.local/bin` on its PATH, hence the path; `manc install` finds `uv` there too):
 
    ```sh
-   sudo ~/.local/bin/uvx --from git+https://github.com/sbOogway/manc@v0.2.1 manc install --owner $USER
+   sudo ~/.local/bin/uvx --from git+https://github.com/sbOogway/manc@v0.2.2 manc install --owner $USER
    ```
 
    `uvx` runs `manc install` from the release tag once; that command installs the same tag
@@ -150,26 +150,32 @@ the site pointed at the tunnel. In this order (C depends on the hostname chosen 
      at the next wake). The site is not published from the server; the `post-merge` hook in
      your development checkout does that.
 3. Edit `/etc/manc/env` (`root:manc 0640`, written once from the packaged example, never
-   overwritten), then `sudo systemctl restart manc-api`: `MANC_API_HOST` is the address the API
-   listens on, one of this server's own (`ip -br addr`): loopback when cloudflared runs on
-   this machine, else this server's LAN address, which the tunnel then points at (the tunnel
-   machine's own address cannot be bound here);
-   `MANC_MAIL_TO` your address or empty; the provider keys only for a keyed fallback model.
-   `MANC_DB_URL` and `MANC_API_PORT` (8888) stay.
-4. Only when `MANC_API_HOST` is a LAN address, port 8888 from the tunnel machine alone
-   (firewalld: a zone for that one source, the default zone keeps the port closed):
+   overwritten), then `sudo systemctl restart manc-api`: `MANC_API_HOST` is `127.0.0.1` when
+   cloudflared runs on this machine, `0.0.0.0` when it runs elsewhere (step 4 says who gets
+   in; the tunnel machine's own address cannot be bound here); `MANC_MAIL_TO` your address or
+   empty; the provider keys only for a keyed fallback model. `MANC_DB_URL` and
+   `MANC_API_PORT` (8888) stay.
+4. Only when cloudflared runs elsewhere: the unit lets nothing but loopback reach the API
+   (`IPAddressDeny=any`, its own filter, whatever the firewall opens on the LAN — Fedora
+   Workstation's zone opens every port above 1024), so add the tunnel machine in a drop-in,
+   which upgrades leave alone:
 
    ```sh
-   sudo firewall-cmd --permanent --new-zone=manc-tunnel
-   sudo firewall-cmd --permanent --zone=manc-tunnel --add-source=<tunnel machine IP>/32
-   sudo firewall-cmd --permanent --zone=manc-tunnel --add-port=8888/tcp
-   sudo firewall-cmd --reload
+   sudo systemctl edit manc-api      # opens the drop-in; add the two lines, save
+   ```
+   ```ini
+   [Service]
+   IPAddressAllow=<tunnel machine IP>
+   ```
+   ```sh
+   sudo systemctl restart manc-api
    ```
 
 5. Check, and run the first day by hand:
 
    ```sh
    curl -s http://127.0.0.1:8888/health          # {"status":"ok","last_run":null}
+   curl -s http://<this server's LAN IP>:8888/health   # nothing: not from the tunnel machine
    sudo systemctl status manc-api manc-fetch.timer manc-run@$USER.timer
    sudo systemctl start manc-run@$USER            # a daily run by hand, same environment
    sudo journalctl -u manc-run@$USER -f           # its log; then /health shows last_run
