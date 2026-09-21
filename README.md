@@ -52,6 +52,7 @@ the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the 
 | M5 Operations: systemd units, journal log, tuning pass | in progress |
 | M6 Formula v2: standardised surprise, novelty, dispersion, asymmetry | done |
 | M7 Site package: Vue 3 + TypeScript, PrimeVue, Vite | done |
+| M8 Security hardening: sanitised site, bounded API, pinned install, confined units, tool-less tagger | done |
 
 ## Setup
 
