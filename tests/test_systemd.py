@@ -27,6 +27,7 @@ def test_the_folder_holds_the_units_and_the_env_example() -> None:
     example = (UNITS_DIR / "env.example").read_text()
     assert "MANC_DB_URL=sqlite:////var/lib/manc/manc.db" in example
     assert "MANC_API_HOST=127.0.0.1" in example
+    assert "MANC_API_PORT=8888" in example
 
 
 def test_every_service_loads_the_env_file_and_runs_manc_from_the_path() -> None:

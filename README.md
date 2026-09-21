@@ -88,7 +88,7 @@ scores go to stdout, one line per asset. Scheduling is systemd user units, see P
 ### Dashboard
 
 ```sh
-uv run manc serve                              # API on :8000 and the dashboard on :8050
+uv run manc serve                              # API on :8888 and the dashboard on :8050
 uv run manc api                                # the REST API alone (OpenAPI UI at /docs)
 uv run manc ui                                 # the static dashboard alone
 ```
@@ -104,7 +104,7 @@ npm run check                                  # vue-tsc + vitest (also a pre-co
 npm run types                                  # regenerate src/api/schema.d.ts from openapi.json
 ```
 
-Open http://localhost:8050 and it reads `http://localhost:8000`. The field in the header
+Open http://localhost:8050 and it reads `http://localhost:8888`. The field in the header
 points it at another backend, for instance the tunnel in front of `manc api`; the
 choice stays in the browser. When a route or schema changes, `uv run python
 scripts/openapi-schema.py` refreshes `site/openapi.json` (a test fails otherwise) and
@@ -140,9 +140,10 @@ lays the machine out, idempotently:
   next wake). The site is not published from the server; the `post-merge` hook in your
   development checkout does that;
 - `/etc/manc/env` (`root:manc 0640`, written once from the packaged example, never
-  overwritten) holds the provider keys, `MANC_DB_URL` and `MANC_API_HOST` (the address the API
-  listens on: loopback, or the LAN address that the machine running the public tunnel
-  reaches; that tunnel's hostname is `PRODUCTION_API_URL`). Editing it is the one manual step.
+  overwritten) holds the provider keys, `MANC_DB_URL`, `MANC_API_PORT` (8888) and
+  `MANC_API_HOST` (the address the API listens on: loopback, or the LAN address that the
+  machine running the public tunnel reaches; that tunnel's hostname is `PRODUCTION_API_URL`).
+  Editing it is the one manual step.
 
 ```sh
 sudo systemctl status manc-api manc-fetch.timer manc-run@$USER.timer

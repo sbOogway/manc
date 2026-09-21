@@ -239,7 +239,7 @@ def test_serve_starts_the_api_in_a_thread_and_the_site(
     assert cli.main(["serve"]) == 0
     [server] = site_server.instances
     assert server.served
-    assert served["port"] == 8000
+    assert served["port"] == 8888
 
 
 def test_api_serves_the_app_with_uvicorn(migrated_db: str, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -251,18 +251,19 @@ def test_api_serves_the_app_with_uvicorn(migrated_db: str, monkeypatch: pytest.M
 
     monkeypatch.setattr(cli.uvicorn, "run", fake_run)
     assert cli.main(["api"]) == 0
-    assert (served["host"], served["port"]) == ("127.0.0.1", 8000)
+    assert (served["host"], served["port"]) == ("127.0.0.1", 8888)
     assert served["app"].title == "manc"  # type: ignore[attr-defined]
 
 
-def test_api_binds_the_host_from_the_environment(
+def test_api_binds_the_host_and_port_from_the_environment(
     migrated_db: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     served: dict[str, object] = {}
     monkeypatch.setenv("MANC_API_HOST", "0.0.0.0")
+    monkeypatch.setenv("MANC_API_PORT", "9000")
     monkeypatch.setattr(cli.uvicorn, "run", lambda app, **kwargs: served.update(kwargs))
     assert cli.main(["api"]) == 0
-    assert (served["host"], served["port"]) == ("0.0.0.0", 8000)
+    assert (served["host"], served["port"]) == ("0.0.0.0", 9000)
 
 
 def test_api_refuses_an_unmigrated_database(

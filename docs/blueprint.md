@@ -519,7 +519,7 @@ Pydantic response model. Read-only in v1; writes stay with the pipeline.
 
 Unknown asset → 404; malformed dates → 422 from validation. The store is injected through a
 FastAPI dependency so tests run the app against `FakeStore`. `uv run manc api` serves it on
-`localhost:8000`; `/docs` shows the OpenAPI UI.
+`localhost:8888`; `/docs` shows the OpenAPI UI.
 
 ### Dashboard: `site/`
 
@@ -539,7 +539,7 @@ computable (figures, table rows, URLs, filters) is a pure function in `src/lib/*
 with vitest, and `vue-tsc` type-checks the whole package; both run from the `site-tests`
 pre-commit hook (`npm run check`).
 
-The API URL follows where the page is served from: `http://localhost:8000` on localhost (the
+The API URL follows where the page is served from: `http://localhost:8888` on localhost (the
 local test against `manc api`), the production backend (the tunnel in front of the
 owner's machine, one constant in `src/api/client.ts`) from GitHub Pages. The header has a field to
 point the site at any other backend; the choice is kept in `localStorage` and wins over both
@@ -687,8 +687,9 @@ here, its mask follows the created mode; dropped 2026-09-21); `/etc/manc/env`
 `NoNewPrivileges` and `PrivateTmp`. The daily run is a template, `manc-run@.service`, whose
 instance is the owner (`User=%i`, group `manc`, umask `0002`, the owner's `~/.local/bin` on the
 `PATH` for `claude`), because the tagger runs on the owner's Claude Code login. Every unit
-loads `/etc/manc/env`: the provider keys, `MANC_DB_URL`, `MANC_API_HOST` (loopback, or the LAN
-address the owner's tunnel machine reaches; the tunnel is not part of this stack) and, on a
+loads `/etc/manc/env`: the provider keys, `MANC_DB_URL`, `MANC_API_PORT` (8888), `MANC_API_HOST`
+(loopback, or the LAN address the owner's tunnel machine reaches; the tunnel is not part of
+this stack) and, on a
 machine without a Claude login, `MANC_LLM_MODEL`. The server never builds or publishes the
 site: the dashboard is on GitHub Pages, published by the owner's `post-merge` hook, and reads
 the API through the tunnel hostname.

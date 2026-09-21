@@ -40,7 +40,7 @@ from manc.store import db
 from manc.store.sql import SqlStore
 
 API_HOST = "127.0.0.1"  # MANC_API_HOST overrides it (the env file, for the tunnel machine)
-API_PORT = 8000
+API_PORT = 8888  # MANC_API_PORT overrides it
 SITE_PORT = 8050
 SITE_DIR = Path(__file__).resolve().parents[2] / "site" / "dist"  # what `npm run build` writes
 LOG_FORMAT = "%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s"
@@ -84,8 +84,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     if args.command in ("api", "serve"):
         host = os.environ.get("MANC_API_HOST") or API_HOST
-        log.info("manc api: serving http://%s:%d, %s", host, API_PORT, db.database_url())
-        serve_api = partial(uvicorn.run, create_app(config, store), host=host, port=API_PORT)
+        port = int(os.environ.get("MANC_API_PORT") or API_PORT)
+        log.info("manc api: serving http://%s:%d, %s", host, port, db.database_url())
+        serve_api = partial(uvicorn.run, create_app(config, store), host=host, port=port)
         if args.command == "api":
             serve_api()
             return 0
