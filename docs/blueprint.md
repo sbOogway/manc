@@ -612,7 +612,7 @@ manc/
 │   │   └── forecasts.yaml  # institutions with aliases, kind and weight; per-asset RSS queries; min_confidence
 │   ├── migrations/         # Alembic env.py + versions/
 │   ├── systemd/            # the production units and env.example, copied by `manc install`
-│   ├── install.py          # `manc install`: user, /var/lib/manc, /etc/manc/env, units (§8, Production)
+│   ├── install.py          # `manc install`: the manc user, its home, /etc/manc/env, units (§8, Production)
 │   ├── formulas/           # stdlib only, never imports the rest of manc
 │   │   ├── contract.py     # ScoringInputs, IndexScore, IndexFormula
 │   │   ├── registry.py     # get_formula("v1")
@@ -632,7 +632,7 @@ manc/
 │   ├── pipeline.py
 │   └── cli.py              # manc run | manc rescore | manc forecasts | manc api | manc install
 ├── site/                   # the dashboard package: package.json, vite.config.ts, openapi.json, src/{api,lib,pages,components,tests}
-├── scripts/                # publish-site.sh: site/ → gh-pages; openapi-schema.py: site/openapi.json
+├── scripts/                # publish-site.sh: site/dist → the server; openapi-schema.py: site/openapi.json
 ├── tests/                  # one folder per module + fixtures/; isolation test for formulas
 └── data/                   # manc.db (gitignored; the folder is kept)
 ```
@@ -653,82 +653,69 @@ Secrets: the API-key env var of whichever provider `llm.model` names (`ANTHROPIC
 `OPENAI_API_KEY`, …); LiteLLM reads the standard one per provider, and a local Ollama model
 needs none.
 
-No hosted CI. `uv run pre-commit install --hook-type pre-commit --hook-type post-merge` once
-after cloning installs the git hooks; from then on every commit runs, in order: file hygiene
-checks (trailing whitespace, end-of-file, YAML/TOML syntax, large files), `ruff format`,
-`ruff check --fix`, and `pytest` with the coverage floor. A commit that fails any step is
-rejected. Hooks run through `uv run` so they use the project environment, and
-`SKIP=pytest git commit` remains available for work-in-progress commits on a branch. The
-`post-merge` stage holds one hook, `scripts/publish-site.sh`: after `git pull` on `main` the
-dashboard build goes to `gh-pages`, so the published site follows `main` (the script is a
-no-op on any other branch).
+No hosted CI. `uv run pre-commit install` once after cloning installs the git hook; from
+then on every commit runs, in order: file hygiene checks (trailing whitespace, end-of-file,
+YAML/TOML syntax, large files), `ruff format`, `ruff check --fix`, `pytest` with the coverage
+floor and, when `site/` changed, `npm run check`. A commit that fails any step is rejected.
+Hooks run through `uv run` so they use the project environment, and `SKIP=pytest git commit`
+remains available for work-in-progress commits on a branch. Nothing publishes from a hook:
+`scripts/publish-site.sh` is run on purpose (§8, Production).
 
 Installing or updating a machine is one line (README, Production): `sudo uvx --from
-git+https://github.com/sbOogway/manc@v<version> manc install --owner <user>`. `manc install`
-does the permanent `uv tool install` itself (tool, interpreter and entry point under
-`/opt/manc` and `/usr/local/bin`, all world-readable, unlike uv's defaults under `/root`),
-then lays out the machine below; it is idempotent and every command it runs must succeed.
-What it installs is the release tag of its own version (`install.SOURCE`), never `main`, and
-the dependencies are the ones in `uv.lock`: `uv tool install` from git does not read the
-lock, so a pre-commit hook exports it to `src/manc/constraints.txt`, which ships in the wheel
-and goes to `--constraints`. A release is a version bump in `pyproject.toml` and
-`manc/__init__.py`, a tag `v<version>` and a GitHub release; `main` has branch protection
-(no force-push, no deletion). Scheduling is
-systemd timers from `src/manc/systemd/`: `manc-fetch.timer` runs `manc fetch` every 15
-minutes; `manc-run@<owner>.timer` runs `manc run` at 06:00 UTC every day (crypto trades on
-weekends) with `Persistent=true`, so a day the machine slept through runs at the next wake.
-Logs go to the journal.
+git+https://github.com/sbOogway/manc@main manc install`. `manc install` does the permanent
+`uv tool install` itself, as the `manc` user under its home, then lays the machine out; it
+is idempotent and every command it runs must succeed. It installs `main` unless `--source`
+names a tag or another URL, and the dependencies are the ones in `uv.lock`: `uv tool install`
+from git does not read the lock, so a pre-commit hook exports it to
+`src/manc/constraints.txt`, which ships in the wheel, is copied to `/etc/manc/` and goes to
+`--constraints`. A release is a version bump in `pyproject.toml` and `manc/__init__.py`, a
+tag `v<version>` and a GitHub release, and is optional: `main` is what runs. `main` has
+branch protection (no force-push, no deletion). Scheduling is systemd timers from
+`src/manc/systemd/`: `manc-fetch.timer` runs `manc fetch` every 15 minutes;
+`manc-run.timer` runs `manc run` at 06:00 UTC every day (crypto trades on weekends) with
+`Persistent=true`, so a day the machine slept through runs at the next wake. Logs go to the
+journal.
 
 ### Production
 
-No container (decided 2026-09-21, reversing the 2026-09-20 image): a self-contained `uv tool`
-install gives the packaging, a dedicated user and a hardened unit give the isolation, and
-nothing else was gained by the image. The wheel carries everything (§8 tree): the YAML files,
-the migrations, the units and the env example.
+One machine, one user, one origin. A self-contained `uv tool` install gives the packaging,
+a dedicated user and hardened units give the isolation, and the API process serves the
+dashboard, so nothing crosses an origin. The wheel carries everything (§8 tree): the YAML
+files, the migrations, the units and the env example.
 
-`manc install` creates a `manc` system user (no login shell, home `/var/lib/manc`) and adds
-the owner to its group; `/var/lib/manc` is `2770` (setgid, group `manc`) and `manc.db` in it is
-`0660`, so the database is written both by `manc` and by the owner: every unit runs with
-umask `0002`, and SQLite gives journal and WAL files the database's mode (an ACL adds nothing
-here, its mask follows the created mode; dropped 2026-09-21); `/etc/manc/env`
-(`root:manc 0640`) is written once from `env.example` and never overwritten; the units go to
-`/etc/systemd/system` and are enabled. `manc-api.service` and `manc-fetch.service` run as
-`manc`, confined to `/var/lib/manc` with `ProtectHome`. The daily run is a template,
-`manc-run@.service`, whose instance is the owner (`User=%i`, group `manc`, umask `0002`, the
-owner's `~/.local/bin` on the `PATH` for `claude`), because the tagger runs on the owner's
-Claude Code login; it carries the same confinement block as the other two (read-only system,
-private `/tmp` and devices, no new privileges, no capabilities, native syscalls of the
-`@system-service` set, `AF_INET`/`AF_UNIX` only) with one difference: the home is read-only
-rather than hidden, because the login lives in `~/.claude`, which stays writable with
-`~/.cache`; `~/.ssh`, `~/.gnupg`, `~/.git-credentials` and `~/.config/gh` are made
-inaccessible, and the auto-updater is off (`~/.local` is read-only). `claude` reads
-`~/.claude.json` and cannot rewrite it, which it tolerates (checked on 2.1.278, and
-`tests/test_systemd.py` verifies the units; `systemd-analyze security` scores every unit
-"OK", 1.8, from 9.0 "UNSAFE" for the run before 2026-09-21). Note that `ProtectSystem=strict`
-alone does not cover a `/home` on its own mount (a Fedora btrfs subvolume), hence
-`ProtectHome` on every unit. A dedicated run user with its own Claude login would let the
-home be hidden too; not done. Every unit
-loads `/etc/manc/env`: the provider keys, `MANC_DB_URL`, `MANC_API_PORT` (8888), `MANC_API_HOST`
-(one of the machine's own addresses: loopback, or its LAN address for the owner's tunnel
-machine to point at; the tunnel is not part of
-this stack) and, on a
-machine without a Claude login, `MANC_LLM_MODEL`, and `MANC_MAIL_TO`, which makes the run unit
-pipe `manc report` (the stored reports of the day) into the machine's own `mail` afterwards:
-the MTA is the owner's, manc carries no SMTP code (2026-09-21). The server never builds or publishes the
-site: the dashboard is on GitHub Pages, published by the owner's `post-merge` hook, and reads
-the API through the tunnel hostname.
+`manc install` creates a `manc` system user (no login shell, home `/var/lib/manc`, mode
+`0750`) and installs the tool under that home (`~/.local/bin/manc`, on the distro's
+`python3.12` package, since Fedora's `uv` does not download interpreters);
+`/etc/manc/env` (`root:manc 0640`) is written once from `env.example` and never overwritten;
+the units go to `/etc/systemd/system` and are enabled. All three services run as `manc`
+with one confinement block: read-only system, `ProtectHome`, `/var/lib/manc` the only
+writable path, private `/tmp` and devices, no new privileges, no capabilities, native
+syscalls of the `@system-service` set, `AF_INET`/`AF_UNIX` only (`tests/test_systemd.py`
+verifies the units; `systemd-analyze security` scores each "OK", about 1.5). The daily run
+tags with the `manc` user's own Claude Code login: `claude` is installed under
+`~/.local/bin` of that home and logged in once (`sudo -u manc -H
+/var/lib/manc/.local/bin/claude`), the credentials live in `~/.claude` inside the writable
+path, and the auto-updater is off so a run never changes the binary it was logged in with.
+Every unit loads `/etc/manc/env`: the provider keys, `MANC_DB_URL`, `MANC_SITE_DIR`
+(`/var/lib/manc/site`, where `scripts/publish-site.sh` copies a build), `MANC_API_PORT`
+(8888), `MANC_API_HOST` (loopback, or `0.0.0.0` when cloudflared runs on another machine
+of the LAN) and, on a machine without a Claude login, `MANC_LLM_MODEL`, and `MANC_MAIL_TO`,
+which makes the run unit pipe `manc report` (the stored reports of the day) into the
+machine's own `mail` afterwards: the MTA is the owner's, manc carries no SMTP code.
 
-The API has no auth of its own: access control is Cloudflare Access on the tunnel hostname
-(README, Production), the owner's configuration rather than code. The site sends the Access
-cookie with every request (`credentials: "include"` in `client.ts`, which is why the API's
-CORS grant names the site's origins, §7) and, since a fetch cannot follow the login page,
-tells the owner to open the API hostname in a tab when the backend cannot be reached. A
-rate-limiting rule on the same hostname (Cloudflare's free tier does it) covers denial of
-service. On the LAN, `manc-api.service` itself lets only loopback in (`IPAddressDeny=any`,
-`IPAddressAllow=localhost`), and the tunnel machine's address goes in a drop-in the owner
-writes once (`systemctl edit manc-api`); the filter is systemd's, per service, so it holds
-whatever the firewall opens (Fedora Workstation's zone opens every port above 1024, which
-is why a firewalld source zone was not enough, 2026-09-21).
+The API has no auth of its own: a Cloudflare tunnel publishes one hostname for the page and
+the API together, and Cloudflare Access on it is the login, the owner's configuration rather
+than code. Because the page and its requests share the origin, Access needs no CORS or
+cookie settings and the browser sends the session cookie by itself. A rate-limiting rule on
+the same hostname covers denial of service. On the LAN, `manc-api.service` lets only
+loopback in (`IPAddressDeny=any`, `IPAddressAllow=localhost`), and the tunnel machine's
+address goes in a drop-in the owner writes once (`systemctl edit manc-api`); the filter is
+systemd's, per service, so it holds whatever the firewall opens.
+
+Publishing the dashboard is `MANC_SERVER=you@server scripts/publish-site.sh` from the dev
+checkout: it builds `site/` and copies `site/dist/` to the server through the owner's login
+there (`rsync` into that home, then `sudo rsync --chown=manc:manc` under `/var/lib/manc/site`),
+so neither a key for `manc` nor a sudoers rule exists. The server never builds the site.
 
 ## 9 · Milestones
 
@@ -772,19 +759,19 @@ backfilled the forecasts panel for every asset.
 
 **M4 Report, API and dashboard** — done when: every route in §7 answers from real data and the
 dashboard shows the overview and per-asset history with today's report, in both themes, through
-the API only, first against `manc api` on localhost and then published on GitHub Pages.
+the API only, against `manc api` on localhost.
 - markdown report builder
 - `queries.py` with unit tests
-- FastAPI app: routes, Pydantic schemas, store dependency, CORS, `TestClient` tests, `manc api`
-- `site/` shell: Vue app and router, the API client with the configurable URL, design tokens,
-  light/dark, the `node --test` hook; `manc ui` and `manc serve`
+- FastAPI app: routes, Pydantic schemas, store dependency, `TestClient` tests, `manc api`
+- `site/` shell: Vue app and router, the API client, design tokens, light/dark, the
+  `node --test` hook
 - overview page with asset cards and sparklines
 - asset page with history chart, selectors, report, events, headlines, forecasts panel
 - events page
-- `scripts/publish-site.sh` and the `gh-pages` branch
+- `scripts/publish-site.sh`
 
 **M5 Operations** — done when: two weeks of daily scores exist without manual intervention.
-- systemd user units and README runbook
+- systemd units and README runbook
 - run log (timestamped stderr lines per step and tagging batch) and failure notification
   (stderr + exit code is enough)
 - first tuning pass on weights using the accumulated scores
@@ -854,12 +841,21 @@ and blast radius.
 - stored XSS: the report markdown goes through DOMPurify and a headline is linked only when
   its URL is `http(s):` (§7)
 - the public API: a `from`/`to` range is bounded (§7)
-- the install path: `manc install` installs the release tag of its own version with the
-  dependencies of `uv.lock`, which `uv tool install` from git would otherwise ignore (§8)
-- every unit confined, the daily run around the owner's Claude login (§8, Production)
+- the install path: `manc install` installs with the dependencies of `uv.lock`, which
+  `uv tool install` from git would otherwise ignore (§8)
+- every unit confined (§8, Production)
 - the tagger runs `claude -p` with no built-in tools, no MCP servers, no saved transcript and
   a JSON schema (§3), so a hostile title can only bend a tag or a summary; prompt injection
   is therefore not on the list
+
+**M9 One origin, one user** — done (2026-09-21): the deployment brought back to one machine,
+one user and one origin after a day of deployment-only releases (§8, Production, and the
+decisions below).
+- `manc api` serves the built site at `/`; no CORS, no backend URL in the site, no `manc ui`
+- every unit runs as `manc`, whose own Claude Code login tags; no template unit, no shared
+  database modes
+- `manc install` installs `main` as `manc` under its home; a release is optional
+- `scripts/publish-site.sh` copies the build to the server; no `gh-pages`, no post-merge hook
 
 ## 10 · Decisions taken
 
@@ -875,6 +871,26 @@ load-bearing enough to block a start.
   packaged the API process; `uv tool install` packages the whole application with its own
   Python and locked dependencies, the `manc` user plus systemd hardening isolate it, and
   `manc install` replaces a shell script with tested Python. No podman, no compose, no image.
+  Reconsidered the same evening and kept: a compose file, a Claude volume and host timers to
+  drive it would replace the units one for one, not remove a layer.
+- **One user runs everything, with its own Claude Code login** (2026-09-21). The daily run
+  used to execute as the owner because the tagger needs a Claude login; that one choice
+  produced a template unit with a second confinement profile around a person's home, a
+  database shared across two users (setgid directory, `0660`, umask), a tool under `/opt`
+  so both could run it, and a search for `uv` where `sudo` does not look. Logging the `manc`
+  user in once (`~/.claude` under `/var/lib/manc`) removed all of it.
+- **The API serves the site: one origin** (2026-09-21, replacing GitHub Pages). The static
+  site on Pages and the API behind the tunnel were two origins, which is what CORS with
+  credentials, the Access cookie and CORS settings, a production URL in the site, a header
+  field to override it and a "log in first" hint existed for. The API process serving 3 MB
+  of static files costs nothing, puts the page behind the same Access login, and publishing
+  becomes a copy to the server instead of a commit chain on a second branch pushed from a
+  git hook. Pages' only advantage, a page that loads while the server is down, showed
+  "cannot reach" anyway.
+- **Install `main`, release optionally** (2026-09-21). Installing the release tag of the
+  installer's own version made every deployment fix a version bump, a tag, a GitHub release
+  and a changed install line: four tags in one day. `main` is the only line of development;
+  `--source` takes a tag when reproducing a state matters.
 - **An LLM for tagging, not a keyword list.** Tagging quality is the biggest driver of N; the
   cost is cents per day.
 - **LiteLLM, not a hand-rolled provider adapter.** One dependency covers every provider; the
@@ -895,10 +911,9 @@ load-bearing enough to block a start.
   the price is a second process.
 - **`queries.py` for read-side logic.** Bands, deltas, sparklines and ordering are computed in
   one place, as plain functions, tested without HTTP; routes and pages stay thin.
-- **Static Vue site on GitHub Pages** (2026-09-19, replacing Dash). The owner wants the
-  dashboard hosted for free on GitHub Pages with the API reached through a tunnel;
-  a Dash server cannot be hosted there. Vue 3 from a CDN keeps the no-build-step property
-  Dash had, Plotly stays for the charts, and publishing is a push of one folder to a branch.
+- **Static Vue site, not Dash** (2026-09-19). A static site is one client of the API and
+  can be served from anywhere; a Dash server is a second Python process with its own state.
+  It was on GitHub Pages until 2026-09-21 (above).
 - **Git hooks instead of hosted CI.** pre-commit runs format, lint and the test suite before
   every commit; nothing leaves the machine unchecked and there is no workflow file to maintain.
 - **Test-driven throughout.** Tests are written before the code they test; the fakes for every

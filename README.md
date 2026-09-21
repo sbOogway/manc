@@ -48,7 +48,7 @@ the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the 
 | M1 Skeleton: models, store, migrations, CLI, fakes, hooks | done |
 | M2 Ingestion: RSS news, Nasdaq calendar, LLM forecast extractor, Yahoo spot closes, Fed SEP and World Bank publishers | done |
 | M3 Analysis and index: LLM tagger, lexicon fallback, formula v1 | done |
-| M4 Report, API and dashboard: markdown report, REST API, static dashboard on GitHub Pages | done |
+| M4 Report, API and dashboard: markdown report, REST API, static dashboard | done |
 | M5 Operations: systemd units, journal log, tuning pass | in progress |
 | M6 Formula v2: standardised surprise, novelty, dispersion, asymmetry | done |
 | M7 Site package: Vue 3 + TypeScript, PrimeVue, Vite | done |
@@ -60,7 +60,7 @@ For a development checkout:
 
 ```sh
 uv sync                      # environment
-uv run pre-commit install --hook-type pre-commit --hook-type post-merge   # git hooks, once per clone
+uv run pre-commit install    # git hooks, once per clone
 uv run manc migrate          # create or migrate data/manc.db (MANC_DB_URL for another database)
 uv run pytest                # tests, no network
 ```
@@ -85,7 +85,7 @@ uv run manc report                             # the stored reports of the newes
 ```
 
 Every run logs its start, each step and each tagging batch to stderr with the time; the
-scores go to stdout, one line per asset. Scheduling is systemd user units, see Production.
+scores go to stdout, one line per asset. Scheduling is systemd timers, see Production.
 
 ### Dashboard
 
@@ -109,125 +109,78 @@ built (`MANC_SITE_DIR` points it elsewhere), and `npm run dev` proxies the API p
 When a route or schema changes, `uv run python scripts/openapi-schema.py` refreshes
 `site/openapi.json` (a test fails otherwise) and `npm run types` the TypeScript types.
 
-Publishing it to GitHub Pages is `scripts/publish-site.sh`: it builds and pushes `site/dist`
-to the `gh-pages` branch, which Pages serves (enable Pages on that branch once, the command is
-in the script).
+Publishing it is `MANC_SERVER=you@server scripts/publish-site.sh`: it builds and copies
+`site/dist` to `/var/lib/manc/site` on the server (through your login there and one `sudo`),
+where `manc api` serves it. Run it whenever the site changed; nothing publishes on its own.
 
 ### Production
 
-One line installs the whole thing; the rest is the env file, the tunnel and Cloudflare, and
-the site pointed at the tunnel. In this order (C depends on the hostname chosen in B):
+One machine runs everything as a dedicated `manc` user: the API with the dashboard, a fetch
+every 15 minutes and the daily run, whose headline tagging uses that user's own Claude Code
+login. A Cloudflare tunnel (on this machine or another on the LAN) publishes the API's
+hostname, and Cloudflare Access on it makes the whole thing yours alone; the API has no auth
+of its own.
 
-**A. The server**
-
-1. As your user: `uv` (the upstream installer puts it in `~/.local/bin`; or `sudo dnf install
-   uv`), [Claude Code](https://claude.com/claude-code) installed and logged in (run `claude`
-   once, `/login`; the run unit uses `~/.claude` and can write nowhere else in your home) and,
-   for the daily mail, a working `mail` (`echo test | mail -s test you@example.com`).
-2. Install; the same line brings an existing install up to date with the new tag (`sudo`
-   has no `~/.local/bin` on its PATH, hence the path; `manc install` finds `uv` there too):
-
-   ```sh
-   sudo ~/.local/bin/uvx --from git+https://github.com/sbOogway/manc@v0.2.3 manc install --owner $USER
-   ```
-
-   `uvx` runs `manc install` from the release tag once; that command installs the same tag
-   for good (`uv tool install`, its own Python 3.12 and the dependencies pinned by `uv.lock`
-   under `/opt/manc`, the entry point on everyone's `PATH` as `/usr/local/bin/manc`;
-   `--source` takes another git URL, `main` included) and lays the machine out, idempotently:
-   - `manc`, a system user with no login shell, runs the API and the fetch as system units
-     confined to `/var/lib/manc`: `manc-api.service` (up all the time, restarts on failure)
-     and `manc-fetch.timer` (`manc fetch` every 15 minutes, no model needed);
-   - the database is `/var/lib/manc/manc.db`, mode `0660` in a setgid group-`manc`
-     directory, so both `manc` and you write it (you are added to the group; every unit runs
-     with umask `0002`, and SQLite gives its journal files the database's mode);
-   - the daily run stays with your Claude Code login: `manc-run@<you>.timer` runs `manc run`
-     as you at 06:00 UTC every day (`Persistent=true`: a day the machine slept through runs
-     at the next wake). The site is not published from the server; the `post-merge` hook in
-     your development checkout does that.
-3. Edit `/etc/manc/env` (`root:manc 0640`, written once from the packaged example, never
-   overwritten), then `sudo systemctl restart manc-api`: `MANC_API_HOST` is `127.0.0.1` when
-   cloudflared runs on this machine, `0.0.0.0` when it runs elsewhere (step 4 says who gets
-   in; the tunnel machine's own address cannot be bound here); `MANC_MAIL_TO` your address or
-   empty; the provider keys only for a keyed fallback model. `MANC_DB_URL` and
-   `MANC_API_PORT` (8888) stay.
-4. Only when cloudflared runs elsewhere: the unit lets nothing but loopback reach the API
-   (`IPAddressDeny=any`, its own filter, whatever the firewall opens on the LAN — Fedora
-   Workstation's zone opens every port above 1024), so add the tunnel machine in a drop-in,
-   which upgrades leave alone:
+1. Packages: `sudo dnf install uv python3.12 git` (the distro's `uv` does not download
+   interpreters, hence `python3.12`; the project pins 3.12). For the daily mail, a working
+   `mail` (`echo test | mail -s test you@example.com`).
+2. Install, and later upgrade, with the same line (it is idempotent; `--source` takes a tag
+   or another URL instead of `main`):
 
    ```sh
-   sudo systemctl edit manc-api      # opens the drop-in; add the two lines, save
+   sudo uvx --from git+https://github.com/sbOogway/manc@main manc install
    ```
-   ```ini
-   [Service]
-   IPAddressAllow=<tunnel machine IP>
-   ```
+
+   It creates the `manc` system user (home `/var/lib/manc`, no login shell), installs the
+   tool under that home with `uv tool install` and the dependencies pinned by `uv.lock`,
+   migrates `/var/lib/manc/manc.db`, writes `/etc/manc/env` from the packaged example when
+   missing, and enables `manc-api.service`, `manc-fetch.timer` and `manc-run.timer` (06:00
+   UTC daily, caught up after a missed day). Every unit is confined to `/var/lib/manc`
+   (`systemd-analyze security` says "OK").
+3. Claude Code for the `manc` user, once: install it under that home and log in.
+
    ```sh
+   sudo -u manc -H bash -c 'curl -fsSL https://claude.ai/install.sh | bash'   # → /var/lib/manc/.local/bin/claude
+   sudo -u manc -H /var/lib/manc/.local/bin/claude                            # /login: open the URL, paste the code
+   ```
+
+   A machine without a Claude login can tag with a keyed model instead:
+   `MANC_LLM_MODEL=mistral/ministral-14b-latest` and the key in the env file.
+4. Edit `/etc/manc/env` (`root:manc 0640`, never overwritten), then
+   `sudo systemctl restart manc-api`: `MANC_API_HOST` is `127.0.0.1` when cloudflared runs
+   on this machine, `0.0.0.0` when it runs elsewhere; `MANC_MAIL_TO` your address, or empty;
+   the provider keys only for a keyed model. When cloudflared runs elsewhere, the unit lets
+   nothing but loopback in, whatever the firewall opens, so add that machine once in a
+   drop-in that upgrades leave alone:
+
+   ```sh
+   sudo systemctl edit manc-api      # under [Service]: IPAddressAllow=<tunnel machine IP>
    sudo systemctl restart manc-api
    ```
-
-5. Check, and run the first day by hand:
+5. Cloudflare: in cloudflared a public hostname, say `manc.<your-domain>`, with service
+   `http://<MANC_API_HOST or this machine's LAN IP>:8888`; in Zero Trust an Access
+   application (self-hosted) on that hostname with an Allow policy for your email and a
+   long session; optionally a rate-limiting rule on the hostname. Nothing else: the page
+   and the API share the hostname, so the default cookie and CORS settings are right.
+6. Publish the dashboard from your checkout: `MANC_SERVER=you@server scripts/publish-site.sh`
+   (step "Dashboard" above), then open `https://manc.<your-domain>/`.
+7. Check, and run the first day by hand:
 
    ```sh
    curl -s http://127.0.0.1:8888/health          # {"status":"ok","last_run":null}
-   curl -s http://<this server's LAN IP>:8888/health   # nothing: not from the tunnel machine
-   sudo systemctl status manc-api manc-fetch.timer manc-run@$USER.timer
-   sudo systemctl start manc-run@$USER            # a daily run by hand, same environment
-   sudo journalctl -u manc-run@$USER -f           # its log; then /health shows last_run
-   sudo journalctl -u manc-api -f                 # uvicorn log
-   sudo systemd-analyze security manc-run@$USER.service   # OK, about 1.8
+   sudo systemctl status manc-api manc-fetch.timer manc-run.timer
+   sudo systemctl start manc-run                 # a daily run now, same environment as the timer
+   sudo journalctl -u manc-run -f                # its log; then /health shows last_run
    ```
 
-   If `claude` fails inside the unit, the sandbox is the first suspect: the home is
-   read-only except `~/.claude` and `~/.cache`, and the auto-updater is off.
-
-**B. Cloudflare** — the API is read-only and has no auth of its own; Access on the tunnel
-hostname makes it yours alone.
-
-6. Tunnel: in cloudflared (on the tunnel machine or the server) a public hostname, say
-   `manc-api.<your-domain>`, with service `http://<MANC_API_HOST>:8888`. Test
-   `https://manc-api.<your-domain>/health` in a browser.
-7. Access: Zero Trust → Access → Applications → Add → Self-hosted. Application domain
-   `manc-api.<your-domain>`; session duration long (a week or a month) so the login is rare;
-   a policy Allow that includes your email (or your GitHub identity, if GitHub is a login
-   method); in the application's CORS settings the allowed origin
-   `https://mattiapapaccioli.com` (the Pages site's custom domain, the origin the browser
-   sends), method `GET`, **allow credentials on** (without it the
-   browser blocks the fetch even when you are logged in); in its cookie settings **SameSite
-   Attribute = None** (unset reads as Lax and the browser then withholds the cookie from the
-   Pages site: every request is a 302 to the login, which the site reports as "cannot
-   reach").
-8. Rate limit: Security → WAF → Rate limiting rules, on hostname `manc-api.<your-domain>`,
-   about 60 requests per 10 seconds per IP, action block (the free tier includes one rule).
-
-**C. The site**
-
-9. In the dev checkout, `site/src/api/client.ts`: `PRODUCTION_API_URL =
-   "https://manc-api.<your-domain>"`, no trailing slash; one PR, merge, and the `post-merge`
-   hook publishes `gh-pages` (Pages enabled on that branch once, Settings → Pages).
-10. Open `https://manc-api.<your-domain>/health` in a tab and log in through Access, then
-    `https://mattiapapaccioli.com/manc/` (Pages with **Enforce HTTPS** on: over plain http
-    the Secure cookie is never sent). The site sends the Access cookie with every request;
-    when it says "cannot reach … open …/health in a tab first", the session has expired:
-    repeat this step. The header field that points the site at another backend still works;
-    a backend behind Access needs the same one-time login, `localhost:8888` needs none.
-
-**D. GitHub, once** — branch protection on `main` (no force-push, no deletion; PRs merge as
-before) and 2FA on the account:
+Your own account and the dev checkout are not involved. Branch protection on `main` (no
+force-push, no deletion) and 2FA on the GitHub account are the repository's side:
 
 ```sh
 gh api -X PUT repos/sbOogway/manc/branches/main/protection --input - <<'EOF'
 {"required_status_checks":null,"enforce_admins":false,"required_pull_request_reviews":null,"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}
 EOF
 ```
-
-A machine without a Claude Code login can run the daily step with a keyed model instead:
-`MANC_LLM_MODEL=mistral/ministral-14b-latest` in the env file.
-
-The day's reports by mail: set `MANC_MAIL_TO` in the env file and the run unit pipes
-`manc report` (the stored report of every active asset, newest day) into the machine's own
-`mail` after every run; the MTA is yours (msmtp, sendmail, …), manc sends nothing itself.
 
 ## Development
 
