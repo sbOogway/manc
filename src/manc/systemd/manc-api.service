@@ -1,5 +1,8 @@
 # The REST API as the manc user, confined to /var/lib/manc. Installed and enabled by
-# `manc install`; the binary is the uv tool on the PATH (/usr/local/bin/manc).
+# `manc install`; the binary is the uv tool on the PATH (/usr/local/bin/manc). Only loopback
+# reaches it until a drop-in adds the tunnel machine (`systemctl edit manc-api`, then
+# `IPAddressAllow=<its address>` under [Service]); the filter is the unit's own, whatever the
+# firewall allows on the LAN.
 [Unit]
 Description=manc REST API
 After=network-online.target
@@ -14,6 +17,8 @@ EnvironmentFile=/etc/manc/env
 ExecStart=/usr/bin/env manc api
 Restart=on-failure
 RestartSec=10
+IPAddressDeny=any
+IPAddressAllow=localhost
 ProtectSystem=strict
 ProtectHome=yes
 ReadWritePaths=/var/lib/manc

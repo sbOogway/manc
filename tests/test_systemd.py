@@ -87,6 +87,14 @@ def test_the_daily_run_is_confined_around_the_owners_claude_login() -> None:
     assert "DISABLE_AUTOUPDATER=1" in service["Environment"]  # ~/.local is read-only
 
 
+def test_only_the_tunnel_machine_and_loopback_reach_the_api() -> None:
+    """The tunnel machine's address is a drop-in (`systemctl edit manc-api`), not the unit."""
+    api = _unit("manc-api.service")["Service"]
+    assert api["IPAddressDeny"] == "any" and api["IPAddressAllow"] == "localhost"
+    for name in ("manc-fetch.service", TEMPLATE):  # these fetch the internet
+        assert "IPAddressDeny" not in _unit(name)["Service"], name
+
+
 def test_the_api_restarts_and_the_fetch_runs_every_fifteen_minutes() -> None:
     api = _unit("manc-api.service")
     assert api["Service"]["ExecStart"] == "/usr/bin/env manc api"

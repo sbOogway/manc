@@ -730,8 +730,11 @@ cookie with every request (`credentials: "include"` in `client.ts`, which is why
 CORS grant names the site's origins, §7) and, since a fetch cannot follow the login page,
 tells the owner to open the API hostname in a tab when the backend cannot be reached. A
 rate-limiting rule on the same hostname (Cloudflare's free tier does it) covers denial of
-service, and, when `MANC_API_HOST` is a LAN address, a firewall rule lets only the tunnel
-machine reach port 8888.
+service. On the LAN, `manc-api.service` itself lets only loopback in (`IPAddressDeny=any`,
+`IPAddressAllow=localhost`), and the tunnel machine's address goes in a drop-in the owner
+writes once (`systemctl edit manc-api`); the filter is systemd's, per service, so it holds
+whatever the firewall opens (Fedora Workstation's zone opens every port above 1024, which
+is why a firewalld source zone was not enough, 2026-09-21).
 
 ## 9 · Milestones
 
@@ -850,7 +853,7 @@ Evaluation, since the index is not a predictor:
 **M8 Security hardening** — done (2026-09-21), the surface found by the review of that day
 closed in code; three items stay with the owner's configuration and are listed in the
 README's production notes: a rate-limiting rule or Access on the tunnel hostname, the
-firewall on port 8888 when `MANC_API_HOST` is a LAN address, and branch protection on `main`
+tunnel machine's address in the `manc-api` drop-in, and branch protection on `main`
 (no force-push, no deletion). The only input that reaches a browser is text from RSS feeds
 (titles, links) and the LLM paragraph, so the one real hole was there; the rest is exposure
 and blast radius.
