@@ -553,3 +553,24 @@ def test_run_reports_a_failed_mail_and_exits_1(
         assert cli.main(["run", "--date", "2026-09-15"]) == 1
     assert "connection refused" in caplog.text
     assert db.is_at_head(db.make_engine(migrated_db))  # the scores were stored before the mail
+
+
+def test_report_prints_the_stored_reports_in_asset_order(
+    migrated_db: str, capsys: pytest.CaptureFixture
+) -> None:
+    assert cli.main(["run", "--date", "2026-09-15"]) == 0
+    capsys.readouterr()
+    assert cli.main(["report"]) == 0  # the newest scored day
+    out = capsys.readouterr().out
+    symbols = [asset.symbol for asset in load_config().active_assets]
+    positions = [out.index(f"# {symbol}") for symbol in symbols]
+    assert positions == sorted(positions)
+    assert out.count("\n---\n") == len(symbols) - 1
+    assert cli.main(["report", "--date", "2026-09-15"]) == 0
+    assert capsys.readouterr().out == out
+
+
+def test_report_on_an_unscored_day_says_so(migrated_db: str, capsys: pytest.CaptureFixture) -> None:
+    assert cli.main(["report", "--date", "2026-01-01"]) == 1
+    assert "no reports" in capsys.readouterr().err
+    assert cli.main(["report"]) == 1  # nothing scored at all

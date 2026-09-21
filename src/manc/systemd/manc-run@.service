@@ -1,6 +1,7 @@
 # The daily run as the owner (the instance name, e.g. manc-run@mattia.service), whose Claude
 # Code login tags the headlines; group manc and the umask keep the database writable by the
-# API and the fetch. The site is published by the owner's post-merge hook, not here.
+# API and the fetch. Afterwards the day's reports go by mail through the machine's MTA when
+# MANC_MAIL_TO is set. The site is published by the owner's post-merge hook, not here.
 [Unit]
 Description=manc daily run as %i (host, Claude Code)
 After=network-online.target
@@ -15,4 +16,5 @@ WorkingDirectory=/var/lib/manc
 EnvironmentFile=/etc/manc/env
 Environment=PATH=/home/%i/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/usr/bin/env manc run
+ExecStartPost=/bin/sh -c '[ -z "$MANC_MAIL_TO" ] || manc report | mail -s "manc $(date -u +%%F)" "$MANC_MAIL_TO"'
 TimeoutStartSec=2h
