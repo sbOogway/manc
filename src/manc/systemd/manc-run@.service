@@ -2,6 +2,10 @@
 # Code login tags the headlines; group manc and the umask keep the database writable by the
 # API and the fetch. Afterwards the day's reports go by mail through the machine's MTA when
 # MANC_MAIL_TO is set. The site is published by the owner's post-merge hook, not here.
+# Confined like the manc units, except that the owner's home is read-only rather than hidden
+# (the login is in ~/.claude), what claude and the caches write stays writable, and the
+# account's secrets are out of reach; ~/.claude.json is read but not rewritten, which claude
+# tolerates.
 [Unit]
 Description=manc daily run as %i (host, Claude Code)
 After=network-online.target
@@ -14,7 +18,28 @@ Group=manc
 UMask=0002
 WorkingDirectory=/var/lib/manc
 EnvironmentFile=/etc/manc/env
-Environment=PATH=/home/%i/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=/home/%i/.local/bin:/usr/local/bin:/usr/bin:/bin DISABLE_AUTOUPDATER=1
 ExecStart=/usr/bin/env manc run
 ExecStartPost=/bin/sh -c '[ -z "$MANC_MAIL_TO" ] || manc report | mail -s "manc $(date -u +%%F)" "$MANC_MAIL_TO"'
 TimeoutStartSec=2h
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/manc /home/%i/.claude -/home/%i/.cache
+InaccessiblePaths=-/home/%i/.ssh -/home/%i/.gnupg -/home/%i/.git-credentials -/home/%i/.config/gh
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+PrivateDevices=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service

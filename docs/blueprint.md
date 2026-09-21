@@ -695,10 +695,21 @@ umask `0002`, and SQLite gives journal and WAL files the database's mode (an ACL
 here, its mask follows the created mode; dropped 2026-09-21); `/etc/manc/env`
 (`root:manc 0640`) is written once from `env.example` and never overwritten; the units go to
 `/etc/systemd/system` and are enabled. `manc-api.service` and `manc-fetch.service` run as
-`manc` with `ProtectSystem=strict`, `ReadWritePaths=/var/lib/manc`, `ProtectHome`,
-`NoNewPrivileges` and `PrivateTmp`. The daily run is a template, `manc-run@.service`, whose
-instance is the owner (`User=%i`, group `manc`, umask `0002`, the owner's `~/.local/bin` on the
-`PATH` for `claude`), because the tagger runs on the owner's Claude Code login. Every unit
+`manc`, confined to `/var/lib/manc` with `ProtectHome`. The daily run is a template,
+`manc-run@.service`, whose instance is the owner (`User=%i`, group `manc`, umask `0002`, the
+owner's `~/.local/bin` on the `PATH` for `claude`), because the tagger runs on the owner's
+Claude Code login; it carries the same confinement block as the other two (read-only system,
+private `/tmp` and devices, no new privileges, no capabilities, native syscalls of the
+`@system-service` set, `AF_INET`/`AF_UNIX` only) with one difference: the home is read-only
+rather than hidden, because the login lives in `~/.claude`, which stays writable with
+`~/.cache`; `~/.ssh`, `~/.gnupg`, `~/.git-credentials` and `~/.config/gh` are made
+inaccessible, and the auto-updater is off (`~/.local` is read-only). `claude` reads
+`~/.claude.json` and cannot rewrite it, which it tolerates (checked on 2.1.278, and
+`tests/test_systemd.py` verifies the units; `systemd-analyze security` scores every unit
+"OK", 1.8, from 9.0 "UNSAFE" for the run before 2026-09-21). Note that `ProtectSystem=strict`
+alone does not cover a `/home` on its own mount (a Fedora btrfs subvolume), hence
+`ProtectHome` on every unit. A dedicated run user with its own Claude login would let the
+home be hidden too; not done. Every unit
 loads `/etc/manc/env`: the provider keys, `MANC_DB_URL`, `MANC_API_PORT` (8888), `MANC_API_HOST`
 (loopback, or the LAN address the owner's tunnel machine reaches; the tunnel is not part of
 this stack) and, on a

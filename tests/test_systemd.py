@@ -39,14 +39,52 @@ def test_every_service_loads_the_env_file_and_runs_manc_from_the_path() -> None:
         assert service["WorkingDirectory"] == "/var/lib/manc", name
 
 
+HARDENING = {
+    "ProtectSystem": "strict",
+    "NoNewPrivileges": "yes",
+    "PrivateTmp": "yes",
+    "ProtectKernelTunables": "yes",
+    "ProtectKernelModules": "yes",
+    "ProtectControlGroups": "yes",
+    "RestrictSUIDSGID": "yes",
+    "RestrictRealtime": "yes",
+    "LockPersonality": "yes",
+    "PrivateDevices": "yes",
+    "ProtectClock": "yes",
+    "ProtectHostname": "yes",
+    "ProtectProc": "invisible",
+    "RestrictNamespaces": "yes",
+    "RestrictAddressFamilies": "AF_UNIX AF_INET AF_INET6",
+    "CapabilityBoundingSet": "",
+    "SystemCallArchitectures": "native",
+    "SystemCallFilter": "@system-service",
+}
+
+
 def test_the_manc_user_services_are_hardened() -> None:
     for name in USER_MANC:
         service = _unit(name)["Service"]
         assert service["User"] == "manc" and service["Group"] == "manc", name
         assert service["UMask"] == "0002", name  # the owner's run writes the same database
-        assert service["ProtectSystem"] == "strict", name
+        assert {key: service[key] for key in HARDENING} == HARDENING, name
+        assert service["ProtectHome"] == "yes", name
         assert service["ReadWritePaths"] == "/var/lib/manc", name
-        assert service["NoNewPrivileges"] == "yes" and service["PrivateTmp"] == "yes", name
+
+
+def test_the_daily_run_is_confined_around_the_owners_claude_login() -> None:
+    """Home is read-only, not hidden: the login is in ~/.claude and claude writes there."""
+    service = _unit(TEMPLATE)["Service"]
+    assert {key: service[key] for key in HARDENING} == HARDENING
+    assert service["ProtectHome"] == "read-only"
+    assert service["ReadWritePaths"] == "/var/lib/manc /home/%i/.claude -/home/%i/.cache"
+    secrets = (
+        "/home/%i/.ssh",
+        "/home/%i/.gnupg",
+        "/home/%i/.git-credentials",
+        "/home/%i/.config/gh",
+    )
+    assert service["InaccessiblePaths"].split() == [f"-{path}" for path in secrets]
+    assert "DISABLE_AUTOUPDATER=1" in service["Environment"]  # ~/.local is read-only
 
 
 def test_the_api_restarts_and_the_fetch_runs_every_fifteen_minutes() -> None:
