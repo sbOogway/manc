@@ -715,7 +715,8 @@ alone does not cover a `/home` on its own mount (a Fedora btrfs subvolume), henc
 `ProtectHome` on every unit. A dedicated run user with its own Claude login would let the
 home be hidden too; not done. Every unit
 loads `/etc/manc/env`: the provider keys, `MANC_DB_URL`, `MANC_API_PORT` (8888), `MANC_API_HOST`
-(loopback, or the LAN address the owner's tunnel machine reaches; the tunnel is not part of
+(one of the machine's own addresses: loopback, or its LAN address for the owner's tunnel
+machine to point at; the tunnel is not part of
 this stack) and, on a
 machine without a Claude login, `MANC_LLM_MODEL`, and `MANC_MAIL_TO`, which makes the run unit
 pipe `manc report` (the stored reports of the day) into the machine's own `mail` afterwards:
