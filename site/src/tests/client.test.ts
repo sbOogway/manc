@@ -54,14 +54,14 @@ describe("backend URL", () => {
   });
 
   test("buildUrl encodes the params and drops the empty ones", () => {
-    const url = buildUrl("http://localhost:8000", "/api/v1/events", {
+    const url = buildUrl("http://localhost:8888", "/api/v1/events", {
       from: "2026-09-19",
       to: undefined,
       min_importance: 2,
       economy: null,
       metric: "",
     });
-    expect(url).toBe("http://localhost:8000/api/v1/events?from=2026-09-19&min_importance=2");
+    expect(url).toBe("http://localhost:8888/api/v1/events?from=2026-09-19&min_importance=2");
     expect(buildUrl("http://x", "/health", {})).toBe("http://x/health");
   });
 });

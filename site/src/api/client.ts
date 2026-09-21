@@ -18,7 +18,7 @@ import type {
   SpotPrice,
 } from "./types";
 
-export const DEFAULT_API_URL = "http://localhost:8000";
+export const DEFAULT_API_URL = "http://localhost:8888";
 export const PRODUCTION_API_URL = ""; // the tunnel hostname; empty keeps localhost everywhere
 const STORAGE_KEY = "manc.apiUrl";
 const LOCAL_HOSTS = new Set(["", "localhost", "127.0.0.1", "[::1]"]);

@@ -49,7 +49,7 @@ check();
       <form class="backend" @submit.prevent="applyBackend">
         <span class="status-dot" :class="health.state" :title="health.text"></span>
         <span class="ink-2">{{ health.text }}</span>
-        <InputText v-model="backend" type="url" size="small" placeholder="http://localhost:8000" aria-label="API URL" />
+        <InputText v-model="backend" type="url" size="small" placeholder="http://localhost:8888" aria-label="API URL" />
         <Button type="submit" label="Use" size="small" severity="secondary" outlined />
       </form>
       <Button
