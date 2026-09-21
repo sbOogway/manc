@@ -161,12 +161,6 @@ The day's reports by mail: set `MANC_MAIL_TO` in the env file and the run unit p
 `manc report` (the stored report of every active asset, newest day) into the machine's own
 `mail` after every run; the MTA is yours (msmtp, sendmail, …), manc sends nothing itself.
 
-The daily report by email: set `MANC_MAIL_TO`, `MANC_SMTP_HOST`, `MANC_SMTP_USER` and
-`MANC_SMTP_PASSWORD` in the env file (plain SMTP with STARTTLS on 587; for Gmail an app
-password) and every `manc run` ends with one message, the scores in the subject and the
-report of every asset in the body. A send that fails is logged and exits 1; the scores are
-already stored.
-
 ## Development
 
 Test-driven: the failing test comes before the code. Every commit runs the pre-commit
