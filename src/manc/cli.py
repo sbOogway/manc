@@ -53,13 +53,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     logging.getLogger("manc").setLevel(logging.DEBUG if args.verbose else logging.INFO)
     if args.command == "install":
         try:
-            installer.install(args.owner, source=args.source)
+            installer.install(source=args.source)
         except (PermissionError, FileNotFoundError, subprocess.CalledProcessError) as error:
             print(f"manc: {error}", file=sys.stderr)
             return 1
         print(
-            f"install: manc-api.service, manc-fetch.timer and manc-run@{args.owner}.timer are up; "
-            "edit /etc/manc/env, then `systemctl restart manc-api`"
+            "install: manc-api.service, manc-fetch.timer and manc-run.timer are up. Next: "
+            "`sudo -u manc -H claude` and /login (once), edit /etc/manc/env, then "
+            "`systemctl restart manc-api`"
         )
         return 0
     if args.command == "migrate":
@@ -228,9 +229,6 @@ def _parser() -> argparse.ArgumentParser:
     report_cmd.add_argument("--date", type=date.fromisoformat, help="the scored day to print")
     install_cmd = commands.add_parser(
         "install", help="as root: the manc user, /var/lib/manc, /etc/manc/env and the systemd units"
-    )
-    install_cmd.add_argument(
-        "--owner", required=True, help="the user whose Claude Code login runs the daily run"
     )
     install_cmd.add_argument(
         "--source", default=installer.SOURCE, help="what `uv tool install` installs (a git URL)"
