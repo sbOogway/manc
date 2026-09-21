@@ -36,6 +36,7 @@ def test_wheel_carries_the_config_files_and_the_migrations(wheel: Path) -> None:
     assert versions and any(name.endswith("_initial.py") for name in versions)
     assert not any(name.startswith("manc/config.py") for name in names)  # the module is the package
     assert "manc/systemd/manc-api.service" in names and "manc/systemd/env.example" in names
+    assert "manc/constraints.txt" in names  # the lock, for `uv tool install --constraints`
 
 
 def test_config_and_migrations_live_inside_the_package() -> None:

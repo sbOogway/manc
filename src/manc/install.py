@@ -11,11 +11,15 @@ import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
+from manc import __version__
+
 UNITS_DIR = Path(__file__).resolve().parent / "systemd"
+# uv.lock exported by the pre-commit hook: `uv tool install` from git does not read the lock
+CONSTRAINTS = Path(__file__).resolve().parent / "constraints.txt"
 USER = "manc"
 DATA_DIR = Path("/var/lib/manc")
 DATABASE_URL = f"sqlite:///{DATA_DIR}/manc.db"
-SOURCE = "git+https://github.com/sbOogway/manc"
+SOURCE = f"git+https://github.com/sbOogway/manc@v{__version__}"  # the release tag, never main
 TOOL_HOME = Path("/opt/manc")  # the tool, its interpreter and the entry point, readable by all
 TOOL_ENV = {
     "UV_TOOL_DIR": str(TOOL_HOME / "tools"),
@@ -38,7 +42,8 @@ def install(
     etc = prefix / "etc" / "manc"
     system = prefix / "etc" / "systemd" / "system"
 
-    tool = ["uv", "tool", "install", "--force", "--python", "3.12", source]
+    tool = ["uv", "tool", "install", "--force", "--python", "3.12"]
+    tool += ["--constraints", str(CONSTRAINTS), source]
     run(tool, check=True, env={**os.environ, **TOOL_ENV})
 
     if int(getattr(run(["getent", "passwd", USER], check=False), "returncode", 1)) != 0:

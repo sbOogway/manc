@@ -3,13 +3,18 @@ and the system units, then enables them. Everything privileged goes through one 
 runner, the files land under a prefix."""
 
 import os
+import re
 import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
 
+import manc
 from manc import cli, install
-from manc.install import UNITS_DIR
+from manc.install import CONSTRAINTS, UNITS_DIR
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class Recorder:
@@ -66,7 +71,7 @@ def test_first_install_creates_everything_in_order(tmp_path: Path, root: None) -
     assert (system / "manc-api.service").read_text() == (UNITS_DIR / "manc-api.service").read_text()
     _in_order(
         runner.lines(),
-        "uv tool install --force --python 3.12 git+https://github.com/sbOogway/manc",
+        f"uv tool install --force --python 3.12 --constraints {CONSTRAINTS} {install.SOURCE}",
         "getent passwd manc",
         "useradd -r -m -d /var/lib/manc -s /usr/sbin/nologin manc",
         "usermod -aG manc mattia",
@@ -82,6 +87,32 @@ def test_first_install_creates_everything_in_order(tmp_path: Path, root: None) -
     assert tool_env["UV_TOOL_DIR"] == "/opt/manc/tools"
     assert tool_env["UV_PYTHON_INSTALL_DIR"] == "/opt/manc/python"
     assert tool_env["UV_TOOL_BIN_DIR"] == "/usr/local/bin"
+
+
+def test_the_default_source_is_the_tag_of_this_version() -> None:
+    """A checkout of `main` is never what production runs; a release is a tag."""
+    assert f"git+https://github.com/sbOogway/manc@v{manc.__version__}" == install.SOURCE
+
+
+def test_the_constraints_pin_every_dependency_from_the_lock() -> None:
+    """`uv tool install` from git ignores uv.lock; the exported pins ride in the wheel."""
+    pins = {
+        line.split("==")[0]: line.split("==")[1].split(" ")[0]
+        for line in CONSTRAINTS.read_text().splitlines()
+        if "==" in line
+    }
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    for requirement in pyproject["project"]["dependencies"]:
+        name = re.split(r"[\[><=~!;\s]", requirement, maxsplit=1)[0]
+        assert name in pins, f"{name} is not pinned in {CONSTRAINTS}"
+    lock = tomllib.loads((ROOT / "uv.lock").read_text())
+    locked = {
+        package["name"]: package["version"]
+        for package in lock["package"]
+        if package["name"] != "manc"
+    }
+    for name, version in pins.items():
+        assert locked.get(name) == version, f"{name}=={version} is not what uv.lock says"
 
 
 def test_the_source_can_be_a_local_repository(tmp_path: Path, root: None) -> None:

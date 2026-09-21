@@ -122,13 +122,13 @@ One line installs the whole thing on a machine with `uv` (`sudo dnf install uv`)
 same line brings an existing install up to date:
 
 ```sh
-sudo uvx --from git+https://github.com/sbOogway/manc manc install --owner $USER
+sudo uvx --from git+https://github.com/sbOogway/manc@v0.2.0 manc install --owner $USER
 ```
 
-`uvx` runs `manc install` from the repository once; that command installs the tool for good
-(`uv tool install`, its own Python 3.12 and locked dependencies under `/opt/manc`, the entry
-point on everyone's `PATH` as `/usr/local/bin/manc`; `--source git+...@v1.2.3` pins a tag) and
-lays the machine out, idempotently:
+`uvx` runs `manc install` from the release tag once; that command installs the same tag for
+good (`uv tool install`, its own Python 3.12 and the dependencies pinned by `uv.lock` under
+`/opt/manc`, the entry point on everyone's `PATH` as `/usr/local/bin/manc`; `--source` takes
+another git URL, `main` included) and lays the machine out, idempotently:
 
 - `manc`, a system user with no login shell, runs the API and the fetch as system units
   confined to `/var/lib/manc`: `manc-api.service` (up all the time, restarts on failure) and
