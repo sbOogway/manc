@@ -3,7 +3,8 @@
 `claude -p --output-format json --json-schema ...` answers with a `structured_output` that
 matches the schema, on the owner's Claude login, so the tagger runs on a subscription with
 no API key. LiteLLM hands the Pydantic `response_format` over as a JSON schema; the system
-messages become `--system-prompt`, the rest go to stdin, tools are off.
+messages become `--system-prompt`, the rest go to stdin. Headlines are untrusted input, so the
+model gets no built-in tools and none of the owner's MCP servers, and no transcript is kept.
 """
 
 import json
@@ -33,7 +34,18 @@ class ClaudeCode(CustomLLM):
         schema = (optional_params.get("response_format") or {}).get("json_schema", {}).get("schema")
         system = "\n\n".join(msg["content"] for msg in messages if msg["role"] == "system")
         prompt = "\n\n".join(msg["content"] for msg in messages if msg["role"] != "system")
-        argv = ["claude", "-p", "--model", model, "--tools", "", "--output-format", "json"]
+        argv = [
+            "claude",
+            "-p",
+            "--model",
+            model,
+            "--tools",
+            "",
+            "--strict-mcp-config",
+            "--no-session-persistence",
+            "--output-format",
+            "json",
+        ]
         if system:
             argv += ["--system-prompt", system]
         if schema:
