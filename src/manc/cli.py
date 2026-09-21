@@ -1,4 +1,4 @@
-"""`manc` command line: fetch, chain, run, rescore, forecasts, install, migrate, api, ui, serve."""
+"""`manc` command line: the subcommands of `_parser()`, from fetch and run to install."""
 
 import argparse
 import logging
@@ -96,6 +96,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "forecasts":
         return _backfill_forecasts(config, store, args.since)
+    if args.command == "report":
+        return _print_reports(config, store, args.date)
     if args.command == "chain":
         coins = [asset for asset in config.active_assets if asset.chain]
         rows = fetch_chain(_chain_providers(), coins, args.since, date.today(), store)
@@ -154,6 +156,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         except OSError as error:
             log.error("mail: not sent: %s", error)
             return 1
+    return 0
+
+
+def _print_reports(config: Config, store: SqlStore, day: date | None) -> int:
+    """The stored markdown report of every active asset, one after the other, to pipe into
+    `mail` from the run unit or wherever else."""
+    day = day or store.scores.latest_day()
+    reports = [
+        series[0].report_md
+        for asset in config.active_assets
+        if day and (series := store.scores.series(asset.symbol, config.scoring.formula, day, day))
+    ]
+    if not reports:
+        print(f"manc: no reports for {day or 'any day'}", file=sys.stderr)
+        return 1
+    print("\n---\n".join(reports))
     return 0
 
 
@@ -239,6 +257,10 @@ def _parser() -> argparse.ArgumentParser:
         "--since", type=date.fromisoformat, required=True, help="earliest publication day"
     )
 
+    report_cmd = commands.add_parser(
+        "report", help="print the stored report of every active asset (newest day, or --date)"
+    )
+    report_cmd.add_argument("--date", type=date.fromisoformat, help="the scored day to print")
     install_cmd = commands.add_parser(
         "install", help="as root: the manc user, /var/lib/manc, /etc/manc/env and the systemd units"
     )

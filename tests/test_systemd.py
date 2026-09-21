@@ -28,6 +28,7 @@ def test_the_folder_holds_the_units_and_the_env_example() -> None:
     assert "MANC_DB_URL=sqlite:////var/lib/manc/manc.db" in example
     assert "MANC_API_HOST=127.0.0.1" in example
     assert "MANC_API_PORT=8888" in example
+    assert "MANC_MAIL_TO=" in example
     assert "MANC_MAIL_TO=" in example and "MANC_SMTP_PORT=587" in example
 
 
@@ -67,6 +68,9 @@ def test_the_daily_run_is_a_template_instantiated_with_the_owner() -> None:
     assert service["UMask"] == "0002"  # the database stays writable by manc
     assert service["ExecStart"] == "/usr/bin/env manc run"
     assert "/home/%i/.local/bin" in service["Environment"]  # the owner's claude
+    # the day's reports by mail through the machine's MTA, only when a recipient is set
+    mail = 'manc report | mail -s "manc $(date -u +%%F)" "$MANC_MAIL_TO"'
+    assert service["ExecStartPost"] == f"/bin/sh -c '[ -z \"$MANC_MAIL_TO\" ] || {mail}'"
     timer = _unit("manc-run@.timer")["Timer"]
     assert timer["OnCalendar"] == "*-*-* 06:00:00 UTC"  # crypto trades on weekends
     assert timer["Persistent"] == "true"

@@ -80,6 +80,7 @@ uv run manc run --date 2026-09-15              # a past day
 uv run manc -v run                             # also log every feed and calendar day
 uv run manc rescore --formula v1 --from 2026-09-01   # replay stored inputs under a formula
 uv run manc forecasts --since 2026-06-01       # one-off forecast backfill from the query feeds
+uv run manc report                             # the stored reports of the newest day, to pipe anywhere
 ```
 
 Every run logs its start, each step and each tagging batch to stderr with the time; the
@@ -155,6 +156,10 @@ sudo journalctl -u manc-run@$USER -f           # its log
 
 A machine without a Claude Code login can run the daily step with a keyed model instead:
 `MANC_LLM_MODEL=mistral/ministral-14b-latest` in the env file.
+
+The day's reports by mail: set `MANC_MAIL_TO` in the env file and the run unit pipes
+`manc report` (the stored report of every active asset, newest day) into the machine's own
+`mail` after every run; the MTA is yours (msmtp, sendmail, …), manc sends nothing itself.
 
 The daily report by email: set `MANC_MAIL_TO`, `MANC_SMTP_HOST`, `MANC_SMTP_USER` and
 `MANC_SMTP_PASSWORD` in the env file (plain SMTP with STARTTLS on 587; for Gmail an app
