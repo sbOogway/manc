@@ -776,7 +776,7 @@ wheels = [
 
 [[package]]
 name = "manc"
-version = "0.2.3"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },

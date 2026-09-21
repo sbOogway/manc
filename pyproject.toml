@@ -1,6 +1,6 @@
 [project]
 name = "manc"
-version = "0.2.3"
+version = "1.0.0"
 description = "Macro analysis, news and calendar: a daily 0-100 macro index per asset"
 readme = "README.md"
 license = "MIT"
@@ -12,7 +12,7 @@ keywords = [
     "forex", "gold", "oil", "equities", "bitcoin", "forecasts", "llm", "litellm",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Financial and Insurance Industry",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",

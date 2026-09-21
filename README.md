@@ -52,7 +52,9 @@ the tables in [docs/er-schema.md](docs/er-schema.md); the literature behind the 
 | M5 Operations: scheduled runs, run log, tuning pass | in progress |
 | M6 Formula v2: standardised surprise, novelty, dispersion, asymmetry | done |
 | M7 Site package: Vue 3 + TypeScript, PrimeVue, Vite | done |
-| M8 Security hardening: sanitised site, bounded API, pinned install, confined units, tool-less tagger | done |
+| M8 Security hardening: sanitised site, bounded API, tool-less tagger | done |
+| M9 One origin: the site served next to the API, no CORS, no GitHub Pages | done |
+| M10 Compose: web published, api internal, cron, the Claude login in a volume | done |
 
 ## Setup
 
