@@ -519,3 +519,37 @@ def test_migrate_brings_an_empty_database_to_head(
     assert db.is_at_head(db.make_engine(url))
     assert db.head_revision() in capsys.readouterr().out
     assert cli.main(["migrate"]) == 0  # idempotent
+
+
+def test_run_mails_the_reports_when_a_recipient_is_set(
+    migrated_db: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tests.test_notify import FakeSmtp
+
+    FakeSmtp.instances.clear()
+    monkeypatch.setattr(cli.notify, "SMTP", FakeSmtp)
+    assert cli.main(["run", "--date", "2026-09-15"]) == 0
+    assert FakeSmtp.instances == []  # no MANC_MAIL_TO: silent
+    monkeypatch.setenv("MANC_MAIL_TO", "me@example.org")
+    monkeypatch.setenv("MANC_SMTP_HOST", "smtp.example.org")
+    monkeypatch.setenv("MANC_SMTP_USER", "manc@example.org")
+    monkeypatch.setenv("MANC_SMTP_PASSWORD", "x")
+    assert cli.main(["run", "--date", "2026-09-15"]) == 0
+    [connection] = FakeSmtp.instances
+    [message] = connection.sent
+    assert message["Subject"].startswith("manc 2026-09-15: BTCUSD ")
+
+
+def test_run_reports_a_failed_mail_and_exits_1(
+    migrated_db: str, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def broken(*args: object, **kwargs: object) -> None:
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(cli.notify, "SMTP", broken)
+    monkeypatch.setenv("MANC_MAIL_TO", "me@example.org")
+    monkeypatch.setenv("MANC_SMTP_HOST", "smtp.example.org")
+    with caplog.at_level(logging.ERROR, logger="manc"):
+        assert cli.main(["run", "--date", "2026-09-15"]) == 1
+    assert "connection refused" in caplog.text
+    assert db.is_at_head(db.make_engine(migrated_db))  # the scores were stored before the mail
