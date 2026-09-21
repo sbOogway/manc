@@ -139,10 +139,6 @@ h3 {
   gap: var(--space-2);
   font-size: 0.85rem;
 }
-.backend input {
-  width: 15rem;
-  max-width: 50vw;
-}
 .status-dot {
   display: inline-block;
   width: 8px;

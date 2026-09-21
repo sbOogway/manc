@@ -1,7 +1,6 @@
-// One function per API route over fetch. The base URL is the only thing the site knows
-// about the backend: localhost when the page is served locally, the production backend
-// (the tunnel in front of `manc api`) when it is served from GitHub Pages, and
-// whatever the header field set, kept in storage, over both.
+// One function per API route over fetch, against the page's own origin: `manc api` serves
+// the site, and `npm run dev` proxies the API paths to it. A login in front of the origin
+// (Cloudflare Access on the tunnel) covers page and requests alike.
 import type {
   AssetHistory,
   AssetOut,
@@ -18,17 +17,6 @@ import type {
   SpotPrice,
 } from "./types";
 
-export const DEFAULT_API_URL = "http://localhost:8888";
-export const PRODUCTION_API_URL = "https://manc-api.mattiapapaccioli.com"; // the tunnel hostname, behind Access
-const STORAGE_KEY = "manc.apiUrl";
-const LOCAL_HOSTS = new Set(["", "localhost", "127.0.0.1", "[::1]"]);
-
-export interface KeyValueStorage {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-  removeItem(key: string): void;
-}
-
 export class ApiError extends Error {
   status: number | null;
 
@@ -36,38 +24,6 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
     this.status = status;
-  }
-}
-
-function storageOrNull(): KeyValueStorage | null {
-  try {
-    return globalThis.localStorage ?? null;
-  } catch {
-    return null;
-  }
-}
-
-export function defaultApiUrl(hostname: string): string {
-  if (LOCAL_HOSTS.has(hostname) || !PRODUCTION_API_URL) {
-    return DEFAULT_API_URL;
-  }
-  return PRODUCTION_API_URL;
-}
-
-export function apiUrl(
-  storage: KeyValueStorage | null = storageOrNull(),
-  hostname: string = globalThis.location?.hostname ?? "",
-): string {
-  const stored = storage?.getItem(STORAGE_KEY);
-  return stored || defaultApiUrl(hostname);
-}
-
-export function setApiUrl(url: string | null, storage: KeyValueStorage | null = storageOrNull()): void {
-  const trimmed = (url ?? "").trim().replace(/\/+$/, "");
-  if (trimmed) {
-    storage?.setItem(STORAGE_KEY, trimmed);
-  } else {
-    storage?.removeItem(STORAGE_KEY);
   }
 }
 
@@ -89,17 +45,14 @@ export interface ClientOptions {
   baseUrl?: () => string;
 }
 
-export function createClient({ fetch = (url, init) => globalThis.fetch(url, init), baseUrl = apiUrl }: ClientOptions = {}) {
+export function createClient({ fetch = (url, init) => globalThis.fetch(url, init), baseUrl = () => "" }: ClientOptions = {}) {
   async function get<T>(path: string, params: Params = {}): Promise<T> {
     const url = buildUrl(baseUrl(), path, params);
     let response: Response;
     try {
-      // with credentials: the cookie of a login in front of the backend (Cloudflare Access on
-      // the tunnel) rides along; a fetch cannot follow the login page itself, hence the hint
-      response = await fetch(url, { credentials: "include" });
+      response = await fetch(url);
     } catch (error) {
-      const reason = (error as Error).message;
-      throw new ApiError(`cannot reach ${baseUrl()} (${reason}); if it sits behind a login, open ${baseUrl()}/health in a tab first`, null);
+      throw new ApiError(`cannot reach ${url} (${(error as Error).message})`, null);
     }
     if (!response.ok) {
       let detail = `${response.status} from ${url}`;

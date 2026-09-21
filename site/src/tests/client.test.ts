@@ -1,29 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import {
-  ApiError,
-  DEFAULT_API_URL,
-  type KeyValueStorage,
-  PRODUCTION_API_URL,
-  apiUrl,
-  buildUrl,
-  createClient,
-  defaultApiUrl,
-  setApiUrl,
-} from "../api/client";
-
-class FakeStorage implements KeyValueStorage {
-  values = new Map<string, string>();
-  getItem(key: string) {
-    return this.values.get(key) ?? null;
-  }
-  setItem(key: string, value: string) {
-    this.values.set(key, String(value));
-  }
-  removeItem(key: string) {
-    this.values.delete(key);
-  }
-}
+import { ApiError, buildUrl, createClient } from "../api/client";
 
 function fakeFetch(responses: { status: number; body: unknown }[]) {
   const calls: string[] = [];
@@ -37,25 +14,7 @@ function fakeFetch(responses: { status: number; body: unknown }[]) {
   return Object.assign(fetchFake, { calls, inits });
 }
 
-describe("backend URL", () => {
-  test("the default backend follows where the page is served from", () => {
-    expect(defaultApiUrl("localhost")).toBe(DEFAULT_API_URL);
-    expect(defaultApiUrl("127.0.0.1")).toBe(DEFAULT_API_URL);
-    expect(defaultApiUrl("")).toBe(DEFAULT_API_URL); // file:// or a test runner
-    expect(defaultApiUrl("sboogway.github.io")).toBe(PRODUCTION_API_URL);
-    expect(PRODUCTION_API_URL).toMatch(/^https:\/\/[^/]+$/); // set, and no trailing slash
-  });
-
-  test("the override survives in storage and wins over the host default", () => {
-    const storage = new FakeStorage();
-    expect(apiUrl(storage, "localhost")).toBe(DEFAULT_API_URL);
-    setApiUrl("https://manc.example.org/", storage);
-    expect(apiUrl(storage)).toBe("https://manc.example.org"); // trailing slash dropped
-    expect(apiUrl(storage, "sboogway.github.io")).toBe("https://manc.example.org");
-    setApiUrl("   ", storage);
-    expect(apiUrl(storage, "localhost")).toBe(DEFAULT_API_URL); // blank resets
-  });
-
+describe("buildUrl", () => {
   test("buildUrl encodes the params and drops the empty ones", () => {
     const url = buildUrl("http://localhost:8888", "/api/v1/events", {
       from: "2026-09-19",
@@ -70,6 +29,14 @@ describe("backend URL", () => {
 });
 
 describe("client", () => {
+  test("the requests go to the page's own origin: the API serves the site", async () => {
+    const fetchFake = fakeFetch([]);
+    const client = createClient({ fetch: fetchFake });
+    await client.health();
+    expect(fetchFake.calls).toEqual(["/health"]);
+    expect(fetchFake.inits[0]?.credentials).toBeUndefined(); // same origin, the cookie rides along anyway
+  });
+
   test("every route function hits its path with its query", async () => {
     const fetchFake = fakeFetch([]);
     const client = createClient({ fetch: fetchFake, baseUrl: () => "http://x" });
@@ -124,15 +91,6 @@ describe("client", () => {
     const failure = await client.health().catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(ApiError);
     expect((failure as ApiError).status).toBeNull();
-    expect((failure as ApiError).message).toMatch(/http:\/\/x/);
-    expect((failure as ApiError).message).toMatch(/open http:\/\/x\/health in a tab/); // a login in front
-  });
-
-  test("every request carries the cookie of a login in front of the backend", async () => {
-    const fetchFake = fakeFetch([]);
-    const client = createClient({ fetch: fetchFake, baseUrl: () => "http://x" });
-    await client.assets();
-    await client.health();
-    expect(fetchFake.inits.map((init) => init.credentials)).toEqual(["include", "include"]);
+    expect((failure as ApiError).message).toBe("cannot reach http://x/health (Failed to fetch)");
   });
 });

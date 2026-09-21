@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import Button from "primevue/button";
-import InputText from "primevue/inputtext";
 import { ref, watchEffect } from "vue";
 
-import { apiUrl, setApiUrl } from "./api/client";
 import { useClient } from "./lib/client";
 import { formatDate } from "./lib/format";
 import { useTheme } from "./lib/theme";
 
 const client = useClient();
 const theme = useTheme();
-const backend = ref(apiUrl());
 const health = ref<{ state: "checking" | "ok" | "down"; text: string }>({ state: "checking", text: "checking…" });
 
 watchEffect(() => {
@@ -27,12 +24,6 @@ async function check(): Promise<void> {
   }
 }
 
-function applyBackend(): void {
-  setApiUrl(backend.value);
-  backend.value = apiUrl();
-  check();
-}
-
 const THEME_GLYPH = { auto: "◐", light: "○", dark: "●" } as const;
 check();
 </script>
@@ -46,12 +37,10 @@ check();
         <RouterLink to="/events">Events</RouterLink>
       </nav>
       <span class="spacer"></span>
-      <form class="backend" @submit.prevent="applyBackend">
+      <span class="backend">
         <span class="status-dot" :class="health.state" :title="health.text"></span>
         <span class="ink-2">{{ health.text }}</span>
-        <InputText v-model="backend" type="url" size="small" placeholder="http://localhost:8888" aria-label="API URL" />
-        <Button type="submit" label="Use" size="small" severity="secondary" outlined />
-      </form>
+      </span>
       <Button
         type="button"
         size="small"
