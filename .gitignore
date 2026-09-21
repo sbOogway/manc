@@ -17,3 +17,6 @@ site/node_modules/
 # test artefacts
 .coverage
 htmlcov/
+
+# editors
+.vscode/
