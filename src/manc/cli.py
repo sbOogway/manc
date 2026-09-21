@@ -15,6 +15,7 @@ from pathlib import Path
 import uvicorn
 
 from manc import install as installer
+from manc import notify
 from manc.analysis.lexicon import LexiconAnalyzer
 from manc.analysis.llm import LlmAnalyzer
 from manc.api.app import create_app
@@ -147,6 +148,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     for score in scores:
         print(_line(score))
+    if args.command == "run" and (mail := notify.MailSettings.from_env()):
+        try:
+            notify.send_reports(scores, mail, smtp=notify.SMTP)
+        except OSError as error:
+            log.error("mail: not sent: %s", error)
+            return 1
     return 0
 
 

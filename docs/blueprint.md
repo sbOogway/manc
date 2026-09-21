@@ -609,6 +609,7 @@ manc/
 │   ├── migrations/         # Alembic env.py + versions/
 │   ├── systemd/            # the production units and env.example, copied by `manc install`
 │   ├── install.py          # `manc install`: user, /var/lib/manc, /etc/manc/env, units (§8, Production)
+│   ├── notify.py           # the daily report by email at the end of `manc run` (MANC_MAIL_TO)
 │   ├── formulas/           # stdlib only, never imports the rest of manc
 │   │   ├── contract.py     # ScoringInputs, IndexScore, IndexFormula
 │   │   ├── registry.py     # get_formula("v1")
@@ -690,7 +691,10 @@ instance is the owner (`User=%i`, group `manc`, umask `0002`, the owner's `~/.lo
 loads `/etc/manc/env`: the provider keys, `MANC_DB_URL`, `MANC_API_PORT` (8888), `MANC_API_HOST`
 (loopback, or the LAN address the owner's tunnel machine reaches; the tunnel is not part of
 this stack) and, on a
-machine without a Claude login, `MANC_LLM_MODEL`. The server never builds or publishes the
+machine without a Claude login, `MANC_LLM_MODEL`; `MANC_MAIL_TO` and the `MANC_SMTP_*`
+variables make `manc run` end with the day's reports by email (`manc.notify`, standard-library
+SMTP with STARTTLS, one message per run, a failed send exits 1 after the scores are stored;
+added 2026-09-21). The server never builds or publishes the
 site: the dashboard is on GitHub Pages, published by the owner's `post-merge` hook, and reads
 the API through the tunnel hostname.
 

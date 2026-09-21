@@ -156,6 +156,12 @@ sudo journalctl -u manc-run@$USER -f           # its log
 A machine without a Claude Code login can run the daily step with a keyed model instead:
 `MANC_LLM_MODEL=mistral/ministral-14b-latest` in the env file.
 
+The daily report by email: set `MANC_MAIL_TO`, `MANC_SMTP_HOST`, `MANC_SMTP_USER` and
+`MANC_SMTP_PASSWORD` in the env file (plain SMTP with STARTTLS on 587; for Gmail an app
+password) and every `manc run` ends with one message, the scores in the subject and the
+report of every asset in the body. A send that fails is logged and exits 1; the scores are
+already stored.
+
 ## Development
 
 Test-driven: the failing test comes before the code. Every commit runs the pre-commit
