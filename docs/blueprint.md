@@ -666,10 +666,16 @@ dashboard build goes to `gh-pages`, so the published site follows `main` (the sc
 no-op on any other branch).
 
 Installing or updating a machine is one line (README, Production): `sudo uvx --from
-git+https://github.com/sbOogway/manc manc install --owner <user>`. `manc install` does the
-permanent `uv tool install` itself (tool, interpreter and entry point under `/opt/manc` and
-`/usr/local/bin`, all world-readable, unlike uv's defaults under `/root`), then lays out the
-machine below; it is idempotent and every command it runs must succeed. Scheduling is
+git+https://github.com/sbOogway/manc@v<version> manc install --owner <user>`. `manc install`
+does the permanent `uv tool install` itself (tool, interpreter and entry point under
+`/opt/manc` and `/usr/local/bin`, all world-readable, unlike uv's defaults under `/root`),
+then lays out the machine below; it is idempotent and every command it runs must succeed.
+What it installs is the release tag of its own version (`install.SOURCE`), never `main`, and
+the dependencies are the ones in `uv.lock`: `uv tool install` from git does not read the
+lock, so a pre-commit hook exports it to `src/manc/constraints.txt`, which ships in the wheel
+and goes to `--constraints`. A release is a version bump in `pyproject.toml` and
+`manc/__init__.py`, a tag `v<version>` and a GitHub release; `main` has branch protection
+(no force-push, no deletion). Scheduling is
 systemd timers from `src/manc/systemd/`: `manc-fetch.timer` runs `manc fetch` every 15
 minutes; `manc-run@<owner>.timer` runs `manc run` at 06:00 UTC every day (crypto trades on
 weekends) with `Persistent=true`, so a day the machine slept through runs at the next wake.
