@@ -37,7 +37,7 @@ def test_one_request_for_every_coin_with_an_id_and_one_row_per_metric_and_day() 
     metrics = CoinMetrics().fetch(COINS, START, END)
     assert route.call_count == 1
     request = route.calls[0].request
-    assert request.url.params["assets"] == "btc,eth,xrp,ada,ltc"  # SOL and BNB have no id
+    assert request.url.params["assets"] == "btc,eth,xrp,ada,ltc,zec,xaut"  # SOL and BNB have no id
     assert request.url.params["frequency"] == "1d"
     assert request.url.params["start_time"] == "2026-09-17"
     assert request.url.params["end_time"] == "2026-09-19"

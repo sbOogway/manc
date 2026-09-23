@@ -83,7 +83,7 @@ def test_first_economy_and_category_mentioned_win() -> None:
 
 
 def test_asset_mention_carries_its_sign() -> None:
-    assert _tags("Gold jumps to a record") == {"XAUUSD": 1}
+    assert _tags("Gold jumps to a record") == {"XAUUSD": 1, "XAUTUSD": 1}
     dollar = _tags("Dollar slides")
     assert dollar["EURUSD"] == dollar["AUDUSD"] == 1 and dollar["USDJPY"] == dollar["USDCHF"] == -1
     assert all(symbol.startswith(("USD", "EUR", "GBP", "AUD", "NZD")) for symbol in dollar)
@@ -91,7 +91,7 @@ def test_asset_mention_carries_its_sign() -> None:
 
 
 def test_mixed_or_balanced_titles_tag_zero() -> None:
-    assert _tags("Gold jumps then slides") == {"XAUUSD": 0}
+    assert _tags("Gold jumps then slides") == {"XAUUSD": 0, "XAUTUSD": 0}
     assert _tags("Stocks flat ahead of the Fed") == {"SPX": 0, "NDX": 0, "DJI": 0}
     assert _tags("US CPI cools but core prices jump")["EURUSD"] == 0
 
@@ -108,7 +108,7 @@ def test_summary_is_ignored() -> None:
 def test_uppercase_terms_are_case_sensitive() -> None:
     assert _tags("Airline fed up with delays cuts routes") == {}
     assert _tags("Fed cuts rates")["EURUSD"] == 1
-    assert _tags("gold jumps") == {"XAUUSD": 1}
+    assert _tags("gold jumps") == {"XAUUSD": 1, "XAUTUSD": 1}
 
 
 def _literal_terms(pairs: list[tuple[re.Pattern[str], str]]) -> list[tuple[str, str]]:

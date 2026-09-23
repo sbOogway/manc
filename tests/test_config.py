@@ -16,7 +16,7 @@ def test_repo_config_loads() -> None:
     config = load_config(REPO_CONFIG)
     symbols = [asset.symbol for asset in config.assets]
     assert symbols[:3] == ["EURUSD", "GBPUSD", "USDJPY"]
-    assert len(symbols) == len(set(symbols)) == 61
+    assert len(symbols) == len(set(symbols)) == 63
     assert {asset.kind for asset in config.assets} == {
         "forex",
         "metal",
@@ -96,17 +96,20 @@ def test_every_asset_has_a_yahoo_and_a_tradingview_symbol() -> None:
 def test_every_coin_names_its_chain_data_ids_and_nothing_else_does() -> None:
     config = load_config(REPO_CONFIG)
     coins = [asset for asset in config.assets if asset.kind == "crypto"]
-    assert all(asset.chain.get("defillama") for asset in coins)
+    assert [asset.symbol for asset in coins if not asset.chain.get("defillama")] == ["XAUTUSD"]
     assert [asset.symbol for asset in coins if not asset.chain.get("coinmetrics")] == [
         "SOLUSD",
         "BNBUSD",
     ]
     assert all(asset.chain.get("coingecko") for asset in coins)
-    assert next(asset.chain for asset in coins if asset.symbol == "BTCUSD") == {
+    chains = {asset.symbol: asset.chain for asset in coins}
+    assert chains["BTCUSD"] == {
         "coinmetrics": "btc",
         "defillama": "bitcoin",
         "coingecko": "bitcoin",
     }
+    assert chains["ZECUSD"] == {"coinmetrics": "zec", "defillama": "zcash", "coingecko": "zcash"}
+    assert chains["XAUTUSD"] == {"coinmetrics": "xaut", "coingecko": "tether-gold"}
     assert all(asset.chain == {} for asset in config.assets if asset.kind != "crypto")
 
 
@@ -251,6 +254,7 @@ def test_lexicon_loads_and_compiles_whole_word_patterns() -> None:
     }
     mentioned = {symbol for _pattern, symbol, _sign in lexicon.assets}
     assert {"EURUSD", "XAUUSD", "BRENT", "SPX", "BTCUSD", "WTI", "ETHUSD"} <= mentioned
+    assert {"ZECUSD", "XAUTUSD"} <= mentioned
     assert mentioned <= {asset.symbol for asset in load_config(REPO_CONFIG).assets}
     assert {sign for _pattern, sign in lexicon.polarity} == {-1, 0, 1}
     fed = next(pattern for pattern, _economy in lexicon.economies if pattern.search("Fed holds"))

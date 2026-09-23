@@ -1,4 +1,4 @@
-"""Coin Metrics Community API (docs/on-chain-sources.md): six coins, one request, no key.
+"""Coin Metrics Community API (docs/on-chain-sources.md): coins with an id, one request, no key.
 
 Daily rows complete about 02:30 UTC the next day. Data licensed CC BY-NC 4.0; the site
 credits the source.
