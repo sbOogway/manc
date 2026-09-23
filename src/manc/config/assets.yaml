@@ -10,11 +10,11 @@
 # "JPY=X", futures as "GC=F", indices as "^GSPC", coins as "BTC-USD", US yields as "^TNX".
 # `tradingview` is the EXCHANGE:TICKER the dashboard embeds next to the score chart.
 # `chain` names the coin at each on-chain or sentiment source (docs/on-chain-sources.md):
-# Coin Metrics Community covers five coins (not Solana, not today's BNB); DefiLlama and
-# CoinGecko cover all seven.
+# Coin Metrics Community skips Solana and today's BNB; DefiLlama covers every coin with a
+# chain of its own (not XAUT, an Ethereum token); CoinGecko covers every coin.
 # `active_kinds` lists the kinds a daily run scores and the dashboard shows; the other assets
 # stay defined so headlines keep being tagged for them and old scores stay reachable. Leave
-# the list empty to run everything (about 15 minutes a day for all 61 assets).
+# the list empty to run everything (about 15 minutes a day for every asset).
 active_kinds: [crypto]
 
 assets:
@@ -412,6 +412,20 @@ assets:
     economies: [united_states]
     signs:
       united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
+  ZECUSD:
+    spot: {yahoo: "ZEC-USD", tradingview: "COINBASE:ZECUSD"}
+    chain: {coinmetrics: "zec", defillama: "zcash", coingecko: "zcash"}
+    kind: crypto
+    economies: [united_states]
+    signs:
+      united_states: {inflation: -1, employment:  0, growth:  1, rates: -1}
+  XAUTUSD:  # Tether Gold, a token backed by gold: gold's signs
+    spot: {yahoo: "XAUT-USD", tradingview: "BITFINEX:XAUTUSD"}
+    chain: {coinmetrics: "xaut", coingecko: "tether-gold"}
+    kind: crypto
+    economies: [united_states]
+    signs:
+      united_states: {inflation: -1, employment: -1, growth: -1, rates: -1}
   # US Treasury yields
   US5Y:
     spot: {yahoo: "^FVX", tradingview: "TVC:US05Y"}

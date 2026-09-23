@@ -88,6 +88,8 @@ assets:  # mention -> sign of a positive phrase for the asset
   BNBUSD: {"BNB": 1, "Binance": 1}
   ADAUSD: {"cardano": 1, "ADA": 1}
   LTCUSD: {"litecoin": 1, "LTC": 1}
+  ZECUSD: {"zcash": 1, "ZEC": 1}
+  XAUTUSD: {"Tether Gold": 1, "XAUT": 1, "gold": 1, "bullion": 1}
   US10Y: {"yields?": 1, "Treasuries": 1, "10-year": 1}
 
 polarity:

@@ -157,6 +157,7 @@ def test_a_failing_batch_goes_to_the_fallback_analyzer(caplog: pytest.LogCapture
         tags = analyzer.tag([first, second], CONFIG.assets)
     assert [(tag.news_id, tag.asset, tag.direction, tag.model) for tag in tags] == [
         (first.id, "XAUUSD", 1, ""),
+        (first.id, "XAUTUSD", 1, ""),
         (second.id, "BTCUSD", 1, "free/model"),
     ]
     assert any("LexiconAnalyzer" in record.message for record in caplog.records)
