@@ -17,11 +17,11 @@ recently, and what is scheduled next, does the macro backdrop lean for or agains
 The answer is a single number from 0 (strong headwind) to 100 (strong tailwind), plus a short
 written report explaining it.
 
-The tracked assets live in `src/manc/config/assets.yaml`, 61 of them since 2026-09-20 in six kinds:
+The tracked assets live in `src/manc/config/assets.yaml`, in six kinds:
 forex (the majors, the main crosses and the dollar against CNY, MXN, BRL, ZAR, INR and KRW),
 metals (gold, silver, platinum, palladium, copper), commodities (Brent, WTI, natural gas and
 the main agriculturals), equity indices (the US benchmarks and those of Europe, Asia and
-Latin America), crypto (seven of the largest coins) and US Treasury yields. Each entry names the
+Latin America), crypto (the largest coins, plus Zcash and Tether Gold) and US Treasury yields. Each entry names the
 economies whose calendar moves it and the sign of a hotter-than-expected print per category;
 the file's header states the rules of thumb behind the signs. The dashboard filters the
 overview by kind. `active_kinds` in the same file says which kinds a daily run scores and the
@@ -300,10 +300,10 @@ and a config edit. A ticker that fails is a warning, not a failed run.
 
 For the coins only, display first (`docs/on-chain-sources.md` is the survey and the plan).
 `chain/` holds one adapter per source behind `ChainProvider.fetch(assets, start, end)`:
-`coinmetrics.py` (active addresses, MVRV, exchange in/out flows in USD; five coins in one
+`coinmetrics.py` (active addresses, MVRV, exchange in/out flows in USD; every coin it covers in one
 request, no key, CC BY-NC 4.0 so the site credits it; a day's row is complete about 02:30 UTC
-the next day), `defillama.py` (daily fees, TVL and stablecoin supply per chain, all seven
-coins, no key) and `solana_rpc.py` (mean non-vote transactions per second from the node's
+the next day), `defillama.py` (daily fees, TVL and stablecoin supply per chain, every
+coin with a chain of its own, no key) and `solana_rpc.py` (mean non-vote transactions per second from the node's
 recent performance samples; today only, no history), and two keyless sentiment sources next
 to them: `fear_greed.py` (CoinMarketCap's Fear & Greed index, market-wide, paged history,
 stored under every coin) and `coingecko.py` (community votes up and watchlist users per coin,
